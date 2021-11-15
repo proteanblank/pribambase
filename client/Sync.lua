@@ -18,7 +18,19 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-if pribambase_dlg then
+if app.apiVersion < 15 then
+    app.alert{title="Pribambase: Error", text={"This version of Aseprite is not supported", "",
+        "Current:", "  Version: " .. tostring(app.version), "  API version: " .. tostring(app.apiVersion),
+        "", "Required:", "  Version: 1.2.30 or 1.3-beta7 or newer", "  API version: 15 or newer",
+    }}
+    error()
+
+elseif WebSocket == nil then
+    app.alert{title="Pribambase: Error", text={"Websocket functionality is disabled in Aseprite.",
+        "If you're compiling it yourself, add \"-DENABLE_WEBSOCKET=ON\" to CMake options."}}
+    error()
+
+elseif pribambase_dlg then
     -- when everything's already running, only need to pop up the dialog again
     pribambase_dlg:show{ wait = false }
 
