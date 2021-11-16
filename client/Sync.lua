@@ -167,7 +167,7 @@ else
         buf:clear()
         buf:drawSprite(sprite, opts.frame)
 
-        return string.pack("<BHHs4I4", id, buf.width, buf.height, name, buf.rowStride * buf.height), buf.bytes
+        return string.pack("<BHHHs4I4", id, buf.width, buf.height, opts.frame.frameNumber, name, buf.rowStride * buf.height), buf.bytes
     end
 
     local _frames = {}

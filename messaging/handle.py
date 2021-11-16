@@ -49,10 +49,11 @@ class Image(Handler):
 
     def parse(self, args):
         args.size = self.take_uint(2), self.take_uint(2)
+        args.frame = self.take_uint(2)
         args.name = self.take_str()
         args.data = np.frombuffer(self.take_data(), dtype=np.ubyte)
 
-    async def execute(self, *, size:Tuple[int, int], name:str, data:np.array):
+    async def execute(self, *, size:Tuple[int, int], frame:int, name:str, data:np.array):
         try:
             # TODO separate cases for named and anonymous sprites
             if not bpy.context.window_manager.is_interface_locked:
