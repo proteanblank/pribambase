@@ -70,7 +70,7 @@ class NewImage(Image):
     async def execute(self, *, size:Tuple[int, int], name:str, data:np.array):
         _, short = path.split(name)
         img = util.new_packed_image(short, size[0], size[1])
-        img.sb_source = name
+        img.sb_props.source = name
         await super().execute(size=size, name=name, data=data)
 
 
@@ -103,8 +103,8 @@ class ChangeName(Handler):
 
         # avoid having identical sb_source on several images
         for img in bpy.data.images:
-            if old_name in (img.sb_source, img.filepath, img.name):
-                img.sb_source = new_name
+            if old_name in (img.sb_props.source, img.filepath, img.name):
+                img.sb_props.source = new_name
 
                 if re.search(r"\.(?:png|jpg|jpeg|bmp|tga)$", new_name):
                     img.filepath = new_name

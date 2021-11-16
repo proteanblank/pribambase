@@ -67,8 +67,8 @@ class ModalExecuteMixin:
 def image_name(img):
     fp = img.filepath
 
-    if img.sb_source:
-        return img.sb_source
+    if img.sb_props.source:
+        return img.sb_props.source
 
     elif not img.packed_file and fp:
         return bpy.path.abspath(fp) if fp.startswith("//") else fp
@@ -108,7 +108,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
         w, h, name, pixels = self.args
 
         for i in bpy.data.images:
-            if (i.sb_source == name) or \
+            if (i.sb_props.source == name) or \
                     (name == (bpy.path.abspath(i.filepath) if i.filepath.startswith("//") else i.filepath)) \
                     or (name == i.name):
                 img = i

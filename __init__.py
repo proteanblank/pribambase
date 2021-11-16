@@ -52,6 +52,7 @@ bl_info = {
 classes = (
     SB_State,
     SB_Preferences,
+    SB_ImageProperties,
 
     SB_OT_serv_start,
     SB_OT_serv_stop,
@@ -84,8 +85,7 @@ def register():
         register_class(cls)
 
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)
-    bpy.types.Image.sb_source = bpy.props.StringProperty(name="Sprite", subtype='FILE_PATH')
-    bpy.types.Image.sb_scale = bpy.props.IntProperty(name="Scale", min=1, max=50, default=1)
+    bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
 
     try:
         editor_menus = bpy.types.IMAGE_MT_editor_menus
@@ -121,8 +121,7 @@ def unregister():
     editor_menus.remove(SB_MT_menu_2d.header_draw)
 
     del bpy.types.Scene.sb_state
-    del bpy.types.Image.sb_source
-    del bpy.types.Image.sb_scale
+    del bpy.types.Image.sb_props
 
     from bpy.utils import unregister_class
     for cls in reversed(classes):
@@ -135,13 +134,8 @@ _images_hv = 0
 
 @persistent
 def start():
-    global _images_hv
-    _images_hv = hash(tuple(img.filepath for img in bpy.data.images))
-
-    bpy.ops.pribambase.reference_reload_all()
-
-    if addon.prefs.autostart:
-        addon.start_server()
+    # hasn't been called for already loaded file
+    sb_on_load_post(None)
 
     if sb_on_load_post not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(sb_on_load_post)
@@ -155,6 +149,8 @@ def start():
 
 @persistent
 def sb_on_load_post(scene):
+    settings.migrate()
+
     global _images_hv
     _images_hv = hash(frozenset(img.filepath for img in bpy.data.images))
 
