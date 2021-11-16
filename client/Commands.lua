@@ -24,8 +24,7 @@ pribambase_default_settings = {
     host="localhost",
     port="34613",
     autostart=false,
-    autoshow=false,
-    maxsize="65535"
+    autoshow=false
 }
 
 
@@ -59,7 +58,9 @@ function init(plugin)
 
     plugin:newCommand{
         id="SbSyncSettings",
-        title="Sync: Settings",
+        title="Sync Settings...",
+        group="file_export",
+        onenabled=function() return pribambase_dlg == nil end,
         onclick=run_script("Settings")
     }
 

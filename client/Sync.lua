@@ -46,8 +46,6 @@ else
     local handlers = {}
     -- main dialog
     local dlg = app.isUIAvailable and Dialog()
-    -- command dialog
-    local menu = Dialog()
     -- used to track the change of active sprite
     local spr = app.activeSprite
     -- used to track saving the image under a different name
@@ -105,7 +103,7 @@ else
     --[[ Messaging logic ]]
 
     local function sendImage(name, new)
-        if connected and spr ~= nil and math.max(spr.width, spr.height) <= tonumber(pribambase_settings.maxsize) then
+        if connected and spr ~= nil then
             ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame, new = new })
         end
     end
@@ -426,6 +424,7 @@ else
         elseif t == WebSocketMessageType.OPEN then
             connected = true
             dlg:modify{ id="status", text="Sync ON" }
+            dlg:modify{ id="reconnect", visible=false }
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
@@ -434,6 +433,7 @@ else
         elseif t == WebSocketMessageType.CLOSE and dlg ~= nil then
             connected = false
             dlg:modify{ id="status", text="Reconnecting..." }
+            dlg:modify{ id="reconnect", visible=true }
             if spr ~= nil then
                 spr.events:off(syncSprite)
             end
@@ -455,26 +455,9 @@ else
 
     -- create an UI
 
-    local function showMenu()
-        local ready = (connected and spr ~= nil)
-        -- temporarily disabled TODO see below
-        -- menu:modify{ id="texture", enabled=ready }
-        menu:modify{ id="update", enabled=ready }
-        menu:show()
-    end
-
-    menu:newrow{ always=true }
-    menu:separator{ text="Actions" }
-    -- disabled since it gets a bit upredictable in some cases -- TODO enable after temp images get blendfile reference
-    -- menu:button{ id="texture", text="Create Texture", onclick=function() createTexture() menu:close() end }
-    menu:button{ id="update", text="Force Refresh", onclick=function() syncSprite() menu:close() end }
-    menu:button{ id="reconnect", text="Reconnect", onclick=function() menu:close() ws:close() ws:connect() end }
-    menu:separator()
-    menu:button{ id="settings", text="* Settings", onclick=function() menu:close() app.command.SbSyncSettings() end }
-    menu:button{ id="back", text="< Back", focus=true}
-
     dlg:label{ id="status", label="Status", text="Connecting..." }
-    dlg:button{ id="actions", text="> Menu", onclick=showMenu, focus=true }
+    -- dlg:button{ id="actions", text="> Menu", onclick=showMenu, focus=true }
+    dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=cleanup }
     dlg:button{ text="_ Hide" }

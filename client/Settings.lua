@@ -51,7 +51,6 @@ dlg:separator{text="Connection"}
     :entry{id="port", label="Port", text=pribambase_settings.port}
     :check{id="autostart", label="Connect when Aseprite launches", selected=pribambase_settings.autostart, onclick=changeAutoshow}
     :check{id="autoshow", label="Show when Aseprite launches", selected=pribambase_settings.autoshow, visible=dlg.data.autostart}
-    :number{id="maxsize", label="Size Limit", decimals=0, text=tostring(pribambase_settings.maxsize)}
 
     :separator()
     :button{text="Defaults", onclick=restoreDefaults}
