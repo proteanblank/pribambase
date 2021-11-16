@@ -163,6 +163,29 @@ else
         return string.pack("<BHHs4I4", id, buf.width, buf.height, name, buf.rowStride * buf.height), buf.bytes
     end
 
+    local _frames = {}
+    local function messageSpritesheet(opts)
+        local sprite = opts.sprite
+        local name = opts.name or ""
+        local id = string.byte('G')
+
+        if buf.width ~= sprite.width or buf.height ~= sprite.height then
+            buf:resize(sprite.width, sprite.height)
+        end
+
+        local nframes = #sprite.frames
+        local size = buf.rowStride * buf.height
+
+        for i=1,nframes do
+            buf:clear()
+            buf:drawSprite(sprite, i)
+
+            _frames[2 * i - 1] = string.pack("<I4", size)
+            _frames[2 * i] = buf.bytes
+        end
+
+        return string.pack("<BHHs4I4", id, buf.width, buf.height, name, nframes), table.unpack(_frames)
+    end
 
     local function messageChangeName(opts)
         return string.pack("<Bs4s4", string.byte('C'), opts.from, opts.to)
@@ -185,6 +208,12 @@ else
     local function sendImage(name)
         if connected and spr ~= nil then
             ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame})
+        end
+    end
+
+    local function sendSpritesheet(name)
+        if connected and spr ~= nil then
+            ws:sendBinary(messageSpritesheet{ sprite=spr, name=name })
         end
     end
 
@@ -573,6 +602,11 @@ else
 
     dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
+
+    -- DEBUG
+    dlg:newrow()
+    dlg:button{ text="OH SHEET", onclick=function() sendSpritesheet(spr.filename) end }
+
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=cleanup }
     dlg:button{ text="_ Hide" }

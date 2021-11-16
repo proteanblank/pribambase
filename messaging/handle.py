@@ -21,7 +21,8 @@
 import bpy
 import asyncio
 import re
-from typing import Tuple, Iterable
+import math
+from typing import List, Tuple, Iterable
 from os import path
 from . import Handler
 import numpy as np
@@ -101,3 +102,41 @@ class ChangeName(Handler):
                     img.filepath = ""
 
                 bpy.ops.pribambase.texture_list()
+
+
+class Spritesheet(Handler):
+    """Change textures' sources when aseprite saves the file under a new name"""
+    id = 'G'
+
+    def parse(self, args):
+        args.size = self.take_uint(2), self.take_uint(2)
+        args.name = self.take_str()
+        args.length = self.take_uint(4)
+        args.frames = [self.take_data() for _ in range(args.length)]
+
+
+    async def execute(self, *, size:Tuple[int, int], name:str, length:int, frames:List[np.array]):
+        count_x = math.ceil(length ** 0.5)
+        count_y = math.ceil(length / count_x)
+        w, h = size
+        stride = w * 4
+
+        # TODO profile if changing to .empty gives significant perf (at cost of messy look)
+        sheet_data = np.zeros((h * count_y, w * count_x * 4), dtype=np.ubyte)
+
+        for n,frame in enumerate(frames):
+            # TODO is there a way to just swap the nparray's buffer? 
+            x, y = n % count_x, n // count_x
+            fd = np.frombuffer(frame, dtype=np.ubyte)
+            fd.shape = (h, stride)
+            dst = sheet_data[y * h : (y + 1) * h, x * stride: (x + 1) * stride]
+            np.copyto(dst, fd, casting='no')
+
+        try:
+            if not bpy.context.window_manager.is_interface_locked:
+                util.update_image(w * count_x, h * count_y, name, sheet_data)
+            else:
+                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+        except:
+            # version 2.80... caveat emptor
+            util.update_image(w * count_x, h * count_y, name, sheet_data)
