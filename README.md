@@ -45,7 +45,7 @@ After the plugins are installed, turn each of them on before drawing: nn blender
 * Use **Image Editor > Sprite** menu to load aseprite files as textures, or create new ones
 * Use **Sprite > Send UV** to show the UV Map in aseprite
 
-See [Reference](Reference) for all features.
+See [Reference](https://github.com/lampysprites/pribambase/wiki/Reference) for all features.
 
 ## Source
 
