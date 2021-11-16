@@ -88,7 +88,7 @@ class SB_OT_reference_add(bpy.types.Operator):
         #image.pack() # NOTE without packing it breaks after reload but so what
         w, h = image.size
         scale_image(image, self.scale)
-        image.sb_scale = self.scale
+        image.sb_props.prescale = self.scale
 
         bpy.ops.object.add(align='WORLD', rotation=(pi/2, 0, 0), location = (0, 0, 0))
         ref = context.active_object
@@ -120,7 +120,7 @@ class SB_OT_reference_reload(bpy.types.Operator):
     def execute(self, context):
         image = context.object.data
         image.reload()
-        scale_image(image, image.sb_scale)
+        scale_image(image, image.sb_props.prescale)
 
         return {'FINISHED'}
 
@@ -136,7 +136,7 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
             if obj.type == 'EMPTY' and obj.empty_display_type == 'IMAGE':
                 image = obj.data
                 image.reload()
-                scale_image(image, image.sb_scale)
+                scale_image(image, image.sb_props.prescale)
 
         return {'FINISHED'}
 
