@@ -45,6 +45,8 @@ After the plugins are installed, turn each of them on before drawing: nn blender
 * Use **Image Editor > Sprite** menu to load aseprite files as textures, or create new ones
 * Use **Sprite > Send UV** to show the UV Map in aseprite
 
+___To see the changes appear on the 3D object, assign a material that uses the new textures to it, and switch the viewport to material preview/rendered. Just like you'd do without the addon. To first timers I recommend [MortMort's Zero 2 Hero basic course](https://www.youtube.com/playlist?list=PLR3Ra9cf8aV23C2oBB3aFLla6ABAPYiDk) (it's free thanks to Mort and his supporters)___
+
 See [Reference](https://github.com/lampysprites/pribambase/wiki/Reference) for all features.
 
 ## Source
