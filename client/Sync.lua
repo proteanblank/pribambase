@@ -61,6 +61,13 @@ else
     local frame = -1
     -- used to pause the app from processing updates
     local pause_app_change = false
+    -- pick how much to send to blender
+    local SYNC_VIEW = "View"
+    local SYNC_SHEET = "All Frames"
+    local DOMAINS = { SYNC_VIEW, SYNC_SHEET }
+    local domain = SYNC_SHEET
+
+
     -- Set up an image buffer for two reasons:
     -- a) the active cel might not be the same size as the sprite
     -- b) the sprite might not be in RGBA mode, and it's easier to use ase
@@ -327,7 +334,11 @@ else
 
         local s = spr.filename
         if syncList[s] and docList[spr] == blendfile then
-            sendImage(s)
+            if domain == SYNC_VIEW then
+                sendImage(s)
+            elseif domain == SYNC_SHEET then
+                sendSpritesheet(s)
+            end
         end
     end
 
@@ -585,8 +596,14 @@ else
     end
 
     
-    -- doclist can have stuff from the last launch
-    docListClean()
+    local function changeDomain()
+        domain = dlg.data.domain
+        dlg:modify{ id="full", visible=(domain==SYNC_VIEW) }
+        if domain==SYNC_SHEET then
+            syncSprite()
+        end
+    end
+
 
     -- set up a websocket
     ws = WebSocket{
@@ -594,6 +611,9 @@ else
         onreceive=receive,
         deflate=false
     }
+
+    -- doclist can have stuff from the last launch
+    docListClean()
 
     --[[ global ]] pribambase_dlg = dlg
     app.events:on("sitechange", onAppChange)
@@ -603,9 +623,9 @@ else
     dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
 
-    -- DEBUG
-    dlg:newrow()
-    dlg:button{ text="OH SHEET", onclick=function() sendSpritesheet(spr.filename) end }
+    dlg:combobox{ id="domain", label="Sync", option=domain, options=DOMAINS, onchange=changeDomain }
+    dlg:button{ id="full", text="Update", onclick=function() sendSpritesheet(spr.filename) end }
+    dlg:modify{ id="full", visible=(domain==SYNC_VIEW) }
 
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=cleanup }
