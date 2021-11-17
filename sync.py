@@ -103,7 +103,8 @@ class Server():
 
         # client connected
         imgs = tuple(util.image_name(img) for img in bpy.data.images)
-        await self._ws.send_bytes(encode.texture_list(imgs), False)
+        bf = bpy.context.scene.sb_state.identifier
+        await self._ws.send_bytes(encode.texture_list(bf, imgs), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
         util.refresh()
 
@@ -165,8 +166,10 @@ class SB_OT_texture_list(bpy.types.Operator):
 
 
     def execute(self, context):
-        images = (util.image_name(img) for img in bpy.data.images)
-        msg = encode.texture_list(images)
-        addon.server.send(msg)
+        if addon.connected:
+            images = (util.image_name(img) for img in bpy.data.images)
+            bf = context.scene.sb_state.identifier
+            msg = encode.texture_list(bf, images)
+            addon.server.send(msg)
 
         return {'FINISHED'}

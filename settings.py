@@ -19,30 +19,42 @@
 # SOFTWARE.
 
 import bpy
+import secrets
 
 from .addon import addon
 
 
+def get_identifier(self):
+    if bpy.data.filepath:
+        return bpy.data.filepath
+
+    if "_identifier" not in self:
+        self["_identifier"] = secrets.token_hex(4) # 8 chars should be enough?
+
+    return self["_identifier"]
+
 
 class SB_State(bpy.types.PropertyGroup):
-    # once, here were some session settings
-    # they may come useful again so let's keep it wired
-    pass
+    """Pribambase file-related data"""
+    identifier: bpy.props.StringProperty(
+        name="Identifier",
+        description="Unique but not permanent id for the current file. Prevents accidentally syncing textures from another file",
+        get=get_identifier)
 
 
 class SB_ImageProperties(bpy.types.PropertyGroup):
     """Pribambase image-related data"""
-    
+
     source: bpy.props.StringProperty(
         name="Sprite",
-        description="The file from which the image was created, and that will be synced with this image.",
+        description="The file from which the image was created, and that will be synced with this image",
         subtype='FILE_PATH')
-    
+
     prescale: bpy.props.IntProperty(
         name="Prescale",
         description="",
-        min=1, 
-        max=50, 
+        min=1,
+        max=50,
         default=1)
 
 

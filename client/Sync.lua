@@ -37,11 +37,18 @@ elseif pribambase_dlg then
 else
     -- start a websocket and change observers
 
+    --[[ global ]] pribambase_docs = pribambase_docs or {} -- used as shadow table for docList, not directly
+
     local settings = pribambase_settings
     local ws
     local connected = false
-    -- the list of texures open in blender
+    -- blender file identifier, unique but not permanent (path or random hex string)
+    local blendfile = ""
+    -- the list of texures open in blender, structured as { identifier:str=true }
     local syncList = {}
+    -- the list of currently open sprites ever synced, structured as { doc:Sprite=origin:str }
+    -- needed to a) avoid syncing same named texture to different docs b) (TODO) when blender is not available, store critical changes to process later
+    local docList = {}
     -- map MessageID to handler callback
     local handlers = {}
     -- main dialog
@@ -54,14 +61,67 @@ else
     local frame = -1
     -- used to pause the app from processing updates
     local pause_app_change = false
-
-
     -- Set up an image buffer for two reasons:
     -- a) the active cel might not be the same size as the sprite
     -- b) the sprite might not be in RGBA mode, and it's easier to use ase
     --    than do conversions on the other side.
     local buf = Image(1, 1, ColorMode.RGB)
 
+    
+    -- wrap the doc list
+    -- the biggest reason for do ing it kike os is index method: ase api creates a new userdata every time it returns a sprite, let's switch to `spr1 == spr2` which uses an internal id check
+    setmetatable(docList, {
+        __pairs= function(_) return pairs(pribambase_docs) end,
+        __newindex= function(_, key, val)
+            for k,_ in pairs(pribambase_docs) do
+                if k == key then
+                    pribambase_docs[k] = val
+                    return
+                end
+            end
+            pribambase_docs[key] = val
+        end,
+        __index= function(_, key)
+            for k,v in pairs(pribambase_docs) do
+                if k == key then
+                    return v
+                end
+            end
+            return nil
+        end,
+        removeClosed=function(t)
+            for doc,_ in pairs(t) do
+                pcall(t._remove, t, doc)
+            end
+        end,
+        _remove= function(doc)
+            -- impl; use via pcall bc ase is stinky about trying to use old objects
+            local found = false
+            for _,s in ipairs(app.sprites) do
+                if s == doc then
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                docList[doc] = nil
+            end
+        end
+        })
+
+    -- clean at start
+    docList:removeClosed()
+
+
+    local function isUntitled(blend)
+        -- hex string means the file is not yet saved
+        return not not string.match(blend, "^%x+$")
+    end
+
+    -- true for saved sprites, false for unsaved
+    local function isSprite(sprName)
+        return app.fs.filePath(sprName) and app.fs.isFile(sprName)
+    end
 
     --[[
         State-independent messsage packing functions.
@@ -192,14 +252,21 @@ else
 
     -- check if the file got renamed
     local function checkFilename()
-        if spr and spr == app.activeSprite and syncList[sprfile] and spr.filename ~= sprfile then
+        if spr == nil then return end
+
+        local newname = spr.filename
+        if spr and spr == app.activeSprite and syncList[sprfile] and docList[spr] == blendfile and newname ~= sprfile then
             -- renamed
             if sprfile ~= "" then
-                ws:sendBinary(messageChangeName{ from=sprfile, to=spr.filename })
+                ws:sendBinary(messageChangeName{ from=sprfile, to=newname })
             end
-            sprfile = spr.filename
+
+            syncList[newname] = true
+            syncList[sprfile] = nil
+
+            sprfile = newname
         elseif spr then
-            sprfile = spr.filename
+            sprfile = newname
         end
     end
 
@@ -210,7 +277,7 @@ else
         checkFilename()
 
         local s = spr.filename
-        if syncList[s] then
+        if syncList[s] and docList[spr] == blendfile then
             sendImage(s)
         end
     end
@@ -228,6 +295,9 @@ else
                 spr.events:off(syncSprite)
             end
 
+            -- remove closed docs from docList to avoid null doc::Sprite errors
+            docList:removeClosed()
+
             -- start watching the active sprite
             -- nil when it's the startpage or empty window
             if app.activeSprite then
@@ -242,9 +312,16 @@ else
             spr = app.activeSprite
             sprfile = ""
 
+            if spr ~= nil then
+                local sf = spr.filename
+                if (docList[spr] == nil or isSprite(sf)) and syncList[sf] ~= nil then
+                    docList[spr] = blendfile -- TODO after adding sync props, assign them
+                end
+            end
+
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
-                frame = app.activeFrame.frameNumber
-                syncSprite()
+            frame = app.activeFrame.frameNumber
+            syncSprite()
         end
     end
 
@@ -268,6 +345,8 @@ else
 
     local function handleImage(msg)
         local _id, w, h, name, pixels = string.unpack("<BHHs4s4", msg)
+        
+        pause_app_change = true
 
         local sprite = Sprite(w, h, ColorMode.RGB)
         if #name > 0 then
@@ -275,6 +354,10 @@ else
         end
         app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
         sprite.cels[1].image.bytes = pixels
+        
+        pause_app_change = false
+        onAppChange()
+
         syncSprite()
     end
 
@@ -308,9 +391,13 @@ else
 
     local function handleTextureList(msg)
         local _id = string.unpack("<BH", msg)
-        local offset = 2
         local ml = #msg
         local synced = spr and syncList[spr.filename]
+        local bflen = string.unpack("<I4", msg, 2)
+        local offset = 2 + 4 + bflen -- start of the image names
+
+        blendfile = string.unpack("<s4", msg, 2)
+        dlg:modify{ id="status", text=(isUntitled(blendfile) and "ON: untitled" or "ON: " .. app.fs.fileName(blendfile)) }
 
         syncList = {}
 
@@ -319,6 +406,13 @@ else
             local name = string.unpack("<s4", msg, offset)
             syncList[name] = true
             offset = offset + 4 + len
+        end
+
+        for i,s in ipairs(app.sprites) do
+            local sf = s.filename
+            if syncList[sf] and (docList[s] == nil or isSprite(sf)) then
+                docList[s] = blendfile -- TODO see comment on a similar statement in appchange
+            end
         end
 
         if not synced then
@@ -345,7 +439,7 @@ else
 
         syncList[name] = true
         pause_app_change = false
-        onAppChange()
+        onAppChange() -- adds to doclist
     end
 
 
@@ -380,7 +474,7 @@ else
             else
                 syncSprite()
             end
-        elseif app.fs.filePath(path) and app.fs.isFile(path) then -- check if absolute path; message can't contain rel path, so getting one mean it's a datablock name, and we don't need to open it if it isn't
+        elseif isSprite(path) then -- check if absolute path; message can't contain rel path, so getting one mean it's a datablock name, and we don't need to open it if it isn't
             Sprite{ fromFile = path }
         end
     end
@@ -455,8 +549,7 @@ else
 
     -- create an UI
 
-    dlg:label{ id="status", label="Status", text="Connecting..." }
-    -- dlg:button{ id="actions", text="> Menu", onclick=showMenu, focus=true }
+    dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=cleanup }

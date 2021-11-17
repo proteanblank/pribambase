@@ -33,9 +33,10 @@ def batch(messages:Sequence[bytearray]) -> bytearray:
     return data
 
 
-def texture_list(images:Iterable[str]) -> bytearray:
+def texture_list(blendfile:str, images:Iterable[str]) -> bytearray:
     data = bytearray()
     add_id(data, 'L')
+    add_string(data, blendfile)
 
     for img in images:
         add_string(data, img)

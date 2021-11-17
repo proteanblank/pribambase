@@ -111,6 +111,9 @@ def unregister():
     if sb_on_load_pre in bpy.app.handlers.load_pre:
         bpy.app.handlers.load_pre.remove(sb_on_load_pre)
 
+    if sb_on_save_post in bpy.app.handlers.save_post:
+        bpy.app.handlers.save_post.remove(sb_on_save_post)
+
     if sb_on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(sb_on_depsgraph_update_post)
 
@@ -143,6 +146,9 @@ def start():
     if sb_on_load_pre not in bpy.app.handlers.load_pre:
         bpy.app.handlers.load_pre.append(sb_on_load_pre)
 
+    if sb_on_save_post not in bpy.app.handlers.save_post:
+        bpy.app.handlers.save_post.append(sb_on_save_post)
+
     if sb_on_depsgraph_update_post not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(sb_on_depsgraph_update_post)
 
@@ -167,6 +173,11 @@ def sb_on_load_pre(scene):
 
 
 @persistent
+def sb_on_save_post(scene):
+    bpy.ops.pribambase.texture_list()
+
+
+@persistent
 def sb_on_depsgraph_update_post(scene):
     global _images_hv
 
@@ -179,7 +190,7 @@ def sb_on_depsgraph_update_post(scene):
         if _images_hv != hv:
             _images_hv = hv
             if addon.server_up:
-                addon.server.send(encode.texture_list(imgs))
+                addon.server.send(encode.texture_list(scene.sb_state.identifier, imgs))
 
 
 @contextmanager
