@@ -44,7 +44,7 @@ class Batch(Handler):
 
 
 class Image(Handler):
-    id = 'I'
+    id = "I"
 
     def parse(self, args):
         args.size = self.take_uint(2), self.take_uint(2)
@@ -65,7 +65,7 @@ class Image(Handler):
 
 class TextureList(Handler):
     """Send the list of available textures"""
-    id = 'L'
+    id = "L"
 
     async def execute(self):
         bpy.ops.pribambase.texture_list()
@@ -73,7 +73,7 @@ class TextureList(Handler):
 
 class ChangeName(Handler):
     """Change textures' sources when aseprite saves the file under a new name"""
-    id = 'C'
+    id = "C"
 
     def parse(self, args):
         args.old_name = self.take_str()

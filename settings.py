@@ -20,7 +20,6 @@
 
 import bpy
 import secrets
-import os.path
 
 from .addon import addon
 
@@ -61,17 +60,17 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
 
 class SB_ImageProperties(bpy.types.PropertyGroup):
     """Pribambase image-related data"""
-    
+
     source: bpy.props.StringProperty(
         name="Sprite",
-        description="The file from which the image was created, and that will be synced with this image.",
+        description="The file from which the image was created, and that will be synced with this image",
         subtype='FILE_PATH')
-    
+
     prescale: bpy.props.IntProperty(
         name="Prescale",
         description="",
-        min=1, 
-        max=50, 
+        min=1,
+        max=50,
         default=1)
     
     source_abs:bpy.props.StringProperty(

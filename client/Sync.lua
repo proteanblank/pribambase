@@ -313,6 +313,19 @@ else
             -- stop watching the hidden sprite
             if spr then
                 spr.events:off(syncSprite)
+
+                -- remove closed docs from docList
+                local found = false
+                local sprn = spr.filename
+                for _,doc in ipairs(app.sprites) do
+                    if doc.filename == sprn then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    docList[sprn] = nil
+                end
             end
 
             -- remove closed docs from docList to avoid null doc::Sprite errors
