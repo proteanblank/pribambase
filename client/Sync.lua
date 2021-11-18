@@ -457,7 +457,7 @@ else
     local function handleFocus(msg)
         local _id, path = string.unpack("<Bs4", msg)
 
-        local s = findOpenDoc(path, blendfile)
+        local s = findOpenDoc(path, isSprite(path) and blendfile or nil)
         if s then
             app.activeSprite = s
         end
@@ -466,7 +466,7 @@ else
 
     local function handleOpenSprite(msg)
         local _id, path = string.unpack("<Bs4", msg)
-        local opened = findOpenDoc(path, blendfile)
+        local opened = findOpenDoc(path) -- ignore blendfile origin here bc this message is always file-based
 
         syncList[path] = true
 
