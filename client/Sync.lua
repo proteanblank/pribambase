@@ -68,8 +68,8 @@ else
     local buf = Image(1, 1, ColorMode.RGB)
 
     
-    -- wrap the doc list
-    -- the biggest reason for do ing it kike os is index method: ase api creates a new userdata every time it returns a sprite, let's switch to `spr1 == spr2` which uses an internal id check
+    -- wrap the doc list to turn it into { Sprite => data }  map
+    -- ase api creates a new userdata every time it returns a sprite, let's switch to `spr1 == spr2` which uses an internal id check
     setmetatable(docList, {
         __pairs= function(_) return pairs(pribambase_docs) end,
         __newindex= function(_, key, val)
@@ -110,9 +110,6 @@ else
             pcall(_docListClean, doc)
         end
     end
-
-    -- clean at start
-    docListClean()
 
 
     local function isUntitled(blend)
@@ -538,6 +535,9 @@ else
         checkFilename()
     end
 
+    
+    -- doclist can have stuff from the last launch
+    docListClean()
 
     -- set up a websocket
     ws = WebSocket{
