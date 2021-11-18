@@ -447,3 +447,10 @@ class SB_MT_menu_2d(bpy.types.Menu):
     def header_draw(self, context):
         # deceiptively, self is not the menu here but the header
         self.layout.menu("SB_MT_menu_2d")
+
+
+def sb_draw_image_info(self, context):
+    layout = self.layout
+
+    if context.edit_image is not None:
+        layout.prop(context.edit_image.sb_props, "source", expand=True)

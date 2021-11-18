@@ -93,6 +93,8 @@ def register():
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.append(SB_MT_menu_2d.header_draw)
 
+    bpy.types.IMAGE_PT_image_properties.append(sb_draw_image_info)
+
     # delay is just in case something else happens at startup
     # `persistent` protects the timer if the user loads a file before it fires
     bpy.app.timers.register(start, first_interval=0.5, persistent=True)
@@ -119,6 +121,8 @@ def unregister():
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.remove(SB_MT_menu_2d.header_draw)
+
+    bpy.types.IMAGE_PT_image_properties.remove(sb_draw_image_info)
 
     del bpy.types.Scene.sb_state
     del bpy.types.Image.sb_props
