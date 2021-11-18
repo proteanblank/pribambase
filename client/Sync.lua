@@ -73,7 +73,7 @@ else
     local function messageImage(opts)
         local sprite = opts.sprite
         local name = opts.name or ""
-        local id = string.byte(opts.new and 'N' or 'I')
+        local id = string.byte('I')
 
         if buf.width ~= sprite.width or buf.height ~= sprite.height then
             buf:resize(sprite.width, sprite.height)
@@ -104,9 +104,9 @@ else
 
     --[[ Messaging logic ]]
 
-    local function sendImage(name, new)
+    local function sendImage(name)
         if connected and spr ~= nil and math.max(spr.width, spr.height) <= tonumber(pribambase_settings.maxsize) then
-            ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame, new = new })
+            ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame})
         end
     end
 
@@ -258,11 +258,6 @@ else
         pribambase_dlg = nil
         if spr~=nil then spr.events:off(syncSprite) end
         app.events:off(onAppChange)
-    end
-
-
-    local function createTexture()
-        sendImage(spr.filename or "Sprite", true)
     end
 
 

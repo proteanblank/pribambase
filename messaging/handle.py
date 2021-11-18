@@ -63,17 +63,6 @@ class Image(Handler):
             util.update_image(size[0], size[1], name, data)
 
 
-class NewImage(Image):
-    """Same as image except it creates a named image if it doesn't exist"""
-    id = 'N'
-
-    async def execute(self, *, size:Tuple[int, int], name:str, data:np.array):
-        _, short = path.split(name)
-        img = util.new_packed_image(short, size[0], size[1])
-        img.sb_props.source_set(name)
-        await super().execute(size=size, name=name, data=data)
-
-
 class TextureList(Handler):
     """Send the list of available textures"""
     id = 'L'

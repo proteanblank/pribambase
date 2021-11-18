@@ -245,25 +245,24 @@ class SB_OT_open_sprite(bpy.types.Operator):
 
 
     def execute(self, context):
-        source = bpy.path.abspath(self.filepath)
-        _, name = path.split(source)
+        _, name = path.split(self.filepath)
         img = None
 
         self.__class__._last_relative = self.relative
 
         try:
             # we might have this image opened already
-            img = next(i for i in bpy.data.images if i.sb_props.source_abs == source)
+            img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
         except StopIteration:
             # create a stub that will be filled after receiving data
             img = util.new_packed_image(name, 1, 1)
-            img.sb_props.source_set(source, self.relative)
+            img.sb_props.source_set(self.filepath, self.relative)
 
         # switch to the image in the editor
         if context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
 
-        msg = encode.sprite_open(source)
+        msg = encode.sprite_open(self.filepath)
         addon.server.send(msg)
 
         return {'FINISHED'}
@@ -319,7 +318,6 @@ class SB_OT_new_sprite(bpy.types.Operator):
 
         # create a stub that will be filled after receiving data
         img = util.new_packed_image(self.sprite, 1, 1)
-        img.sb_props.source = img.name # can get an additional suffix, e.g. "Sprite.001"
         # switch to it in the editor
         if context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
@@ -330,7 +328,7 @@ class SB_OT_new_sprite(bpy.types.Operator):
                 mode = i
 
         msg = encode.sprite_new(
-            name=img.sb_props.source,
+            name=img.name,
             size=self.size,
             mode=mode)
 
@@ -426,9 +424,8 @@ class SB_OT_replace_sprite(bpy.types.Operator):
     def execute(self, context):
         self.__class__._last_relative = self.relative
 
-        source = bpy.path.abspath(self.filepath)
-        context.edit_image.sb_props.source_set(source, self.relative)
-        msg = encode.sprite_open(source)
+        context.edit_image.sb_props.source_set(self.filepath, self.relative)
+        msg = encode.sprite_open(self.filepath)
         addon.server.send(msg)
 
         return {'FINISHED'}
