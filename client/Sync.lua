@@ -88,29 +88,31 @@ else
                 end
             end
             return nil
-        end,
-        removeClosed=function(t)
-            for doc,_ in pairs(t) do
-                pcall(t._remove, t, doc)
-            end
-        end,
-        _remove= function(doc)
-            -- impl; use via pcall bc ase is stinky about trying to use old objects
-            local found = false
-            for _,s in ipairs(app.sprites) do
-                if s == doc then
-                    found = true
-                    break
-                end
-            end
-            if not found then
-                docList[doc] = nil
+        end })
+
+        
+    local function _docListClean(doc)
+        local found = false
+        for _,s in ipairs(app.sprites) do
+            if s == doc then
+                found = true
+                break
             end
         end
-        })
+        if not found then
+            docList[doc] = nil
+        end
+    end
+
+    local function docListClean()
+        for doc,_ in pairs(docList) do
+            -- pcall bc ase  errors when trying to use variables for disposed docs
+            pcall(_docListClean, doc)
+        end
+    end
 
     -- clean at start
-    docList:removeClosed()
+    docListClean()
 
 
     local function isUntitled(blend)
@@ -121,6 +123,15 @@ else
     -- true for saved sprites, false for unsaved
     local function isSprite(sprName)
         return app.fs.filePath(sprName) and app.fs.isFile(sprName)
+    end
+
+    local function findOpenDoc(name, origin)
+        for _,s in ipairs(app.sprites) do
+            if s.filename == name and (origin == nil or docList[s] == origin) then
+                return s
+            end
+        end
+        return nil
     end
 
     --[[
@@ -296,7 +307,7 @@ else
             end
 
             -- remove closed docs from docList to avoid null doc::Sprite errors
-            docList:removeClosed()
+            docListClean()
 
             -- start watching the active sprite
             -- nil when it's the startpage or empty window
@@ -346,17 +357,24 @@ else
     local function handleImage(msg)
         local _id, w, h, name, pixels = string.unpack("<BHHs4s4", msg)
         
-        pause_app_change = true
+        local sprite = findOpenDoc(name, blendfile)
 
-        local sprite = Sprite(w, h, ColorMode.RGB)
-        if #name > 0 then
-            sprite.filename = name
+        if sprite ~= nil and name ~= "" then
+            -- not updating existing images for time being, bc the result is only obvious for 1-layer 1-frame sprites
+            app.activeSprite = sprite
+        else
+            pause_app_change = true
+
+            sprite = Sprite(w, h, ColorMode.RGB)
+            if #name > 0 then
+                sprite.filename = name
+            end
+            app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
+            sprite.cels[1].image.bytes = pixels
+
+            pause_app_change = false
+            onAppChange()
         end
-        app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
-        sprite.cels[1].image.bytes = pixels
-        
-        pause_app_change = false
-        onAppChange()
 
         syncSprite()
     end
@@ -366,17 +384,10 @@ else
         local _id, opacity, w, h, layer, sprite, pixels = string.unpack("<BBHHs4s4s4", msg)
 
         if sprite ~= "" then
-            local found = false
-
-            for _,s in ipairs(app.sprites) do
-                if s.filename == sprite then
-                    app.activeSprite = s
-                    found = true
-                    break
-                end
-            end
-
-            if not found then
+            local s = findOpenDoc(sprite, blendfile)
+            if s then
+                app.activeSprite = s
+            else
                 return
             end
         elseif spr == nil then
@@ -446,27 +457,18 @@ else
     local function handleFocus(msg)
         local _id, path = string.unpack("<Bs4", msg)
 
-        for _,sprite in ipairs(app.sprites) do
-            if sprite.filename == path then
-                app.activeSprite = sprite
-                break
-            end
+        local s = findOpenDoc(path, blendfile)
+        if s then
+            app.activeSprite = s
         end
     end
 
 
     local function handleOpenSprite(msg)
         local _id, path = string.unpack("<Bs4", msg)
+        local opened = findOpenDoc(path, blendfile)
 
         syncList[path] = true
-
-        local opened
-        for _,sprite in ipairs(app.sprites) do
-            if sprite.filename == path then
-                opened = sprite
-                break
-            end
-        end
 
         if opened then
             if app.activeSprite ~= opened then
@@ -475,7 +477,7 @@ else
                 syncSprite()
             end
         elseif isSprite(path) then -- check if absolute path; message can't contain rel path, so getting one mean it's a datablock name, and we don't need to open it if it isn't
-            Sprite{ fromFile = path }
+            Sprite{ fromFile=path }
         end
     end
 
