@@ -152,7 +152,7 @@ def sb_on_load_post(scene):
     settings.migrate()
 
     global _images_hv
-    _images_hv = hash(frozenset(img.filepath for img in bpy.data.images))
+    _images_hv = hash(frozenset(util.image_name(img) for img in bpy.data.images))
 
     bpy.ops.pribambase.reference_reload_all()
 

@@ -66,14 +66,15 @@ class ModalExecuteMixin:
 
 def image_name(img):
     fp = img.filepath
+    name = img.name
 
     if img.sb_props.source:
-        return img.sb_props.source
+        name = os.path.normpath(img.sb_props.source_abs)
 
     elif not img.packed_file and fp:
-        return bpy.path.abspath(fp) if fp.startswith("//") else fp
+        name = os.path.normpath(bpy.path.abspath(fp) if fp.startswith("//") else fp)
 
-    return img.name
+    return name
 
 
 def new_packed_image(name, w, h):
@@ -107,13 +108,9 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
         img = None
         w, h, name, pixels = self.args
 
-        for i in bpy.data.images:
-            if (i.sb_props.source == name) or \
-                    (name == (bpy.path.abspath(i.filepath) if i.filepath.startswith("//") else i.filepath)) \
-                    or (name == i.name):
-                img = i
-                break
-        else:
+        try:
+            img = next(i for i in bpy.data.images if name == image_name(i))
+        except StopIteration:
             # to avoid accidentally reviving deleted images, we ignore anything doesn't exist already
             return
 

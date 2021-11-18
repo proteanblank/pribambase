@@ -248,15 +248,13 @@ class SB_OT_open_sprite(bpy.types.Operator):
         _, name = path.split(source)
         img = None
 
-        for i in bpy.data.images:
+        try:
             # we might have this image opened already
-            if i.sb_props.source == source:
-                img = i
-                break
-        else:
+            img = next(i for i in bpy.data.images if i.sb_props.source_abs == source)
+        except StopIteration:
             # create a stub that will be filled after receiving data
             img = util.new_packed_image(name, 1, 1)
-            img.sb_props.source = source
+            img.sb_props.source_set(source)
 
         # switch to the image in the editor
         if context.area.type == 'IMAGE_EDITOR':
@@ -417,7 +415,7 @@ class SB_OT_replace_sprite(bpy.types.Operator):
 
     def execute(self, context):
         source = bpy.path.abspath(self.filepath)
-        context.edit_image.sb_props.source = source
+        context.edit_image.sb_props.source_set(source)
         msg = encode.sprite_open(source)
         addon.server.send(msg)
 
