@@ -53,11 +53,13 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
 
     
-    def source_set(self, source):
-        """Set source as relative/absolute path according to relative path setting. Use every time when assigning sources automatically, and never for user interaction."""
+    def source_set(self, source, relative:bool=None):
+        """
+        Set source as relative/absolute path according to relative path setting. Use every time when assigning sources automatically, 
+        and never for user interaction. If relative is not specified, it's picked automatically based on blender prefs."""
         if not source:
             self.source = ""
-        elif addon.prefs.use_relative_path:
+        elif relative or (relative is None and addon.prefs.use_relative_path):
             self.source = bpy.path.relpath(source)
         else:
             self.source = os.path.normpath(source)

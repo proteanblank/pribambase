@@ -232,6 +232,7 @@ class SB_OT_open_sprite(bpy.types.Operator):
 
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
 
     # dialog settings
     filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;.bmp;.flc;.fli;.gif;.ico;.jpeg;.jpg;.pcx;.pcc;.png;.tga;.webp", options={'HIDDEN'})
@@ -248,13 +249,15 @@ class SB_OT_open_sprite(bpy.types.Operator):
         _, name = path.split(source)
         img = None
 
+        self.__class__._last_relative = self.relative
+
         try:
             # we might have this image opened already
             img = next(i for i in bpy.data.images if i.sb_props.source_abs == source)
         except StopIteration:
             # create a stub that will be filled after receiving data
             img = util.new_packed_image(name, 1, 1)
-            img.sb_props.source_set(source)
+            img.sb_props.source_set(source, self.relative)
 
         # switch to the image in the editor
         if context.area.type == 'IMAGE_EDITOR':
@@ -268,6 +271,12 @@ class SB_OT_open_sprite(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.invoke_context = context
+
+        # I have a feeling blender already has a solution but can't seem to find it
+        if not hasattr(self.__class__, "_last_relative"):
+            self.__class__._last_relative = addon.prefs.use_relative_path
+        self.relative = self.__class__._last_relative
+
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
@@ -404,6 +413,7 @@ class SB_OT_replace_sprite(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
 
     # dialog settings
     filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;.bmp;.flc;.fli;.gif;.ico;.jpeg;.jpg;.pcx;.pcc;.png;.tga;.webp", options={'HIDDEN'})
@@ -414,8 +424,10 @@ class SB_OT_replace_sprite(bpy.types.Operator):
         return addon.connected and context.area.type == 'IMAGE_EDITOR'
 
     def execute(self, context):
+        self.__class__._last_relative = self.relative
+
         source = bpy.path.abspath(self.filepath)
-        context.edit_image.sb_props.source_set(source)
+        context.edit_image.sb_props.source_set(source, self.relative)
         msg = encode.sprite_open(source)
         addon.server.send(msg)
 
@@ -424,6 +436,12 @@ class SB_OT_replace_sprite(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.invoke_context = context
+
+        # I have a feeling blender already has a solution but can't seem to find it
+        if not hasattr(self.__class__, "_last_relative"):
+            self.__class__._last_relative = addon.prefs.use_relative_path
+        self.relative = self.__class__._last_relative
+
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
