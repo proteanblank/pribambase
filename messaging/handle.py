@@ -23,7 +23,6 @@ import asyncio
 import re
 import math
 from typing import List, Tuple, Iterable
-from os import path
 from . import Handler
 import numpy as np
 # TODO move into local methods

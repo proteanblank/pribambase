@@ -20,6 +20,7 @@
 
 import bpy
 import secrets
+import os.path
 
 from .addon import addon
 
