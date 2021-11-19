@@ -67,6 +67,18 @@ else
     --    than do conversions on the other side.
     local buf = Image(1, 1, ColorMode.RGB)
 
+
+    local function _eq(a, b)
+        return a == b
+    end
+
+    -- works around aseprite api raising an error when trying to reference a deleted internal object
+    -- note: always false for deleted docobjs. even if they were created from the same one - at this point that information is lost
+    local function docobjEquals(a, b)
+        -- if internal docobj is deleted, _eq raises an error
+        ok, eq = pcall(_eq, a, b)
+        return ok and eq
+    end
     
     -- wrap the doc list to turn it into { Sprite => data }  map
     -- ase api creates a new userdata every time it returns a sprite, let's switch to `spr1 == spr2` which uses an internal id check
@@ -74,7 +86,7 @@ else
         __pairs= function(_) return pairs(pribambase_docs) end,
         __newindex= function(_, key, val)
             for k,_ in pairs(pribambase_docs) do
-                if k == key then
+                if docobjEquals(k, key) then
                     pribambase_docs[k] = val
                     return
                 end
@@ -83,7 +95,7 @@ else
         end,
         __index= function(_, key)
             for k,v in pairs(pribambase_docs) do
-                if k == key then
+                if docobjEquals(k, key) then
                     return v
                 end
             end
