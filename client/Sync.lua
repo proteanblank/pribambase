@@ -65,7 +65,7 @@ else
     local SYNC_VIEW = "View"
     local SYNC_SHEET = "All Frames"
     local DOMAINS = { SYNC_VIEW, SYNC_SHEET }
-    local domain = SYNC_SHEET
+    local domain = SYNC_VIEW
 
 
     -- Set up an image buffer for two reasons:
