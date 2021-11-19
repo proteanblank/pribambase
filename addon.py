@@ -84,6 +84,5 @@ from .messaging import handle
 handlers = addon.handlers
 handlers.add(handle.Batch)
 handlers.add(handle.Image)
-handlers.add(handle.NewImage)
 handlers.add(handle.TextureList)
 handlers.add(handle.ChangeName)

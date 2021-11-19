@@ -20,6 +20,7 @@
 
 import bpy
 import secrets
+import os.path
 
 from .addon import addon
 
@@ -56,6 +57,40 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         min=1,
         max=50,
         default=1)
+
+
+class SB_ImageProperties(bpy.types.PropertyGroup):
+    """Pribambase image-related data"""
+    
+    source: bpy.props.StringProperty(
+        name="Sprite",
+        description="The file from which the image was created, and that will be synced with this image.",
+        subtype='FILE_PATH')
+    
+    prescale: bpy.props.IntProperty(
+        name="Prescale",
+        description="",
+        min=1, 
+        max=50, 
+        default=1)
+    
+    source_abs:bpy.props.StringProperty(
+        name="Sprite Path",
+        description="Absolute and normalized source path, or an empty string if it's empty. Should be used to look up the images.",
+        subtype='FILE_PATH',
+        get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
+
+    
+    def source_set(self, source, relative:bool=None):
+        """
+        Set source as relative/absolute path according to relative path setting. Use every time when assigning sources automatically, 
+        and never for user interaction. If relative is not specified, it's picked automatically based on blender prefs."""
+        if not source:
+            self.source = ""
+        elif relative or (relative is None and addon.prefs.use_relative_path):
+            self.source = bpy.path.relpath(source)
+        else:
+            self.source = os.path.normpath(source)
 
 
 class SB_Preferences(bpy.types.AddonPreferences):
@@ -109,6 +144,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
         default=4.0)
 
+    use_relative_path: bpy.props.BoolProperty(
+        name="Relative Paths",
+        description="Changes how the file paths are stored. The addon stays consistent with Blender behavior, which can be changed in \"Preferences > Save & Load\"",
+        get=lambda self: bpy.context.preferences.filepaths.use_relative_paths)
+
     skip_modal: bpy.props.BoolProperty(
         name="No modal timers",
         description="Change the way the changes are applied to blender data. Degrades the experience but might fix some crashes",
@@ -150,6 +190,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
         box = self.template_box(layout, label="Misc:")
 
+        box.row().prop(self, "use_relative_path")
         box.row().prop(self, "skip_modal")
 
 
@@ -169,6 +210,7 @@ def migrate():
 
     for img in bpy.data.images:
         if "sb_source" in img:
+            # copy without source_set here as we don't know how and why it was assigned
             img.sb_props.source = img["sb_source"]
             del img["sb_source"]
 

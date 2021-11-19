@@ -63,17 +63,6 @@ class Image(Handler):
             util.update_image(size[0], size[1], name, data)
 
 
-class NewImage(Image):
-    """Same as image except it creates a named image if it doesn't exist"""
-    id = 'N'
-
-    async def execute(self, *, size:Tuple[int, int], name:str, data:np.array):
-        _, short = path.split(name)
-        img = util.new_packed_image(short, size[0], size[1])
-        img.sb_props.source = name
-        await super().execute(size=size, name=name, data=data)
-
-
 class TextureList(Handler):
     """Send the list of available textures"""
     id = 'L'
@@ -103,8 +92,8 @@ class ChangeName(Handler):
 
         # avoid having identical sb_source on several images
         for img in bpy.data.images:
-            if old_name in (img.sb_props.source, img.filepath, img.name):
-                img.sb_props.source = new_name
+            if old_name in (img.sb_props.source_abs, img.filepath, img.name):
+                img.sb_props.source_set(new_name)
 
                 if re.search(r"\.(?:png|jpg|jpeg|bmp|tga)$", new_name):
                     img.filepath = new_name
