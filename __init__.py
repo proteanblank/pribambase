@@ -178,7 +178,8 @@ def sb_on_load_pre(scene):
 
 @persistent
 def sb_on_save_post(scene):
-    bpy.ops.pribambase.texture_list()
+    if addon.server_up:
+        bpy.ops.pribambase.texture_list()
 
 
 @persistent
