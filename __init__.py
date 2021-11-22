@@ -52,7 +52,8 @@ bl_info = {
 classes = (
     SB_State,
     SB_Preferences,
-    SB_ImageProperties,
+    SB_Frame,
+    SB_Image,
 
     SB_OT_serv_start,
     SB_OT_serv_stop,
@@ -67,6 +68,8 @@ classes = (
     SB_OT_reference_reload,
     SB_OT_reference_reload_all,
     SB_OT_update_image,
+    SB_OT_update_spritesheet,
+    SB_OT_spritesheet_rig,
 
     SB_PT_panel_link,
 
@@ -85,7 +88,7 @@ def register():
         register_class(cls)
 
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)
-    bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
+    bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_Image)
 
     try:
         editor_menus = bpy.types.IMAGE_MT_editor_menus

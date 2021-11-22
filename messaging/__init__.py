@@ -65,7 +65,7 @@ class Handler:
         return int.from_bytes(
             bytes=self._data[self._position - size:self._position],
             byteorder='little',
-            signed=False)
+            signed=True)
 
 
     def take_data(self) -> memoryview:

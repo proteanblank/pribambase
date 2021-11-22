@@ -167,14 +167,15 @@ else
         buf:clear()
         buf:drawSprite(sprite, opts.frame)
 
-        return string.pack("<BHHHs4I4", id, buf.width, buf.height, opts.frame.frameNumber, name, buf.rowStride * buf.height), buf.bytes
+        return string.pack("<BHHHs4I4", id, buf.width, buf.height, opts.frame.frameNumber - 1, name, buf.rowStride * buf.height), buf.bytes
     end
 
-    local _frames = {}
+    local _frames, _infos = {}, {}
     local function messageSpritesheet(opts)
         local sprite = opts.sprite
         local name = opts.name or ""
         local id = string.byte('G')
+        local start = app.preferences.document(sprite).timeline.first_frame -- NOTE someone thought it's funny to allow, for instance "-2" there
 
         if buf.width ~= sprite.width or buf.height ~= sprite.height then
             buf:resize(sprite.width, sprite.height)
@@ -183,15 +184,18 @@ else
         local nframes = #sprite.frames
         local size = buf.rowStride * buf.height
 
-        for i=1,nframes do
+        for i,frame in ipairs(sprite.frames) do
             buf:clear()
             buf:drawSprite(sprite, i)
 
             _frames[2 * i - 1] = string.pack("<I4", size)
             _frames[2 * i] = buf.bytes
+            _infos[i] = string.pack("<H", math.tointeger(1000 * sprite.frames[i].duration))
         end
+        _frames[2 * nframes + 1] = nil
+        _infos[nframes + 1] = nil
 
-        return string.pack("<BHHs4I4", id, buf.width, buf.height, name, nframes), table.unpack(_frames)
+        return string.pack("<BHHs4i4I4I4", id, buf.width, buf.height, name, start, nframes, opts.frame.frameNumber - 1), table.concat(_infos, ""), table.unpack(_frames)
     end
 
     local function messageChangeName(opts)
@@ -220,7 +224,7 @@ else
 
     local function sendSpritesheet(name)
         if connected and spr ~= nil then
-            ws:sendBinary(messageSpritesheet{ sprite=spr, name=name })
+            ws:sendBinary(messageSpritesheet{ sprite=spr, name=name, frame=app.activeFrame })
         end
     end
 

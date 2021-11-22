@@ -43,23 +43,27 @@ class SB_State(bpy.types.PropertyGroup):
         get=get_identifier)
 
 
-class SB_ImageProperties(bpy.types.PropertyGroup):
-    """Pribambase image-related data"""
+class SB_Frame(bpy.types.PropertyGroup):
+    """Frame properties"""
+    frame: bpy.props.IntProperty(
+        name="Frame",
+        description="Frame number same as shown on top of Aseprite's timeline")
 
-    source: bpy.props.StringProperty(
-        name="Sprite",
-        description="The file from which the image was created, and that will be synced with this image",
-        subtype='FILE_PATH')
+    time: bpy.props.FloatProperty(
+        name="Time",
+        description="Time from the start of animation in seconds",
+        step=0.01,
+        precision=3,
+        max=65.535, # aseprite limit is 65535ms
+        min=0)
+    
+    index: bpy.props.IntProperty(
+        name="Index",
+        description="Index in the spritesheet. Start from 0",
+        min=0)
 
-    prescale: bpy.props.IntProperty(
-        name="Prescale",
-        description="",
-        min=1,
-        max=50,
-        default=1)
 
-
-class SB_ImageProperties(bpy.types.PropertyGroup):
+class SB_Image(bpy.types.PropertyGroup):
     """Pribambase image-related data"""
 
     source: bpy.props.StringProperty(
@@ -79,6 +83,40 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         description="Absolute and normalized source path, or an empty string if it's empty. Should be used to look up the images.",
         subtype='FILE_PATH',
         get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
+
+    sheet: bpy.props.PointerProperty(
+        name="Sheet",
+        description="Spritesheet that stores animation frames",
+        type=bpy.types.Image)
+
+    frame: bpy.props.IntProperty(
+        name="Frame Number",
+        description="Index of the image in the spritesheet. Starts at 0",
+        options={'HIDDEN'})
+
+    # Spritesheet-specific props
+    is_sheet: bpy.props.BoolProperty(
+        name="Spritesheet",
+        description="Flag if the image is a spritesheet",
+        default=False)
+
+    sheet_size: bpy.props.IntVectorProperty(
+        name="Size",
+        description="Spritesheed size in frames",
+        subtype='COORDINATES',
+        size=2,
+        default=(1, 1),
+        min=1)
+    
+    sheet_frames: bpy.props.CollectionProperty(
+        name="Frames",
+        description="List spritesheet indices for each frame",
+        type=SB_Frame)
+        
+    sheet_start: bpy.props.IntProperty(
+        name="Start",
+        description="First frame number",
+        options={'HIDDEN'})
 
     
     def source_set(self, source, relative:bool=None):

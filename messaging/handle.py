@@ -56,12 +56,12 @@ class Image(Handler):
         try:
             # TODO separate cases for named and anonymous sprites
             if not bpy.context.window_manager.is_interface_locked:
-                util.update_image(size[0], size[1], name, data)
+                util.update_image(size[0], size[1], name, frame, data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except:
             # blender 2.80... if it crashes, it crashes :\
-            util.update_image(size[0], size[1], name, data)
+            util.update_image(size[0], size[1], name, frame, data)
 
 
 class TextureList(Handler):
@@ -111,11 +111,14 @@ class Spritesheet(Handler):
     def parse(self, args):
         args.size = self.take_uint(2), self.take_uint(2)
         args.name = self.take_str()
+        args.start = self.take_sint(4)
         args.length = self.take_uint(4)
-        args.frames = [self.take_data() for _ in range(args.length)]
+        args.current_frame = self.take_uint(4)
+        args.frames = [self.take_uint(2) for _ in range(args.length)]
+        args.images = [self.take_data() for _ in range(args.length)]
 
 
-    async def execute(self, *, size:Tuple[int, int], name:str, length:int, frames:List[np.array]):
+    async def execute(self, *, size:Tuple[int, int], name:str, start:int, length:int, frames:List[int], current_frame:int, images:List[np.array]):
         count_x = math.ceil(length ** 0.5)
         count_y = math.ceil(length / count_x)
         w, h = size
@@ -124,7 +127,7 @@ class Spritesheet(Handler):
         # TODO profile if changing to .empty gives significant perf (at cost of messy look)
         sheet_data = np.zeros((h * count_y, w * count_x * 4), dtype=np.ubyte)
 
-        for n,frame in enumerate(frames):
+        for n,frame in enumerate(images):
             # TODO is there a way to just swap the nparray's buffer? 
             x, y = n % count_x, n // count_x
             fd = np.frombuffer(frame, dtype=np.ubyte)
@@ -134,9 +137,9 @@ class Spritesheet(Handler):
 
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                util.update_image(w * count_x, h * count_y, name, sheet_data)
+                util.update_spritesheet(size, (count_x, count_y), name, start, frames, current_frame, sheet_data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except:
             # version 2.80... caveat emptor
-            util.update_image(w * count_x, h * count_y, name, sheet_data)
+            util.update_spritesheet(size, (count_x, count_y), name, start, frames, current_frame, sheet_data)
