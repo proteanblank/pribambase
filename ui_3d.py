@@ -19,9 +19,11 @@
 # SOFTWARE.
 
 import bpy
-from .addon import addon
 import numpy as np
 from math import pi
+from operator import attrgetter
+
+from .addon import addon
 
 
 def scale_image(image, scale):
@@ -141,6 +143,90 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SB_OT_spritesheet_rig(bpy.types.Operator):
+    bl_idname = "pribambase.spritesheet_rig"
+    bl_label = "Setup Sprite Animation"
+    bl_description = "Add "
+    bl_options = {'REGISTER', 'UNDO'}
+
+    image: bpy.props.EnumProperty(
+        name="Sprite",
+        description="Animation to use for timing and spritesheet dimensions. Does not affect object materials or textures",
+        items=lambda self, context: [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))],
+        default=0)
+
+    uv_map: bpy.props.EnumProperty(
+        name="UV Layer",
+        description="UV Layer for warp modifier",
+        items=lambda self, context : [] if context is None else [(layer.name, layer.name, "", i) for i,layer in enumerate(context.active_object.data.uv_layers)],
+        default=0)
+    
+
+    @classmethod
+    def poll(self, context):
+        # need a mesh to store modifiers these days
+        return context.active_object and context.object.type == 'MESH' and context.active_object.select_get()
+
+
+    def execute(self, context):
+        obj = context.active_object
+        # TODO no overwrites, just add a new property (possibly, pop a warning about creating a second one?)
+
+        # custom property
+        if "Sprite Frame" not in obj:
+            obj["Sprite Frame"] = 1
+        
+        params = obj["_RNA_UI"]
+        params["min"] = params["soft_min"] = 1
+        params["max"] = params["soft_max"] = 5 # TODO replace with animation length
+        params["tooltip"] = "Animation frame, uses the same numbering as timeline in Aseprite"
+
+        # modifier
+        if "Spritesheet Slice" not in obj.modifiers:
+            obj.modifiers.new("Spritesheet Slice", "UV_WARP")
+        
+        uvwarp = obj.modifiers["Spritesheet Slice"]
+        uvwarp.center = (0.0, 1.0)
+        uvwarp.scale = (0.2, 1.0) # TODO replace with 1/x_size, 1/y_size
+        
+        # driver
+        path = 'modifiers["Spritesheet Slice"].offset'
+        drivers = sorted((d for d in obj.animation_data.drivers if d.data_path == path), key=attrgetter("array_index"))
+        if drivers:
+            assert(len(drivers) == 2) # very unlikely but it can be another modifier with the same name and e.g. 3D offset property
+            for driver in drivers:
+                for pt in driver.keyframe_points:
+                    driver.keyframe_points.remove(pt)
+        else:
+            drivers = uvwarp.driver_add("offset")
+        
+        dx, dy = drivers
+        
+        # TODO these drivers should convert frames to cels
+        dy.keyframe_points.add(4)
+        for i,p in enumerate(dy.keyframe_points):
+            p.co = (i, i*i)
+            p.interpolation = 'CONSTANT'
+
+        dx.update()
+        dy.update()
+        obj.update_tag()
+
+        return {'FINISHED'}
+
+
+    def invoke(self, context, event):
+        if not next((True for img in bpy.data.images if img.sb_props.sheet), False):
+            self.report({'ERROR'}, "No animations in the current blendfile")
+            return {'CANCELLED'}
+
+        if not context.active_object.data.uv_layers:
+            self.report({'ERROR'}, "THe object must have at least one UV map")
+            return {'CANCELLED'}
+            
+        return context.window_manager.invoke_props_dialog(self)
+
+
 
 class SB_PT_panel_link(bpy.types.Panel):
     bl_idname = "SB_PT_panel_link_3d"
@@ -176,3 +262,7 @@ class SB_PT_panel_link(bpy.types.Panel):
         layout.row().operator("pribambase.reference_add")
         layout.row().operator("pribambase.reference_reload")
         layout.row().operator("pribambase.reference_reload_all")
+
+        layout.separator()
+
+        layout.row().operator("pribambase.spritesheet_rig")
