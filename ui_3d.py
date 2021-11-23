@@ -21,7 +21,6 @@
 import bpy
 import numpy as np
 from math import pi
-from operator import attrgetter
 
 from .addon import addon
 
@@ -149,6 +148,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_description = "Add "
     bl_options = {'REGISTER', 'UNDO'}
 
+
     image: bpy.props.EnumProperty(
         name="Sprite",
         description="Animation to use for timing and spritesheet dimensions. Does not affect object materials or textures",
@@ -170,16 +170,23 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
-        # TODO no overwrites, just add a new property (possibly, pop a warning about creating a second one?)
+        sheet = bpy.data.images[self.image].sb_props.sheet
+        w,h = sheet.sb_props.sheet_size
+        start,nframes = sheet.sb_props.sheet_start, len(sheet.sb_props.sheet_frames)
 
         # custom property
         if "Sprite Frame" not in obj:
-            obj["Sprite Frame"] = 1
+            obj["Sprite Frame"] = start
+
+        if "_RNA_UI" not in obj:
+            obj["_RNA_UI"] = {}
         
-        params = obj["_RNA_UI"]
-        params["min"] = params["soft_min"] = 1
-        params["max"] = params["soft_max"] = 5 # TODO replace with animation length
-        params["tooltip"] = "Animation frame, uses the same numbering as timeline in Aseprite"
+        obj["_RNA_UI"]["Sprite Frame"] = {
+            "min": start,
+            "soft_min": start, 
+            "max": start + nframes - 1,
+            "soft_max": start + nframes - 1,
+            "description": "Animation frame, uses the same numbering as timeline in Aseprite"}
 
         # modifier
         if "Spritesheet Slice" not in obj.modifiers:
@@ -187,29 +194,37 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         
         uvwarp = obj.modifiers["Spritesheet Slice"]
         uvwarp.center = (0.0, 1.0)
-        uvwarp.scale = (0.2, 1.0) # TODO replace with 1/x_size, 1/y_size
+        uvwarp.scale = (1/w, 1/h)
         
         # driver
-        path = 'modifiers["Spritesheet Slice"].offset'
-        drivers = sorted((d for d in obj.animation_data.drivers if d.data_path == path), key=attrgetter("array_index"))
-        if drivers:
-            assert(len(drivers) == 2) # very unlikely but it can be another modifier with the same name and e.g. 3D offset property
-            for driver in drivers:
-                for pt in driver.keyframe_points:
-                    driver.keyframe_points.remove(pt)
-        else:
-            drivers = uvwarp.driver_add("offset")
-        
-        dx, dy = drivers
-        
-        # TODO these drivers should convert frames to cels
-        dy.keyframe_points.add(4)
-        for i,p in enumerate(dy.keyframe_points):
-            p.co = (i, i*i)
-            p.interpolation = 'CONSTANT'
+        for driver in obj.animation_data.drivers:
+            if driver.data_path == 'modifiers["Spritesheet Slice"].offset':
+                obj.animation_data.drivers.remove(driver)
 
-        dx.update()
-        dy.update()
+        dx, dy = curves = uvwarp.driver_add("offset")
+
+        for curve in curves:
+            # there's a polynomial modifier by default
+            curve.modifiers.remove(curve.modifiers[0]) 
+            
+            # curve shape
+            curve.keyframe_points.add(nframes)
+            for i,p in enumerate(curve.keyframe_points):
+                p.co = (start + i - 0.5, (i % w) if curve == dx else -(i // w))
+                p.interpolation = 'CONSTANT'
+
+            # add variable
+            driver = curve.driver
+            driver.type = 'SUM'
+            fv = driver.variables.new()
+            fv.name = "frame"
+            tgt = fv.targets[0]
+            tgt.id_type = 'OBJECT'
+            tgt.id = obj
+            tgt.data_path = '["Sprite Frame"]'
+
+            curve.update()
+
         obj.update_tag()
 
         return {'FINISHED'}

@@ -198,6 +198,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         
         sheet.sb_props.is_sheet = True
         sheet.sb_props.sheet_size = count
+        sheet.sb_props.sheet_start = start
 
         # fill the frame data; first make sure there's enough and not too many frames
         fd = sheet.sb_props.sheet_frames
