@@ -21,6 +21,7 @@
 import bpy
 import numpy as np
 from math import pi
+from operator import attrgetter
 
 from .addon import addon
 
@@ -142,22 +143,81 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SB_OT_add_frames(bpy.types.Operator):
+    bl_idname = "pribambase.add_frames"
+    bl_label = "Add Keyframes"
+    bl_description = "Create the keyframes for sprite animation on the timeline"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    # TODO store in the object
+    image: bpy.props.EnumProperty(
+        name="Sprite",
+        description="Animation to use for timing",
+        items=lambda self, context: [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))],
+        default=0)
+
+    snap: bpy.props.BoolProperty(
+        name="Snap To Frames",
+        description="Round the animation timings to nearest frames on the timeline",
+        default=True)
+
+    @classmethod
+    def poll(self, context):
+        # need a mesh to store modifiers these days
+        return context.active_object and context.object.type == 'MESH' and context.active_object.select_get() \
+            and "Sprite Frame" in context.active_object
+    
+    def execute(self, context):
+        obj = context.active_object
+        props = bpy.data.images[self.image].sb_props.sheet.sb_props
+        playhead = context.scene.frame_current
+        fps = context.scene.render.fps / context.scene.render.fps_base
+        end = playhead + fps * props.sheet_frames[-1].time + 0.001
+        
+        context.scene.timeline_markers.new(self.image + "/All", frame=playhead)
+
+        for f in sorted(props.sheet_frames, key=attrgetter("index")):
+            obj["Sprite Frame"] = f.frame
+            frame = playhead + fps * f.time
+            if self.snap:
+                frame = round(frame)
+            obj.keyframe_insert('["Sprite Frame"]', frame=frame)
+
+        fcurve = next(c for c in obj.animation_data.action.fcurves if c.data_path == '["Sprite Frame"]')
+
+        for pt in fcurve.keyframe_points:
+            if playhead <= pt.co[0] <= end:
+                pt.select_control_point = pt.select_left_handle = pt.select_right_handle = False
+                pt.type = 'JITTER'
+                pt.interpolation = 'CONSTANT'
+
+        fcurve.update()
+        obj.update_tag()
+
+        return {'FINISHED'}
+
+
+    def invoke(self, context, event):            
+        return context.window_manager.invoke_props_dialog(self)
+
+
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
     bl_label = "Setup Sprite Animation"
-    bl_description = "Add "
+    # TODO explain hot to use animation manually or automatically
+    bl_description = "Set up spritesheet UV animation for this object. Does not affect materials or textures"
     bl_options = {'REGISTER', 'UNDO'}
 
 
     image: bpy.props.EnumProperty(
         name="Sprite",
-        description="Animation to use for timing and spritesheet dimensions. Does not affect object materials or textures",
+        description="Animation to use (needed to calculate spritesheet UV transforms)",
         items=lambda self, context: [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))],
         default=0)
 
     uv_map: bpy.props.EnumProperty(
         name="UV Layer",
-        description="UV Layer for warp modifier",
+        description="UV Layer that transforms apply to",
         items=lambda self, context : [] if context is None else [(layer.name, layer.name, "", i) for i,layer in enumerate(context.active_object.data.uv_layers)],
         default=0)
     
@@ -281,3 +341,4 @@ class SB_PT_panel_link(bpy.types.Panel):
         layout.separator()
 
         layout.row().operator("pribambase.spritesheet_rig")
+        layout.row().operator("pribambase.add_frames")

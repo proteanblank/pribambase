@@ -24,6 +24,7 @@ import os
 from os import path
 import tempfile
 import numpy as np
+from typing import Collection, Tuple
 
 from .addon import addon
 
@@ -165,10 +166,11 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
 
 
 _update_spritesheet_args = None
-def update_spritesheet(size, count, name, start, frames, current, pixels):
+def update_spritesheet(size, count, name, start, frames, tags, current_frame, current_tag, pixels):
     global _update_spritesheet_args
-    _update_spritesheet_args = size, count, name, start, frames, current, pixels
+    _update_spritesheet_args = size, count, name, start, frames, tags, current_frame, current_tag, pixels
     bpy.ops.pribambase.update_spritesheet()
+    
 class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_spritesheet"
     bl_label = "Update Spritesheet"
@@ -176,8 +178,62 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     bl_options = {'REGISTER', 'UNDO_GROUPED', 'INTERNAL'}
     bl_undo_group = "pribambase.update_spritesheet"
 
+
+    def update_actions(self, context, img_name:str, start:int, frames:Collection[int], tags:Collection[Tuple[str, int, int, int]], current_tag:str):
+        fps = context.scene.render.fps / context.scene.render.fps_base
+
+        # editor tag is the current play loop in aseprite
+        tag_editor = ("",)
+        if current_tag:
+            tag_editor += next((t for t in tags if t[0] == current_tag))[1:]
+        else:
+            tag_editor += (start, start + len(frames), 0)
+
+        for tag, tag_first, tag_last, ani_dir in (tag_editor, *tags):
+            action_name = img_name if tag == "" else f"{img_name}: {tag}"
+            try:
+                action = bpy.data.actions[action_name]
+            except KeyError:
+                action = bpy.data.actions.new(action_name)
+                action.id_root = 'OBJECT'
+                action.use_fake_user = True
+            
+            fcurve = action.fcurves.find('["Sprite Frame"]')
+            if not fcurve:
+                fcurve = action.fcurves.new('["Sprite Frame"]')
+            
+            time = 0
+            first = context.scene.frame_start
+
+            tag_frames = frames[tag_first - start:tag_last - start + 1]
+            if ani_dir == 1:
+                tag_frames = tag_frames[::-1]
+            elif ani_dir == 2:
+                tag_frames = tag_frames + tag_frames[-2:0:-1] # sigh
+            
+            tag_frames.append(tag_frames[-1]) # one more keyframe to keep the last frame duration inside in the action
+
+            points = fcurve.keyframe_points
+            npoints = len(points)
+            nframes = len(tag_frames)
+            if npoints < nframes:
+                points.add(nframes - npoints)
+            elif npoints > nframes:
+                for _ in range(npoints - nframes):
+                    points.remove(points[0], fast=True)
+
+            for point,(n, dt) in zip(points, tag_frames):
+                point.co = (first + time * fps / 1000, n)
+                point.select_control_point = point.select_left_handle = point.select_right_handle = False
+                point.interpolation = 'CONSTANT'
+                time += dt
+
+            fcurve.update()
+            action.update_tag()
+
+
     def modal_execute(self, context):
-        size, count, name, start, frames, current, pixels = self.args
+        size, count, name, start, frames, tags, current_frame, current_tag, pixels = self.args
         tex_w, tex_h = size[0] * count[0], size[1] * count[1]
 
         # find or prepare sheet image; pixels update will fix its size
@@ -208,21 +264,23 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             fd.add()
 
         t = 0
-        for i,dt in enumerate(frames):
+        for i,(cel, dt) in enumerate(frames):
             f = fd[i]
             f.frame = i + start
             f.time = t / 1000.0
             f.index = i # TODO cel optimization
             t += dt
 
+        self.update_actions(context, img.name, start, frames, tags, current_tag)
+
         self.args = tex_w, tex_h, tex_name, -1, pixels
         SB_OT_update_image.modal_execute(self, context) # clears self.args
 
         # cut out the current frame and copy to view image
-        frame_x = current % count[0]
-        frame_y = current // count[0]
+        frame_x = current_frame % count[0]
+        frame_y = current_frame // count[0]
         frame_pixels = np.ravel(pixels[frame_y * size[1] : (frame_y + 1) * size[1], frame_x * size[0] * 4 : (frame_x + 1) * size[0] * 4])
-        self.args = *size, name, current, frame_pixels
+        self.args = *size, name, current_frame, frame_pixels
         SB_OT_update_image.modal_execute(self, context) # clears self.args
 
         # clean up

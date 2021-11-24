@@ -70,6 +70,7 @@ classes = (
     SB_OT_update_image,
     SB_OT_update_spritesheet,
     SB_OT_spritesheet_rig,
+    SB_OT_add_frames,
 
     SB_PT_panel_link,
 
