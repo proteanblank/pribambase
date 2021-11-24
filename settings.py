@@ -111,6 +111,15 @@ class SB_Image(bpy.types.PropertyGroup):
             self.source = os.path.normpath(source)
 
 
+class SB_ActionProperties(bpy.types.PropertyGroup):
+    """Pribambase action-related data"""
+    
+    sprite: bpy.props.PointerProperty(
+        name="Sprite",
+        description="Image for the sprite the action came from",
+        type=bpy.types.Image)
+
+
 class SB_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 

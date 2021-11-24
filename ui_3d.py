@@ -148,7 +148,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_label = "Setup Sprite Animation"
     # TODO explain hot to use animation manually or automatically
     bl_description = "Set up spritesheet UV animation for this object. Does not affect materials or textures"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
 
     image: bpy.props.EnumProperty(
@@ -157,17 +157,23 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         items=lambda self, context: [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))],
         default=0)
 
+    action: bpy.props.EnumProperty(
+        name="Action",
+        description="If set, replaces object's current timeline with sprite animation. Old keyframes can be acessed in action editor, and WILL BE LOST after reloading unless protected. \"Editor\" action syncs with the loop section of Asperite's timeline.",
+        items=lambda self,context: [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite.name == self.image))],
+        default=0)
+
     uv_map: bpy.props.EnumProperty(
         name="UV Layer",
         description="UV Layer that transforms apply to",
-        items=lambda self, context : [] if context is None else [(layer.name, layer.name, "", i) for i,layer in enumerate(context.active_object.data.uv_layers)],
+        items=lambda self, context : [] if context is None else [("__none__", "", "", 0)] + [(layer.name, layer.name, "", i + 1) for i,layer in enumerate(context.active_object.data.uv_layers)],
         default=0)
     
 
     @classmethod
     def poll(self, context):
         # need a mesh to store modifiers these days
-        return context.active_object and context.object.type == 'MESH' and context.active_object.select_get()
+        return context.active_object and context.object.type == 'MESH' and context.active_object.select_get() and next((img for img in bpy.data.images if img.sb_props.sheet), False)
 
 
     def execute(self, context):
@@ -195,6 +201,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             obj.modifiers.new("Spritesheet Slice", "UV_WARP")
         
         uvwarp = obj.modifiers["Spritesheet Slice"]
+        uvwarp.uv_layer = "" if self.uv_map == "__none__" else self.uv_map
         uvwarp.center = (0.0, 1.0)
         uvwarp.scale = (1/w, 1/h)
         
@@ -229,6 +236,9 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             tgt.data_path = '["Sprite Frame"]'
 
             curve.update()
+        
+        if self.action != "__none__" and self.action in bpy.data.actions:
+            obj.animation_data.action = bpy.data.actions[self.action]
 
         obj.update_tag()
 

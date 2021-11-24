@@ -179,7 +179,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     bl_undo_group = "pribambase.update_spritesheet"
 
 
-    def update_actions(self, context, img_name:str, start:int, frames:Collection[int], tags:Collection[Tuple[str, int, int, int]], current_tag:str):
+    def update_actions(self, context, img:bpy.types.Image, start:int, frames:Collection[int], tags:Collection[Tuple[str, int, int, int]], current_tag:str):
         fps = context.scene.render.fps / context.scene.render.fps_base
 
         # editor tag is the current play loop in aseprite
@@ -190,13 +190,14 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             tag_editor += (start, start + len(frames), 0)
 
         for tag, tag_first, tag_last, ani_dir in (tag_editor, *tags):
-            action_name = img_name if tag == "" else f"{img_name}: {tag}"
+            action_name = img.name if tag == "" else f"{img.name}: {tag}"
             try:
                 action = bpy.data.actions[action_name]
             except KeyError:
                 action = bpy.data.actions.new(action_name)
                 action.id_root = 'OBJECT'
                 action.use_fake_user = True
+            action.sb_props.sprite = img
             
             fcurve = action.fcurves.find('["Sprite Frame"]')
             if not fcurve:
@@ -257,7 +258,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         sheet.sb_props.sheet_size = count
         sheet.sb_props.sheet_start = start
 
-        self.update_actions(context, img.name, start, frames, tags, current_tag)
+        self.update_actions(context, img, start, frames, tags, current_tag)
 
         self.args = tex_w, tex_h, tex_name, -1, pixels
         SB_OT_update_image.modal_execute(self, context) # clears self.args
