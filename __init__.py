@@ -50,11 +50,11 @@ bl_info = {
 
 
 classes = (
+    # Property types
     SB_State,
     SB_Preferences,
-    SB_Frame,
     SB_Image,
-
+    # Operators
     SB_OT_serv_start,
     SB_OT_serv_stop,
     SB_OT_send_uv,
@@ -70,14 +70,12 @@ classes = (
     SB_OT_update_image,
     SB_OT_update_spritesheet,
     SB_OT_spritesheet_rig,
-    SB_OT_add_frames,
-
-    SB_PT_panel_link,
-
-    SB_MT_menu_2d,
-
     SB_OT_preferences,
-    SB_OT_report
+    SB_OT_report,
+    # Panels
+    SB_PT_panel_link,
+    # Menus
+    SB_MT_menu_2d
 )
 
 

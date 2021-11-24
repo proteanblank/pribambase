@@ -43,26 +43,6 @@ class SB_State(bpy.types.PropertyGroup):
         get=get_identifier)
 
 
-class SB_Frame(bpy.types.PropertyGroup):
-    """Frame properties"""
-    frame: bpy.props.IntProperty(
-        name="Frame",
-        description="Frame number same as shown on top of Aseprite's timeline")
-
-    time: bpy.props.FloatProperty(
-        name="Time",
-        description="Time from the start of animation in seconds",
-        step=0.01,
-        precision=3,
-        max=65.535, # aseprite limit is 65535ms
-        min=0)
-    
-    index: bpy.props.IntProperty(
-        name="Index",
-        description="Index in the spritesheet. Start from 0",
-        min=0)
-
-
 class SB_Image(bpy.types.PropertyGroup):
     """Pribambase image-related data"""
 
@@ -99,6 +79,11 @@ class SB_Image(bpy.types.PropertyGroup):
         name="Spritesheet",
         description="Flag if the image is a spritesheet",
         default=False)
+    
+    animation_length: bpy.props.IntProperty(
+        name="Animation Length",
+        description="Number of frames in the Aseprite's timeline. Can be higher than the number of frames in the spritesheet due to repeats",
+        default=1)
 
     sheet_size: bpy.props.IntVectorProperty(
         name="Size",
@@ -107,11 +92,6 @@ class SB_Image(bpy.types.PropertyGroup):
         size=2,
         default=(1, 1),
         min=1)
-    
-    sheet_frames: bpy.props.CollectionProperty(
-        name="Frames",
-        description="List spritesheet indices for each frame",
-        type=SB_Frame)
         
     sheet_start: bpy.props.IntProperty(
         name="Start",

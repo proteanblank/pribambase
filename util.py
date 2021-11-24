@@ -253,23 +253,9 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             sheet = img.sb_props.sheet = bpy.data.images[tex_name]
         
         sheet.sb_props.is_sheet = True
+        sheet.sb_props.animation_length = len(frames)
         sheet.sb_props.sheet_size = count
         sheet.sb_props.sheet_start = start
-
-        # fill the frame data; first make sure there's enough and not too many frames
-        fd = sheet.sb_props.sheet_frames
-        for _ in range(len(fd) - len(frames)):
-            fd.remove(0)
-        for _ in range(len(frames) - len(fd)):
-            fd.add()
-
-        t = 0
-        for i,(cel, dt) in enumerate(frames):
-            f = fd[i]
-            f.frame = i + start
-            f.time = t / 1000.0
-            f.index = i # TODO cel optimization
-            t += dt
 
         self.update_actions(context, img.name, start, frames, tags, current_tag)
 

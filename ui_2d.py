@@ -468,8 +468,7 @@ def sb_draw_image_info(self, context):
         if context.edit_image.sb_props.is_sheet:
             sub = layout.box()
             sub.enabled = False
-            cnt = len(context.edit_image.sb_props.sheet_frames)
-            sub.label(text=f"Spritesheet ({cnt} frames):")
+            sub.label(text=f"Spritesheet ({context.edit_image.sb_props.animation_length} frames):")
             sub.prop(context.edit_image.sb_props, "sheet_size")
         else:
             layout.prop(context.edit_image.sb_props, "sheet")

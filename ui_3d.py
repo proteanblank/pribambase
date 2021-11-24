@@ -143,64 +143,6 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_OT_add_frames(bpy.types.Operator):
-    bl_idname = "pribambase.add_frames"
-    bl_label = "Add Keyframes"
-    bl_description = "Create the keyframes for sprite animation on the timeline"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    # TODO store in the object
-    image: bpy.props.EnumProperty(
-        name="Sprite",
-        description="Animation to use for timing",
-        items=lambda self, context: [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))],
-        default=0)
-
-    snap: bpy.props.BoolProperty(
-        name="Snap To Frames",
-        description="Round the animation timings to nearest frames on the timeline",
-        default=True)
-
-    @classmethod
-    def poll(self, context):
-        # need a mesh to store modifiers these days
-        return context.active_object and context.object.type == 'MESH' and context.active_object.select_get() \
-            and "Sprite Frame" in context.active_object
-    
-    def execute(self, context):
-        obj = context.active_object
-        props = bpy.data.images[self.image].sb_props.sheet.sb_props
-        playhead = context.scene.frame_current
-        fps = context.scene.render.fps / context.scene.render.fps_base
-        end = playhead + fps * props.sheet_frames[-1].time + 0.001
-        
-        context.scene.timeline_markers.new(self.image + "/All", frame=playhead)
-
-        for f in sorted(props.sheet_frames, key=attrgetter("index")):
-            obj["Sprite Frame"] = f.frame
-            frame = playhead + fps * f.time
-            if self.snap:
-                frame = round(frame)
-            obj.keyframe_insert('["Sprite Frame"]', frame=frame)
-
-        fcurve = next(c for c in obj.animation_data.action.fcurves if c.data_path == '["Sprite Frame"]')
-
-        for pt in fcurve.keyframe_points:
-            if playhead <= pt.co[0] <= end:
-                pt.select_control_point = pt.select_left_handle = pt.select_right_handle = False
-                pt.type = 'JITTER'
-                pt.interpolation = 'CONSTANT'
-
-        fcurve.update()
-        obj.update_tag()
-
-        return {'FINISHED'}
-
-
-    def invoke(self, context, event):            
-        return context.window_manager.invoke_props_dialog(self)
-
-
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
     bl_label = "Setup Sprite Animation"
@@ -232,7 +174,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         obj = context.active_object
         sheet = bpy.data.images[self.image].sb_props.sheet
         w,h = sheet.sb_props.sheet_size
-        start,nframes = sheet.sb_props.sheet_start, len(sheet.sb_props.sheet_frames)
+        start,nframes = sheet.sb_props.sheet_start, sheet.sb_props.animation_length
 
         # custom property
         if "Sprite Frame" not in obj:
@@ -257,9 +199,12 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         uvwarp.scale = (1/w, 1/h)
         
         # driver
-        for driver in obj.animation_data.drivers:
-            if driver.data_path == 'modifiers["Spritesheet Slice"].offset':
-                obj.animation_data.drivers.remove(driver)
+        if obj.animation_data is None:
+            obj.animation_data_create()
+        else:
+            for driver in obj.animation_data.drivers:
+                if driver.data_path == 'modifiers["Spritesheet Slice"].offset':
+                    obj.animation_data.drivers.remove(driver)
 
         dx, dy = curves = uvwarp.driver_add("offset")
 
@@ -341,4 +286,3 @@ class SB_PT_panel_link(bpy.types.Panel):
         layout.separator()
 
         layout.row().operator("pribambase.spritesheet_rig")
-        layout.row().operator("pribambase.add_frames")
