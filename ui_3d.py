@@ -24,6 +24,7 @@ from math import pi
 from operator import attrgetter
 
 from .addon import addon
+from . import util
 
 
 def scale_image(image, scale):
@@ -178,67 +179,34 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
-        sheet = bpy.data.images[self.image].sb_props.sheet
-        w,h = sheet.sb_props.sheet_size
-        start,nframes = sheet.sb_props.sheet_start, sheet.sb_props.animation_length
+        img = bpy.data.images[self.image]
+        prop_name = "Sprite Frame" # TODO operator prop
+        start = img.sb_props.sheet.sb_props.sheet_start
 
         # custom property
-        if "Sprite Frame" not in obj:
-            obj["Sprite Frame"] = start
+        if prop_name not in obj:
+            obj[prop_name] = start
 
         if "_RNA_UI" not in obj:
             obj["_RNA_UI"] = {}
         
-        obj["_RNA_UI"]["Sprite Frame"] = {
-            "min": start,
-            "soft_min": start, 
-            "max": start + nframes - 1,
-            "soft_max": start + nframes - 1,
-            "description": "Animation frame, uses the same numbering as timeline in Aseprite"}
+        obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite" }
 
         # modifier
-        if "Spritesheet Slice" not in obj.modifiers:
-            obj.modifiers.new("Spritesheet Slice", "UV_WARP")
+        if prop_name not in obj.modifiers:
+            obj.modifiers.new(prop_name, "UV_WARP")
         
-        uvwarp = obj.modifiers["Spritesheet Slice"]
+        uvwarp = obj.modifiers[prop_name]
         uvwarp.uv_layer = "" if self.uv_map == "__none__" else self.uv_map
         uvwarp.center = (0.0, 1.0)
-        uvwarp.scale = (1/w, 1/h)
         
-        # driver
-        if obj.animation_data is None:
-            obj.animation_data_create()
-        else:
-            for driver in obj.animation_data.drivers:
-                if driver.data_path == 'modifiers["Spritesheet Slice"].offset':
-                    obj.animation_data.drivers.remove(driver)
-
-        dx, dy = curves = uvwarp.driver_add("offset")
-
-        for curve in curves:
-            # there's a polynomial modifier by default
-            curve.modifiers.remove(curve.modifiers[0]) 
-            
-            # curve shape
-            curve.keyframe_points.add(nframes)
-            for i,p in enumerate(curve.keyframe_points):
-                p.co = (start + i - 0.5, (i % w) if curve == dx else -(i // w))
-                p.interpolation = 'CONSTANT'
-
-            # add variable
-            driver = curve.driver
-            driver.type = 'SUM'
-            fv = driver.variables.new()
-            fv.name = "frame"
-            tgt = fv.targets[0]
-            tgt.id_type = 'OBJECT'
-            tgt.id = obj
-            tgt.data_path = '["Sprite Frame"]'
-
-            curve.update()
+        util.update_sheet_animation(obj, img, prop_name)
         
         if self.action != "__none__" and self.action in bpy.data.actions:
             obj.animation_data.action = bpy.data.actions[self.action]
+
+        anim = obj.sb_props.animations_new(prop_name)
+        anim.image = img
 
         obj.update_tag()
 

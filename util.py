@@ -165,6 +165,56 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
         return ModalExecuteMixin.execute(self, context)
 
 
+def update_sheet_animation(obj:bpy.types.Object, img:bpy.types.Image, prop_name:str):
+    if not (prop_name in obj and prop_name in obj.modifiers):
+        # it's strange if either is removed manually, to be safe let's assume the user no longer wants that animation
+        if prop_name in obj.sb_props.animations:
+            obj.sb_props.animations_remove(obj.sb_props.animations[prop_name])
+
+    elif img.sb_props.sheet:
+        sheet = img.sb_props.sheet
+
+        start,nframes = sheet.sb_props.sheet_start, sheet.sb_props.animation_length
+        rna_ui = obj["_RNA_UI"][prop_name]
+        rna_ui["min"] = rna_ui["soft_min"] = start
+        rna_ui["max"] = rna_ui["soft_max"] = start + nframes - 1
+        obj[prop_name] = max(start, min(obj[prop_name], start + nframes - 1))
+
+        w,h = sheet.sb_props.sheet_size
+        uvwarp = obj.modifiers[prop_name]
+        uvwarp.scale = (1/w, 1/h)
+
+        if obj.animation_data is None:
+            obj.animation_data_create()
+        else:
+            for driver in obj.animation_data.drivers:
+                if driver.data_path == f'modifiers["{prop_name}"].offset':
+                    obj.animation_data.drivers.remove(driver)
+        
+        dx, dy = curves = uvwarp.driver_add("offset")
+        for curve in curves:
+            # there's a polynomial modifier by default
+            curve.modifiers.remove(curve.modifiers[0]) 
+            
+            # curve shape
+            curve.keyframe_points.add(nframes)
+            for i,p in enumerate(curve.keyframe_points):
+                p.co = (start + i - 0.5, (i % w) if curve == dx else -(i // w))
+                p.interpolation = 'CONSTANT'
+
+            # add variable
+            driver = curve.driver
+            driver.type = 'SUM'
+            fv = driver.variables.new()
+            fv.name = "frame"
+            tgt = fv.targets[0]
+            tgt.id_type = 'OBJECT'
+            tgt.id = obj
+            tgt.data_path = f'["{prop_name}"]'
+
+            curve.update()
+
+
 _update_spritesheet_args = None
 def update_spritesheet(size, count, name, start, frames, tags, current_frame, current_tag, pixels):
     global _update_spritesheet_args
@@ -269,6 +319,14 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         frame_pixels = np.ravel(pixels[frame_y * size[1] : (frame_y + 1) * size[1], frame_x * size[0] * 4 : (frame_x + 1) * size[0] * 4])
         self.args = *size, name, current_frame, frame_pixels
         SB_OT_update_image.modal_execute(self, context) # clears self.args
+
+        # update rig
+        for obj in bpy.data.objects:
+            for anim in obj.sb_props.animations:
+                if anim.image == img:
+                    update_sheet_animation(obj, img, anim.name)
+            
+            obj.update_tag
 
         # clean up
         global _update_spritesheet_args

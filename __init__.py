@@ -53,7 +53,9 @@ classes = (
     # Property types
     SB_State,
     SB_Preferences,
-    SB_Image,
+    SB_SheetAnimation,
+    SB_ObjectProperties,
+    SB_ImageProperties,
     SB_ActionProperties,
     # Operators
     SB_OT_serv_start,
@@ -88,8 +90,9 @@ def register():
         register_class(cls)
 
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)
-    bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_Image)
+    bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
     bpy.types.Action.sb_props = bpy.props.PointerProperty(type=SB_ActionProperties)
+    bpy.types.Object.sb_props = bpy.props.PointerProperty(type=SB_ObjectProperties)
 
     try:
         editor_menus = bpy.types.IMAGE_MT_editor_menus
@@ -134,6 +137,7 @@ def unregister():
     del bpy.types.Scene.sb_state
     del bpy.types.Image.sb_props
     del bpy.types.Action.sb_props
+    del bpy.types.Object.sb_props
 
     from bpy.utils import unregister_class
     for cls in reversed(classes):

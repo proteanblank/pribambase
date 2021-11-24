@@ -20,6 +20,7 @@
 
 import bpy
 import secrets
+import re
 import os.path
 
 from .addon import addon
@@ -43,7 +44,47 @@ class SB_State(bpy.types.PropertyGroup):
         get=get_identifier)
 
 
-class SB_Image(bpy.types.PropertyGroup):
+class SB_SheetAnimation(bpy.types.PropertyGroup):
+    # inherits name: StringProperty, it is used to identify animations
+
+    image: bpy.props.PointerProperty(
+        name="Sprite",
+        description="Image for the sprite the animation came from",
+        type=bpy.types.Image)
+
+
+class SB_ObjectProperties(bpy.types.PropertyGroup):
+    animations: bpy.props.CollectionProperty(
+        name="Animations",
+        description="Store animations the object uses, to sync or remove",
+        type=SB_SheetAnimation,
+        options={'HIDDEN'})
+
+
+    def animations_new(self, name:str) -> SB_SheetAnimation:
+        assert name, "Name can not be empty"
+        base, count = None, 0
+
+        while name in self.animations:
+            if not base: # do once
+                # regexp always matches the first group
+                base, suffix = re.match("^(.*?)(?:\.([0-9]{3}))?$", name).groups()
+                count = int(suffix) if suffix else 0
+            count += 1
+            name = f"{base}.{count:03}"
+        
+        item = self.animations.add()
+        item.name = name
+        return item
+
+
+    def animations_remove(self, item):
+        idx = self.animations.find(item.name)
+        assert idx > -1, "Item not in the collection"
+        self.animations.remove(idx)
+
+
+class SB_ImageProperties(bpy.types.PropertyGroup):
     """Pribambase image-related data"""
 
     source: bpy.props.StringProperty(
