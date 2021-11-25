@@ -253,21 +253,28 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         fps = context.scene.render.fps / context.scene.render.fps_base
 
         # editor tag is the current play loop in aseprite
-        tag_editor = ("",)
+        tag_editor = ("__editor__",)
         if current_tag:
             tag_editor += next((t for t in tags if t[0] == current_tag))[1:]
         else:
             tag_editor += (start, start + len(frames), 0)
 
+        # purge actions for removed tags
+        tag_names = (tag[0] for tag in tags)
+        for action in bpy.data.actions:
+            if action.sb_props.sprite == img and action.sb_props.tag not in tag_names:
+                bpy.data.actions.remove(action)
+
         for tag, tag_first, tag_last, ani_dir in (tag_editor, *tags):
-            action_name = img.name if tag == "" else f"{img.name}: {tag}"
             try:
-                action = bpy.data.actions[action_name]
-            except KeyError:
+                action = next(a for a in bpy.data.actions if a.sb_props.sprite == img and a.sb_props.tag == tag)
+            except StopIteration:
+                action_name = f"{img.name} *Editor*" if tag == "__editor__" else f"{img.name}: {tag}"
                 action = bpy.data.actions.new(action_name)
                 action.id_root = 'OBJECT'
                 action.use_fake_user = True
-            action.sb_props.sprite = img
+                action.sb_props.tag = tag
+                action.sb_props.sprite = img
             
             fcurve = action.fcurves.find('["Sprite Frame"]')
             if not fcurve:

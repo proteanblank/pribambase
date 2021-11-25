@@ -151,6 +151,10 @@ class SB_ActionProperties(bpy.types.PropertyGroup):
         description="Image for the sprite the action came from",
         type=bpy.types.Image)
 
+    tag: bpy.props.StringProperty(
+        name="Tag",
+        description="Corresponding tag on Asperite timeline")
+
 
 class SB_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
