@@ -301,7 +301,10 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                     points.remove(points[0], fast=True)
 
             for point,(n, dt) in zip(points, tag_frames):
-                point.co = (first + time * fps / 1000, n)
+                t = first + time * fps / 1000
+                if addon.prefs.whole_frames:
+                    t = round(t)
+                point.co = (t, n)
                 point.select_control_point = point.select_left_handle = point.select_right_handle = False
                 point.interpolation = 'CONSTANT'
                 time += dt

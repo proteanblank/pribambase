@@ -266,6 +266,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="No modal timers",
         description="Change the way the changes are applied to blender data. Degrades the experience but might fix some crashes",
         default=False)
+    
+    whole_frames: bpy.props.BoolProperty(
+        name="Round Fractional Frames",
+        description="When sprite timings do not match the scene framerate, move keyframes to the nearest whole frame. Otherwise, use fractional frames to preserver timing",
+        default=True)
 
 
     def template_box(self, layout, label="Box"):
@@ -304,6 +309,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box = self.template_box(layout, label="Misc:")
 
         box.row().prop(self, "use_relative_path")
+        box.row().prop(self, "whole_frames")
         box.row().prop(self, "skip_modal")
 
 
