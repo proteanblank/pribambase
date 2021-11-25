@@ -323,8 +323,9 @@ class SB_PT_panel_animation(bpy.types.Panel):
             except IndexError:
                 pass # no selected animation
 
-            # for range preview, icon = 'PREVIEW_RANGE'
-            layout.row().prop(obj.animation_data, "action")
+            row = layout.row()
+            row.prop(obj.animation_data, "action")
+            row.prop(context.scene.sb_state, "action_preview_enabled", icon='PREVIEW_RANGE', text="")
 
 
 

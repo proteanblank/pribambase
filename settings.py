@@ -36,12 +36,35 @@ def get_identifier(self):
     return self["_identifier"]
 
 
+def update_action_preview(self, context):
+    """NOTE side effects"""
+    scene = context.scene
+    if self.action_preview_enabled:
+        scene.sb_state.action_preview = context.active_object
+        scene.use_preview_range = True
+        scene.frame_preview_start, scene.frame_preview_end = context.active_object.animation_data.action.frame_range
+    else:
+        scene.sb_state.action_preview = None
+        scene.use_preview_range = False
+
+
 class SB_State(bpy.types.PropertyGroup):
     """Pribambase file-related data"""
     identifier: bpy.props.StringProperty(
         name="Identifier",
         description="Unique but not permanent id for the current file. Prevents accidentally syncing textures from another file",
         get=get_identifier)
+    
+    action_preview: bpy.props.PointerProperty(
+        name="Action Preview",
+        description="For locking timeline preview range",
+        type=bpy.types.Object,
+        poll=lambda self, object : object is None or object.type == 'MESH')
+    
+    action_preview_enabled: bpy.props.BoolProperty(
+        name="Action Preview",
+        description="Lock timeline preview range to action length",
+        update=update_action_preview)
 
 
 class SB_SheetAnimation(bpy.types.PropertyGroup):

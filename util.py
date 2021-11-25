@@ -260,7 +260,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             tag_editor += (start, start + len(frames), 0)
 
         # purge actions for removed tags
-        tag_names = (tag[0] for tag in tags)
+        tag_names = ["__editor__"] + [tag[0] for tag in tags]
         for action in bpy.data.actions:
             if action.sb_props.sprite == img and action.sb_props.tag not in tag_names:
                 bpy.data.actions.remove(action)
@@ -308,6 +308,14 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
             fcurve.update()
             action.update_tag()
+        
+        scene = context.scene
+        if scene.sb_state.action_preview_enabled:
+            obj = context.scene.sb_state.action_preview
+            if obj and obj.animation_data and obj.animation_data.action:
+                scene.frame_preview_start, scene.frame_preview_end = context.active_object.animation_data.action.frame_range
+            else:
+                scene.sb_state.action_preview_enabled = False
 
 
     def modal_execute(self, context):
