@@ -150,7 +150,7 @@ def set_new_animation_name(self, v):
 
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
-    bl_label = "Setup Sprite Animation"
+    bl_label = "Set Up"
     bl_description = "Set up spritesheet UV animation for this object. Does not affect materials or textures"
     bl_options = {'UNDO'}
 
@@ -184,7 +184,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         # need a mesh to store modifiers these days
-        return context.active_object and context.object.type == 'MESH' and context.active_object.select_get() and next((img for img in bpy.data.images if img.sb_props.sheet), False)
+        return context.active_object and context.active_object.type == 'MESH' and context.active_object.select_get() and next((img for img in bpy.data.images if img.sb_props.sheet), False)
 
 
     def execute(self, context):
@@ -235,6 +235,100 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
 
 
+class SB_OT_spritesheet_unrig(bpy.types.Operator):
+    bl_idname = "pribambase.spritesheet_unrig"
+    bl_label = "Clean Up"
+    bl_description = "Remove modifier, drivers, and custom property created buy spritesheet UV animation"
+    bl_options = {'UNDO'}
+
+    @classmethod 
+    def poll(self, context):
+        try:
+            context.active_object.sb_props.animations[context.active_object.sb_props.animation_index]
+            return context.active_object.select_get()
+        except:
+            return False
+    
+    def execute(self, context):
+        obj = context.active_object
+        anim = obj.sb_props.animations[obj.sb_props.animation_index]
+        prop_name = anim.name
+
+        # drivers
+        for driver in obj.animation_data.drivers:
+            if driver.data_path == f'modifiers["{prop_name}"].offset':
+                obj.animation_data.drivers.remove(driver)
+
+        # custom property
+        if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
+            del obj["_RNA_UI"][prop_name]
+
+        if prop_name in obj:
+            del obj[prop_name]
+
+        # modifier
+        if prop_name in obj.modifiers:
+            obj.modifiers.remove(obj.modifiers[prop_name])
+        
+        # animation
+        obj.sb_props.animations_remove(anim)
+
+        return {'FINISHED'}
+
+
+
+
+class SB_UL_animations(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.prop(item, "name", text="", emboss=False, icon = 'BLANK1' if item.is_intact() else 'ERROR')
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon='DECORATE_LINKED')
+
+
+
+class SB_PT_panel_animation(bpy.types.Panel):
+    bl_idname = "SB_PT_panel_animation"
+    bl_label = "Sprite Animation"
+    bl_category = "Item"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    def draw(self, context):        
+        if context.active_object and context.active_object.type == 'MESH':
+            layout = self.layout
+            obj = context.active_object
+
+            row = layout.row()
+            row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
+
+            col = row.column(align=True)
+            col.operator("pribambase.spritesheet_rig", icon='ADD', text="")
+            col.operator("pribambase.spritesheet_unrig", icon='REMOVE', text="")
+
+            try:
+                anim = obj.sb_props.animations[obj.sb_props.animation_index]
+                prop_name = anim.name
+
+                if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
+                    layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
+                elif prop_name not in obj.modifiers:
+                    layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
+                elif prop_name not in obj:
+                    layout.row().label(text="Object property was removed or renamed", icon='ERROR')
+                else:
+                    layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
+
+            except IndexError:
+                pass # no selected animation
+
+            # for range preview, icon = 'PREVIEW_RANGE'
+            layout.row().prop(obj.animation_data, "action")
+
+
+
+
 class SB_PT_panel_link(bpy.types.Panel):
     bl_idname = "SB_PT_panel_link_3d"
     bl_label = "Sync"
@@ -269,13 +363,3 @@ class SB_PT_panel_link(bpy.types.Panel):
         layout.row().operator("pribambase.reference_add")
         layout.row().operator("pribambase.reference_reload")
         layout.row().operator("pribambase.reference_reload_all")
-
-        layout.separator()
-
-        layout.row().operator("pribambase.spritesheet_rig")
-
-        if context.object and context.object.type == 'MESH':
-            for anim in context.object.sb_props.animations:
-                row = layout.row()
-                row.prop(context.object, f'["{anim.name}"]')
-

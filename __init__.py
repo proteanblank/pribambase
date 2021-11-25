@@ -73,10 +73,14 @@ classes = (
     SB_OT_update_image,
     SB_OT_update_spritesheet,
     SB_OT_spritesheet_rig,
+    SB_OT_spritesheet_unrig,
     SB_OT_preferences,
     SB_OT_report,
+    # Lists
+    SB_UL_animations,
     # Panels
     SB_PT_panel_link,
+    SB_PT_panel_animation,
     # Menus
     SB_MT_menu_2d
 )

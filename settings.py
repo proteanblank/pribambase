@@ -54,6 +54,27 @@ class SB_SheetAnimation(bpy.types.PropertyGroup):
         description="Image for the sprite the animation came from",
         type=bpy.types.Image)
 
+    def is_intact(self):
+        """Check that none of the rig pieces were removed (usually, by the user)"""
+        try:
+            prop_name = self.name
+            obj = self.id_data
+            mod_datapath = f'modifiers["{prop_name}"].offset'
+            
+            # two driver curves
+            assert len([True for driver in obj.animation_data.drivers if driver.data_path == mod_datapath]) >= 2
+
+            # custom property
+            assert prop_name in obj
+            assert obj["_RNA_UI"]
+            assert obj["_RNA_UI"][prop_name]
+
+            # modifier
+            assert prop_name in obj.modifiers
+        except AssertionError:
+            return False
+        return True
+
 
 class SB_ObjectProperties(bpy.types.PropertyGroup):
     animations: bpy.props.CollectionProperty(
@@ -61,6 +82,11 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         description="Store animations the object uses, to sync or remove",
         type=SB_SheetAnimation,
         options={'HIDDEN'})
+    
+    animation_index: bpy.props.IntProperty(
+        name="Animation Index",
+        description="List index of the animation selected. For UI purposes",
+        options={'HIDDEN', 'SKIP_SAVE'})
 
 
     def animations_new(self, name:str) -> SB_SheetAnimation:
@@ -73,6 +99,7 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         idx = self.animations.find(item.name)
         assert idx > -1, "Item not in the collection"
         self.animations.remove(idx)
+
 
 
 class SB_ImageProperties(bpy.types.PropertyGroup):
