@@ -24,9 +24,26 @@ import os
 from os import path
 import tempfile
 import numpy as np
+import re
 from typing import Collection, Tuple
 
 from .addon import addon
+
+
+def unique_name(name:str, collection:Collection[str]) -> str:
+    """Imitate belnder behavior for ID names. Returns the name, possibly with a numeric suffix (e.g .001), so that it doesn't match any other strings in the collection"""
+    assert name, "Name can not be empty"
+    base, count = None, 0
+
+    while name in collection:
+        if not base: # do once
+            # regexp always matches the first group
+            base, suffix = re.match("^(.*?)(?:\.([0-9]{3}))?$", name).groups()
+            count = int(suffix) if suffix else 0
+        count += 1
+        name = f"{base}.{count:03}"
+    
+    return name
 
 
 def refresh():
@@ -165,11 +182,14 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
         return ModalExecuteMixin.execute(self, context)
 
 
-def update_sheet_animation(obj:bpy.types.Object, img:bpy.types.Image, prop_name:str):
-    if not (prop_name in obj and prop_name in obj.modifiers):
+def update_sheet_animation(anim):
+    obj = anim.id_data
+    prop_name = anim.name
+    img = anim.image
+
+    if prop_name not in obj.modifiers or prop_name not in obj:
         # it's strange if either is removed manually, to be safe let's assume the user no longer wants that animation
-        if prop_name in obj.sb_props.animations:
-            obj.sb_props.animations_remove(obj.sb_props.animations[prop_name])
+        obj.sb_props.animations_remove(anim)
 
     elif img.sb_props.sheet:
         sheet = img.sb_props.sheet
@@ -324,7 +344,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         for obj in bpy.data.objects:
             for anim in obj.sb_props.animations:
                 if anim.image == img:
-                    update_sheet_animation(obj, img, anim.name)
+                    update_sheet_animation(anim)
             
             obj.update_tag
 

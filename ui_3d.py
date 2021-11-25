@@ -144,13 +144,23 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def set_new_animation_name(self, v):
+    self["name"] = util.unique_name(v, bpy.context.active_object.sb_props.animations)
+
+
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
     bl_label = "Setup Sprite Animation"
-    # TODO explain hot to use animation manually or automatically
     bl_description = "Set up spritesheet UV animation for this object. Does not affect materials or textures"
     bl_options = {'UNDO'}
 
+
+    name: bpy.props.StringProperty(
+        name="Name",
+        description="Name for animation, also used for custom property and modifier",
+        default="Sprite Frame", 
+        set=set_new_animation_name,
+        get=lambda self: self["name"] if "name" in self else util.unique_name("Sprite Frame", bpy.context.active_object.sb_props.animations))
 
     image: bpy.props.EnumProperty(
         name="Sprite",
@@ -180,8 +190,11 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     def execute(self, context):
         obj = context.active_object
         img = bpy.data.images[self.image]
-        prop_name = "Sprite Frame" # TODO operator prop
         start = img.sb_props.sheet.sb_props.sheet_start
+
+        anim = obj.sb_props.animations_new("Sprite Frame")
+        anim.image = img
+        prop_name = anim.name
 
         # custom property
         if prop_name not in obj:
@@ -189,7 +202,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
         if "_RNA_UI" not in obj:
             obj["_RNA_UI"] = {}
-        
         obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite" }
 
         # modifier
@@ -200,13 +212,10 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         uvwarp.uv_layer = "" if self.uv_map == "__none__" else self.uv_map
         uvwarp.center = (0.0, 1.0)
         
-        util.update_sheet_animation(obj, img, prop_name)
+        util.update_sheet_animation(anim)
         
         if self.action != "__none__" and self.action in bpy.data.actions:
             obj.animation_data.action = bpy.data.actions[self.action]
-
-        anim = obj.sb_props.animations_new(prop_name)
-        anim.image = img
 
         obj.update_tag()
 
@@ -264,3 +273,9 @@ class SB_PT_panel_link(bpy.types.Panel):
         layout.separator()
 
         layout.row().operator("pribambase.spritesheet_rig")
+
+        if context.object and context.object.type == 'MESH':
+            for anim in context.object.sb_props.animations:
+                row = layout.row()
+                row.prop(context.object, f'["{anim.name}"]')
+

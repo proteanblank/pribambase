@@ -20,10 +20,10 @@
 
 import bpy
 import secrets
-import re
 import os.path
 
 from .addon import addon
+from . import util
 
 
 def get_identifier(self):
@@ -45,7 +45,9 @@ class SB_State(bpy.types.PropertyGroup):
 
 
 class SB_SheetAnimation(bpy.types.PropertyGroup):
-    # inherits name: StringProperty, it is used to identify animations
+    """Pribambase spritesheet animation. Use `object.sb_props.animation_new` to create them with unique names (adds .001 etc)"""
+    # use anim.name for an identifier
+    # use anim.id_data to get the animated object
 
     image: bpy.props.PointerProperty(
         name="Sprite",
@@ -62,19 +64,8 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
 
 
     def animations_new(self, name:str) -> SB_SheetAnimation:
-        assert name, "Name can not be empty"
-        base, count = None, 0
-
-        while name in self.animations:
-            if not base: # do once
-                # regexp always matches the first group
-                base, suffix = re.match("^(.*?)(?:\.([0-9]{3}))?$", name).groups()
-                count = int(suffix) if suffix else 0
-            count += 1
-            name = f"{base}.{count:03}"
-        
         item = self.animations.add()
-        item.name = name
+        item.name = util.unique_name(name, self.animations)
         return item
 
 
