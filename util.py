@@ -317,7 +317,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         if scene.sb_state.action_preview_enabled:
             obj = context.scene.sb_state.action_preview
             if obj and obj.animation_data and obj.animation_data.action:
-                scene.frame_preview_start, scene.frame_preview_end = context.active_object.animation_data.action.frame_range
+                scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
             else:
                 scene.sb_state.action_preview_enabled = False
 
