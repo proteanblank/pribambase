@@ -67,6 +67,7 @@ classes = (
     SB_OT_edit_sprite,
     SB_OT_edit_sprite_copy,
     SB_OT_replace_sprite,
+    SB_OT_purge_sprite,
     SB_OT_reference_add,
     SB_OT_reference_reload,
     SB_OT_reference_reload_all,

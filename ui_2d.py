@@ -400,6 +400,105 @@ class SB_OT_edit_sprite_copy(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SB_OT_purge_sprite(bpy.types.Operator):
+    bl_label = "Purge"
+    bl_idname = "pribambase.purge_sprite"
+    bl_description = "Erase sprite-related data created by the plugin. Can remove unwanted animation setups"
+    bl_options = {'REGISTER', 'UNDO'}
+
+
+    remove_anim: bpy.props.BoolProperty(
+        name="Animations", 
+        description="Remove animations that use the sprite (UVWarp modifier, object property, and drivers)", 
+        default=True)
+
+    remove_actions: bpy.props.BoolProperty(
+        name="Actions", 
+        description="Remove generated actions and keyframes for the sprite", 
+        default=True)
+
+    remove_sheet: bpy.props.BoolProperty(
+        name="Spritesheet Image", 
+        description="Remove spritesheet image",
+         default=True)
+
+    remove_sprite: bpy.props.BoolProperty(
+        name="Sprite Image", 
+        description="Remove 'view' image. All relations to other pieces of data will be erased, so unchecking those makes IMPOSSIBLE to remove them automatically another time", 
+        default=True)
+    
+
+    @classmethod
+    def poll(cls, context):
+        if not context.edit_image:
+            return False
+        props = context.edit_image.sb_props
+        return props.is_sheet or props.sheet
+    
+    def draw(self, context):
+        row=self.layout.split(factor=.28)
+        row.label(text="Remove:")
+        col = row.column(align=True)
+        col.prop(self, "remove_sprite")
+        col.prop(self, "remove_sheet")
+        col.prop(self, "remove_anim")
+        col.prop(self, "remove_actions")
+    
+
+    def execute(self, context):
+        if not self.img:
+            self.report({'INFO'}, "The main sprite has been already removed, along with recorded relations. Some data items may require manual removal")
+        
+        if self.remove_anim:
+            for obj in bpy.data.objects:
+                for anim in obj.sb_props.animations:
+                    if anim.image == self.img:
+                        prop_name = anim.prop_name
+
+                        # modifier
+                        if obj.animation_data:
+                            for driver in obj.animation_data.drivers:
+                                if driver.data_path == f'modifiers["{prop_name}"].offset':
+                                    obj.animation_data.drivers.remove(driver)
+
+                        if prop_name in obj.modifiers:
+                            obj.modifiers.remove(obj.modifiers[prop_name])
+
+                        # custom property
+                        if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
+                            del obj["_RNA_UI"][prop_name]
+
+                        if prop_name in obj:
+                            del obj[prop_name]
+
+                        obj.sb_props.animations_remove(anim)
+
+
+        if self.remove_actions:
+            for action in bpy.data.actions:
+                if action.sb_props.sprite == self.img:
+                    bpy.data.actions.remove(action)
+        
+        if self.remove_sheet and self.sheet:
+                bpy.data.images.remove(self.sheet)
+
+        if self.remove_sprite and self.img:
+                bpy.data.images.remove(self.img)
+
+        return {'FINISHED'}
+
+
+    def invoke(self, context, event):
+        self.img = context.edit_image
+        self.sheet = self.img.sb_props.sheet
+        if self.img.sb_props.is_sheet: # user selected the spritesheet, not the "original" image
+            sheet = self.img
+            self.img = next((i for i in bpy.data.images if i.sb_props.sheet == sheet), None)
+            self.remove_sprite = False # change default in this case
+
+        return context.window_manager.invoke_props_dialog(self)
+
+
 class SB_OT_replace_sprite(bpy.types.Operator):
     bl_description = "Replace current texture with a file using Aseprite"
     bl_idname = "pribambase.replace_sprite"
@@ -453,6 +552,8 @@ class SB_MT_menu_2d(bpy.types.Menu):
         layout.operator("pribambase.replace_sprite")
         layout.separator()
         layout.operator("pribambase.set_uv", icon='UV_VERTEXSEL')
+        layout.separator()
+        layout.operator("pribambase.purge_sprite", icon='TRASH')
 
 
     def header_draw(self, context):
