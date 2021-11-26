@@ -44,7 +44,7 @@ bl_info = {
     "description": "Paint pixelart textures in Blender using Aseprite",
     "blender": (2, 80, 0),
     "version": (2, 0, 3),
-    "location": "\"Sync\" section in Tool settings; \"Sprite\" menu in UV/Image Editor",
+    "location": "\"Sync\" section in 3D Tool paned; \"Sprite Animation\" in 3D Item panel; \"Sprite\" menu in UV/Image Editor",
     "category": "Paint"
 }
 

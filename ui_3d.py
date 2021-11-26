@@ -401,10 +401,21 @@ class SB_PT_panel_animation(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+
+
     def draw(self, context):        
         if context.active_object and context.active_object.type == 'MESH':
             layout = self.layout
             obj = context.active_object
+
+            if next((False for img in bpy.data.images if img.sb_props.sheet), True):
+                row = layout.row()
+                row.alignment = 'CENTER'
+                row.label(text="No synced sprites have animations", icon='INFO')
 
             row = layout.row()
             row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
@@ -433,12 +444,12 @@ class SB_PT_panel_animation(bpy.types.Panel):
             if obj.animation_data:
                 row.prop(obj.animation_data, "action")
                 
-            if context.scene.sb_state.action_preview_enabled:
-                active_picked = (context.active_object == context.scene.sb_state.action_preview)
-                row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
-                row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
-            else:
-                row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
+                if context.scene.sb_state.action_preview_enabled:
+                    active_picked = (context.active_object == context.scene.sb_state.action_preview)
+                    row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
+                    row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
+                else:
+                    row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
 
 
 class SB_PT_panel_link(bpy.types.Panel):
@@ -464,14 +475,15 @@ class SB_PT_panel_link(bpy.types.Panel):
 
         row.label(text=status, icon=icon)
 
-        row = row.row()
+        row = row.row(align=True)
         row.alignment = 'RIGHT'
         if addon.server_up:
             row.operator("pribambase.stop_server", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
             row.operator("pribambase.start_server", text="Connect", icon="DECORATE_LINKED")
-        row.operator("pribambase.preferences", icon='PREFERENCES', text="", emboss=False)
+        row.operator("pribambase.preferences", icon='PREFERENCES', text="")
 
-        layout.row().operator("pribambase.reference_add")
-        layout.row().operator("pribambase.reference_reload")
-        layout.row().operator("pribambase.reference_reload_all")
+        col = layout.column(align=True)
+        col.operator("pribambase.reference_add")
+        col.operator("pribambase.reference_reload")
+        col.operator("pribambase.reference_reload_all")
