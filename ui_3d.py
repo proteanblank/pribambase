@@ -198,6 +198,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         anim = obj.sb_props.animations_new(self.name)
         anim.image = img
         anim.prop_name = prop_name
+        obj.sb_props.animation_index = obj.sb_props.animations.find(anim.name)
 
         # custom property
         if prop_name not in obj:
