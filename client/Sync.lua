@@ -192,7 +192,9 @@ else
             _frames[2 * i] = buf.bytes
             _infos[i] = string.pack("<HH", i, math.tointeger(1000 * frame.duration))
         end
-        _frames[2 * nframes + 1] = nil
+        for i=2 * nframes + 1,#_frames do
+            _frames[i] = nil
+        end
 
         local ntags = #sprite.tags
         _infos[nframes + 1] = string.pack("<I4s4", ntags, opts.tag)
@@ -200,7 +202,10 @@ else
             dir = (tag.aniDir == AniDir.PING_PONG and 2 or (tag.aniDir == AniDir.REVERSE and 1 or 0))
             _infos[nframes + 1 + i] = string.pack("<s4HHB", tag.name, tag.fromFrame.frameNumber, tag.toFrame.frameNumber, dir)
         end
-        _infos[nframes + ntags + 2] = nil
+
+        for i=nframes + ntags + 2,#_infos do
+            _infos[i] = nil
+        end
 
         return string.pack("<BHHs4i4I4I4", id, buf.width, buf.height, name, start, nframes, opts.frame.frameNumber - 1), table.concat(_infos, ""), table.unpack(_frames)
     end
