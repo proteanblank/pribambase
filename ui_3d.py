@@ -430,7 +430,9 @@ class SB_PT_panel_animation(bpy.types.Panel):
                 pass # no selected animation
 
             row = layout.row(align=True)
-            row.prop(obj.animation_data, "action")
+            if obj.animation_data:
+                row.prop(obj.animation_data, "action")
+                
             if context.scene.sb_state.action_preview_enabled:
                 active_picked = (context.active_object == context.scene.sb_state.action_preview)
                 row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
