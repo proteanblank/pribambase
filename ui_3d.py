@@ -312,6 +312,75 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
         return {'FINISHED'}
 
 
+action = ""
+msgbus_anim_data_callback_owner = object()
+def sb_msgbus_anim_data_callback():
+    global action
+    scene = bpy.context.scene
+    obj = scene.sb_state.action_preview
+
+    if not scene.use_preview_range or not obj:
+        bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner)
+        return
+
+    if obj.animation_data.action != action:
+        action = obj.animation_data.action.name
+        scene.frame_preview_start, scene.frame_preview_end = scene.sb_state.action_preview.animation_data.action.frame_range
+        # try to revive the curves
+        for fcurve in obj.animation_data.action.fcurves:
+            fcurve.data_path += ""
+
+
+class SB_OT_set_action_preview(bpy.types.Operator):
+    bl_idname = "pribambase.set_action_preview"
+    bl_label = "Action Preview"
+    bl_description = "Lock timeline preview range to action length"
+    
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and context.active_object.type == 'MESH' and \
+            context.active_object.animation_data and context.active_object.animation_data.action and \
+            not context.active_object == context.scene.sb_state.action_preview
+    
+    def execute(self, context):
+        # NOTE when using self here, note that this method is directly invoked during scene initialization
+        scene = context.scene
+        obj = context.active_object
+        scene.sb_state.action_preview = obj
+        scene.sb_state.action_preview_enabled = True
+        scene.use_preview_range = True
+        scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
+
+        bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner) # try to unsub in case we're changing the object
+        bpy.msgbus.subscribe_rna(
+            key=bpy.context.object.animation_data,
+            owner=msgbus_anim_data_callback_owner,
+            args=tuple(),
+            notify=sb_msgbus_anim_data_callback,
+            options={'PERSISTENT'})
+
+        return {'FINISHED'}
+
+
+
+class SB_OT_clear_action_preview(bpy.types.Operator):
+    bl_idname = "pribambase.clear_action_preview"
+    bl_label = "Cancel Action Preview"
+    bl_description = "Stop locking timeline preview range to action length"
+    
+    @classmethod
+    def poll(cls, context):
+        scene = context.scene
+        return scene.sb_state.action_preview_enabled and scene.use_preview_range
+    
+    def execute(self, context):
+        scene = context.scene
+        scene.sb_state.action_preview = None
+        scene.sb_state.action_preview_enabled = False
+        scene.use_preview_range = False
+        bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner)
+        return {'FINISHED'}
+
 
 
 class SB_UL_animations(bpy.types.UIList):
@@ -359,9 +428,14 @@ class SB_PT_panel_animation(bpy.types.Panel):
             except IndexError:
                 pass # no selected animation
 
-            row = layout.row()
+            row = layout.row(align=True)
             row.prop(obj.animation_data, "action")
-            row.prop(context.scene.sb_state, "action_preview_enabled", icon='PREVIEW_RANGE', text="")
+            if context.scene.sb_state.action_preview_enabled:
+                active_picked = (context.active_object == context.scene.sb_state.action_preview)
+                row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
+                row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
+            else:
+                row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
 
 
 class SB_PT_panel_link(bpy.types.Panel):

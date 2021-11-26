@@ -36,18 +36,6 @@ def get_identifier(self):
     return self["_identifier"]
 
 
-def update_action_preview(self, context):
-    """NOTE side effects"""
-    scene = context.scene
-    if self.action_preview_enabled:
-        scene.sb_state.action_preview = context.active_object
-        scene.use_preview_range = True
-        scene.frame_preview_start, scene.frame_preview_end = context.active_object.animation_data.action.frame_range
-    else:
-        scene.sb_state.action_preview = None
-        scene.use_preview_range = False
-
-
 class SB_State(bpy.types.PropertyGroup):
     """Pribambase file-related data"""
     identifier: bpy.props.StringProperty(
@@ -63,8 +51,7 @@ class SB_State(bpy.types.PropertyGroup):
     
     action_preview_enabled: bpy.props.BoolProperty(
         name="Action Preview",
-        description="Lock timeline preview range to action length",
-        update=update_action_preview)
+        description="Lock timeline preview range to action length")
 
 
 class SB_SheetAnimation(bpy.types.PropertyGroup):

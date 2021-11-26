@@ -72,6 +72,8 @@ classes = (
     SB_OT_reference_reload_all,
     SB_OT_update_image,
     SB_OT_update_spritesheet,
+    SB_OT_set_action_preview,
+    SB_OT_clear_action_preview,
     SB_OT_spritesheet_rig,
     SB_OT_spritesheet_unrig,
     SB_OT_preferences,
@@ -178,6 +180,12 @@ def sb_on_load_post(scene):
     _images_hv = hash(frozenset(util.image_name(img) for img in bpy.data.images))
 
     bpy.ops.pribambase.reference_reload_all()
+
+    # these settings aren't supposed to persist but 'SKIP_SAVE' flag didn't do anyhitng so let's clear them manually if needed
+    if addon.state.action_preview_enabled:
+        bpy.context.scene.use_preview_range = False
+    addon.state.action_preview = None
+    addon.state.action_preview_enabled = False
 
     if addon.prefs.autostart:
         addon.start_server()
