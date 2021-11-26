@@ -76,11 +76,15 @@ class SB_SheetAnimation(bpy.types.PropertyGroup):
         name="Sprite",
         description="Image for the sprite the animation came from",
         type=bpy.types.Image)
+    
+    prop_name: bpy.props.StringProperty(
+        name="Prop Name",
+        description="Name of the object property for the frame")
 
     def is_intact(self):
         """Check that none of the rig pieces were removed (usually, by the user)"""
         try:
-            prop_name = self.name
+            prop_name = self.prop_name
             obj = self.id_data
             mod_datapath = f'modifiers["{prop_name}"].offset'
             

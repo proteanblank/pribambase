@@ -184,7 +184,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
 
 def update_sheet_animation(anim):
     obj = anim.id_data
-    prop_name = anim.name
+    prop_name = anim.prop_name
     img = anim.image
 
     if prop_name not in obj.modifiers or prop_name not in obj:
@@ -276,11 +276,6 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                 action.sb_props.tag = tag
                 action.sb_props.sprite = img
             
-            fcurve = action.fcurves.find('["Sprite Frame"]')
-            if not fcurve:
-                fcurve = action.fcurves.new('["Sprite Frame"]')
-            
-            time = 0
             first = context.scene.frame_start
 
             tag_frames = frames[tag_first - start:tag_last - start + 1]
@@ -291,25 +286,30 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             
             tag_frames.append(tag_frames[-1]) # one more keyframe to keep the last frame duration inside in the action
 
-            points = fcurve.keyframe_points
-            npoints = len(points)
-            nframes = len(tag_frames)
-            if npoints < nframes:
-                points.add(nframes - npoints)
-            elif npoints > nframes:
-                for _ in range(npoints - nframes):
-                    points.remove(points[0], fast=True)
+            if not action.fcurves:
+                action.fcurves.new(f'["Frame {img.name}"]')
 
-            for point,(n, dt) in zip(points, tag_frames):
-                t = first + time * fps / 1000
-                if addon.prefs.whole_frames:
-                    t = round(t)
-                point.co = (t, n)
-                point.select_control_point = point.select_left_handle = point.select_right_handle = False
-                point.interpolation = 'CONSTANT'
-                time += dt
+            for fcurve in action.fcurves:
+                points = fcurve.keyframe_points
+                npoints = len(points)
+                nframes = len(tag_frames)
+                if npoints < nframes:
+                    points.add(nframes - npoints)
+                elif npoints > nframes:
+                    for _ in range(npoints - nframes):
+                        points.remove(points[0], fast=True)
 
-            fcurve.update()
+                time = 0
+                for point,(y, dt) in zip(points, tag_frames):
+                    x = first + time * fps / 1000
+                    if addon.prefs.whole_frames:
+                        x = round(x)
+                    point.co = (x, y)
+                    point.select_control_point = point.select_left_handle = point.select_right_handle = False
+                    point.interpolation = 'CONSTANT'
+                    time += dt
+
+                fcurve.update()
             action.update_tag()
         
         scene = context.scene

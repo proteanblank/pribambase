@@ -157,8 +157,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
     name: bpy.props.StringProperty(
         name="Name",
-        description="Name for animation, also used for custom property and modifier",
-        default="Sprite Frame", 
+        description="Name for animation",
         set=set_new_animation_name,
         get=lambda self: self["name"] if "name" in self else util.unique_name("Sprite Frame", bpy.context.active_object.sb_props.animations))
 
@@ -184,7 +183,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         # need a mesh to store modifiers these days
-        return context.active_object and context.active_object.type == 'MESH' and context.active_object.select_get() and next((img for img in bpy.data.images if img.sb_props.sheet), False)
+        return context.active_object and context.active_object.type == 'MESH' and context.active_object.select_get() and next((img for img in bpy.data.images if img.sb_props.sheet), False)  
 
 
     def execute(self, context):
@@ -192,9 +191,13 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         img = bpy.data.images[self.image]
         start = img.sb_props.sheet.sb_props.sheet_start
 
-        anim = obj.sb_props.animations_new("Sprite Frame")
+        # Uniqualize the name in case there's already one from the same sprite
+        prop_name = util.unique_name(f"Frame {self.image}", obj)
+        prop_path = f'["{prop_name}"]'
+
+        anim = obj.sb_props.animations_new(self.name)
         anim.image = img
-        prop_name = anim.name
+        anim.prop_name = prop_name
 
         # custom property
         if prop_name not in obj:
@@ -213,11 +216,44 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         uvwarp.center = (0.0, 1.0)
         
         util.update_sheet_animation(anim)
+
+        # NOTE curve update() should happen after the property is created
+        for action in bpy.data.actions:
+            if action.sb_props.sprite == img:
+                try:
+                    fcurve = next(c for c in action.fcurves if c.data_path == prop_path)
+                    if obj.user_of_id(action):
+                        if action == obj.animation_data.action:
+                            # It seems there's no way to clear FCURVE_DISABLED flag directly from script
+                            # Seems that cahnging the path does that as a side effect
+                            fcurve.data_path += ""
+                            fcurve.update()
+
+
+                except StopIteration:
+                    # no curve for needed channel found, let's create it
+                    # all action curves are filled with the same data
+                    source = action.fcurves[0]
+                    copy = action.fcurves.new(prop_path)
+
+                    copy.keyframe_points.add(len(source.keyframe_points))
+                    for source_pt, copy_pt in zip(source.keyframe_points, copy.keyframe_points):
+                        copy_pt.co = source_pt.co
+                        copy_pt.select_control_point = copy_pt.select_left_handle = copy_pt.select_right_handle = False
+                        copy_pt.interpolation = 'CONSTANT'
+                    
+                    copy.update()
+                    action.update_tag()
         
         if self.action != "__none__" and self.action in bpy.data.actions:
             obj.animation_data.action = bpy.data.actions[self.action]
 
+        obj.animation_data.drivers.update()
         obj.update_tag()
+
+        
+
+        util.refresh()
 
         return {'FINISHED'}
 
@@ -230,7 +266,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         if not context.active_object.data.uv_layers:
             self.report({'ERROR'}, "THe object must have at least one UV map")
             return {'CANCELLED'}
-            
+        
         return context.window_manager.invoke_props_dialog(self)
 
 
@@ -252,7 +288,7 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
     def execute(self, context):
         obj = context.active_object
         anim = obj.sb_props.animations[obj.sb_props.animation_index]
-        prop_name = anim.name
+        prop_name = anim.prop_name
 
         # drivers
         for driver in obj.animation_data.drivers:
@@ -309,7 +345,7 @@ class SB_PT_panel_animation(bpy.types.Panel):
 
             try:
                 anim = obj.sb_props.animations[obj.sb_props.animation_index]
-                prop_name = anim.name
+                prop_name = anim.prop_name
 
                 if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
                     layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
@@ -326,8 +362,6 @@ class SB_PT_panel_animation(bpy.types.Panel):
             row = layout.row()
             row.prop(obj.animation_data, "action")
             row.prop(context.scene.sb_state, "action_preview_enabled", icon='PREVIEW_RANGE', text="")
-
-
 
 
 class SB_PT_panel_link(bpy.types.Panel):
