@@ -381,7 +381,7 @@ class SB_UL_animations(bpy.types.UIList):
 
 class SB_PT_panel_animation(bpy.types.Panel):
     bl_idname = "SB_PT_panel_animation"
-    bl_label = "Sprite"
+    bl_label = "Sprite Animation"
     bl_category = "Item"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -396,17 +396,16 @@ class SB_PT_panel_animation(bpy.types.Panel):
         if context.active_object and context.active_object.type == 'MESH':
             layout = self.layout
             obj = context.active_object
-            anim_layout = layout.column(heading="Animation")
 
             # Info
-            row = anim_layout.row()
+            row = layout.row()
             row.alignment = 'CENTER'
             if next((False for img in bpy.data.images if img.sb_props.sheet), True):
                 row.label(text="No synced sprites have animations", icon='INFO')
             elif not obj.sb_props.animations:
                 row.label(text="Press \"+\" to set up 2D animation", icon='INFO')
 
-            row = anim_layout.row()
+            row = layout.row()
             row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
 
             col = row.column(align=True)
@@ -418,13 +417,13 @@ class SB_PT_panel_animation(bpy.types.Panel):
                 prop_name = anim.prop_name
 
                 if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
-                    anim_layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
+                    layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
                 elif prop_name not in obj.modifiers:
-                    anim_layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
+                    layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
                 elif prop_name not in obj:
-                    anim_layout.row().label(text="Object property was removed or renamed", icon='ERROR')
+                    layout.row().label(text="Object property was removed or renamed", icon='ERROR')
                 else:
-                    anim_layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
+                    layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
 
             except IndexError:
                 pass # no selected animation
