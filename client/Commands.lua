@@ -32,8 +32,7 @@ function run_script(f)
     local s = app.fs.joinPath(app.fs.userConfigPath, "extensions", "pribambase", f) .. ".lua"
 
     return function()
-        dofile(s)
-        -- app.command.RunScript{ filename=s }
+        app.command.RunScript{ filename=s }
     end
 end
 
