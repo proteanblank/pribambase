@@ -181,10 +181,10 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
     def source_set(self, source, relative:bool=None):
         """
         Set source as relative/absolute path according to relative path setting. Use every time when assigning sources automatically, 
-        and never for user interaction. If relative is not specified, it's picked automatically based on blender prefs."""
+        and never for user interaction. If relative is not specified but possible, it's picked automatically based on blender prefs."""
         if not source:
             self.source = ""
-        elif relative or (relative is None and addon.prefs.use_relative_path):
+        elif (relative or (relative is None and addon.prefs.use_relative_path)) and bpy.data.filepath: # need to check for None explicitly because bool
             self.source = bpy.path.relpath(source)
         else:
             self.source = os.path.normpath(source)
