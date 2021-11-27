@@ -192,8 +192,12 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         start = img.sb_props.sheet.sb_props.sheet_start
 
         # Uniqualize the name in case there's already one from the same sprite
-        prop_name = util.unique_name(f"Frame {self.image}", obj)
+        default_prop = f"Frame {self.image}" # this is the name that generated actions use by default
+        prop_name = util.unique_name(default_prop, obj)
         prop_path = f'["{prop_name}"]'
+
+        if prop_name != default_prop:
+            self.report({'WARNING'}, "Several animations of this object use the same sprite. Change FCurves' channel to the object property with the name of the desired modifier")
 
         anim = obj.sb_props.animations_new(self.name)
         anim.image = img
@@ -218,33 +222,14 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         
         util.update_sheet_animation(anim)
 
-        # NOTE curve update() should happen after the property is created
-        for action in bpy.data.actions:
-            if action.sb_props.sprite == img:
-                try:
-                    fcurve = next(c for c in action.fcurves if c.data_path == prop_path)
-                    if obj.user_of_id(action):
-                        if action == obj.animation_data.action:
-                            # It seems there's no way to clear FCURVE_DISABLED flag directly from script
-                            # Seems that cahnging the path does that as a side effect
-                            fcurve.data_path += ""
-                            fcurve.update()
-
-
-                except StopIteration:
-                    # no curve for needed channel found, let's create it
-                    # all action curves are filled with the same data
-                    source = action.fcurves[0]
-                    copy = action.fcurves.new(prop_path)
-
-                    copy.keyframe_points.add(len(source.keyframe_points))
-                    for source_pt, copy_pt in zip(source.keyframe_points, copy.keyframe_points):
-                        copy_pt.co = source_pt.co
-                        copy_pt.select_control_point = copy_pt.select_left_handle = copy_pt.select_right_handle = False
-                        copy_pt.interpolation = 'CONSTANT'
-                    
-                    copy.update()
-                    action.update_tag()
+        # revive the curves if needed
+        if obj.animation_data and obj.animation_data.action:
+            for fcurve in obj.animation_data.action.fcurves:
+                if fcurve.data_path == prop_path:
+                    # It seems there's no way to clear FCURVE_DISABLED flag directly from script
+                    # Seems that changing the path does that as a side effect
+                    fcurve.data_path += ""
+                    fcurve.update()
         
         if self.action != "__none__" and self.action in bpy.data.actions:
             obj.animation_data.action = bpy.data.actions[self.action]
@@ -396,7 +381,7 @@ class SB_UL_animations(bpy.types.UIList):
 
 class SB_PT_panel_animation(bpy.types.Panel):
     bl_idname = "SB_PT_panel_animation"
-    bl_label = "Sprite Animation"
+    bl_label = "Sprite"
     bl_category = "Item"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -411,13 +396,17 @@ class SB_PT_panel_animation(bpy.types.Panel):
         if context.active_object and context.active_object.type == 'MESH':
             layout = self.layout
             obj = context.active_object
+            anim_layout = layout.column(heading="Animation")
 
+            # Info
+            row = anim_layout.row()
+            row.alignment = 'CENTER'
             if next((False for img in bpy.data.images if img.sb_props.sheet), True):
-                row = layout.row()
-                row.alignment = 'CENTER'
                 row.label(text="No synced sprites have animations", icon='INFO')
+            elif not obj.sb_props.animations:
+                row.label(text="Press \"+\" to set up 2D animation", icon='INFO')
 
-            row = layout.row()
+            row = anim_layout.row()
             row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
 
             col = row.column(align=True)
@@ -429,18 +418,18 @@ class SB_PT_panel_animation(bpy.types.Panel):
                 prop_name = anim.prop_name
 
                 if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
-                    layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
+                    anim_layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
                 elif prop_name not in obj.modifiers:
-                    layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
+                    anim_layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
                 elif prop_name not in obj:
-                    layout.row().label(text="Object property was removed or renamed", icon='ERROR')
+                    anim_layout.row().label(text="Object property was removed or renamed", icon='ERROR')
                 else:
-                    layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
+                    anim_layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
 
             except IndexError:
                 pass # no selected animation
 
-            row = layout.row(align=True)
+            row = anim_layout.row(align=True)
             if obj.animation_data:
                 row.prop(obj.animation_data, "action")
                 
