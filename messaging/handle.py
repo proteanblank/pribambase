@@ -64,46 +64,6 @@ class Image(Handler):
             util.update_image(size[0], size[1], name, frame, data)
 
 
-class TextureList(Handler):
-    """Send the list of available textures"""
-    id = "L"
-
-    async def execute(self):
-        bpy.ops.pribambase.texture_list()
-
-
-class ChangeName(Handler):
-    """Change textures' sources when aseprite saves the file under a new name"""
-    id = "C"
-
-    def parse(self, args):
-        args.old_name = self.take_str()
-        args.new_name = self.take_str()
-
-
-    async def execute(self, *, old_name, new_name):
-        try:
-            # FIXME there's a risk of race condition but it's pretty bad if the rename doesn't happen
-            while bpy.context.window_manager.is_interface_locked:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, waiting to update image source..")
-                asyncio.sleep(0.1)
-        except:
-            # version 2.80... caveat emptor
-            pass
-
-        # avoid having identical sb_source on several images
-        for img in bpy.data.images:
-            if old_name in (img.sb_props.source_abs, img.filepath, img.name):
-                img.sb_props.source_set(new_name)
-
-                if re.search(r"\.(?:png|jpg|jpeg|bmp|tga)$", new_name):
-                    img.filepath = new_name
-                else:
-                    img.filepath = ""
-
-                bpy.ops.pribambase.texture_list()
-
-
 class Spritesheet(Handler):
     """Change textures' sources when aseprite saves the file under a new name"""
     id = 'G'
@@ -160,3 +120,35 @@ class Spritesheet(Handler):
         except:
             # version 2.80... caveat emptor
             util.update_spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
+
+
+class ChangeName(Handler):
+    """Change textures' sources when aseprite saves the file under a new name"""
+    id = "C"
+
+    def parse(self, args):
+        args.old_name = self.take_str()
+        args.new_name = self.take_str()
+
+
+    async def execute(self, *, old_name, new_name):
+        try:
+            # FIXME there's a risk of race condition but it's pretty bad if the rename doesn't happen
+            while bpy.context.window_manager.is_interface_locked:
+                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, waiting to update image source..")
+                asyncio.sleep(0.1)
+        except:
+            # version 2.80... caveat emptor
+            pass
+
+        # avoid having identical sb_source on several images
+        for img in bpy.data.images:
+            if old_name in (img.sb_props.source_abs, img.filepath, img.name):
+                img.sb_props.source_set(new_name)
+
+                if re.search(r"\.(?:png|jpg|jpeg|bmp|tga)$", new_name):
+                    img.filepath = new_name
+                else:
+                    img.filepath = ""
+
+                bpy.ops.pribambase.texture_list()
