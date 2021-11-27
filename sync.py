@@ -102,9 +102,9 @@ class Server():
         await self._ws.prepare(request)
 
         # client connected
-        imgs = tuple(util.image_name(img) for img in bpy.data.images)
+        lst = [(util.image_name(img), img.sb_props.sync_flags) for img in bpy.data.images]
         bf = bpy.context.scene.sb_state.identifier
-        await self._ws.send_bytes(encode.texture_list(bf, imgs), False)
+        await self._ws.send_bytes(encode.texture_list(bf, lst), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
         util.refresh()
 

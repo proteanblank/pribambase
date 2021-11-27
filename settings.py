@@ -147,6 +147,12 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         description="Index of the image in the spritesheet. Starts at 0",
         options={'HIDDEN'})
 
+    sync_flags: bpy.props.EnumProperty(
+        name="Sync Flags",
+        description="Sync related flags passed to Aseprite with texture list",
+        items=(("SHEET", "All Frames", "Send all frames via spritesheet"),),
+        options={'ENUM_FLAG'})
+
     # Spritesheet-specific props
     is_sheet: bpy.props.BoolProperty(
         name="Spritesheet",

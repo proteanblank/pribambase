@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Type
+from typing import Set, Type
 from types import SimpleNamespace as MessageArgs
 
 
@@ -156,3 +156,9 @@ def add_string(ba:bytearray, s:str, encoding='utf-8'):
     data = s.encode(encoding)
     add_uint(ba, len(data), DATA_LEN_SIZE)
     ba += data
+
+
+def add_sync_flags(ba:bytearray, flags:Set[str]):
+    bits = 0
+    bits |= ('SHEET' in flags) << 0
+    add_uint(ba, bits, 2)

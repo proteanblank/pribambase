@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Iterable, Sequence, Tuple
+from typing import Any, Iterable, Sequence, Tuple
 from . import *
 
 
@@ -33,13 +33,14 @@ def batch(messages:Sequence[bytearray]) -> bytearray:
     return data
 
 
-def texture_list(blendfile:str, images:Iterable[str]) -> bytearray:
+def texture_list(blendfile:str, images:Iterable[Tuple[str, Set[str]]]) -> bytearray:
     data = bytearray()
     add_id(data, 'L')
     add_string(data, blendfile)
 
-    for img in images:
+    for img,flags in images:
         add_string(data, img)
+        add_sync_flags(data, flags)
 
     return data
 
@@ -66,19 +67,21 @@ def image(name:str, size:Tuple[int, int], pixels:bytes) -> bytearray:
     return data
 
 
-def sprite_new(name:str, mode:int, size: Tuple[int, int]) -> bytearray:
+def sprite_new(name:str, mode:int, size: Tuple[int, int], flags:Set[str]) -> bytearray:
     data = bytearray()
     add_id(data, 'S')
     add_uint(data, mode, 1)
     add_uint(data, size[0], 2)
     add_uint(data, size[1], 2)
+    add_sync_flags(data, flags)
     add_string(data, name)
     return data
 
 
-def sprite_open(name:str) -> bytearray:
+def sprite_open(name:str, flags:Set[str]) -> bytearray:
     data = bytearray()
     add_id(data, 'O')
+    add_sync_flags(data, flags)
     add_string(data, name)
     return data
 

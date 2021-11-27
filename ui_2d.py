@@ -229,6 +229,7 @@ class SB_OT_open_sprite(bpy.types.Operator):
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
+    sheet: bpy.props.BoolProperty(name="Animation", description="If checked, entire animation will be synced to blender; if not, only the current frame will. Same as 'Animation' switch in Aseprite's sync popup")
 
     # dialog settings
     filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;.bmp;.flc;.fli;.gif;.ico;.jpeg;.jpg;.pcx;.pcc;.png;.tga;.webp", options={'HIDDEN'})
@@ -258,7 +259,7 @@ class SB_OT_open_sprite(bpy.types.Operator):
         if context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
 
-        msg = encode.sprite_open(self.filepath)
+        msg = encode.sprite_open(name=self.filepath, flags={'SHEET'} if self.sheet else set())
         addon.server.send(msg)
 
         return {'FINISHED'}
@@ -326,6 +327,7 @@ class SB_OT_new_sprite(bpy.types.Operator):
         msg = encode.sprite_new(
             name=img.name,
             size=self.size,
+            flags=set(),
             mode=mode)
 
         addon.server.send(msg)
@@ -355,7 +357,7 @@ class SB_OT_edit_sprite(bpy.types.Operator):
         msg = None
 
         if path.exists(edit_name):
-            msg = encode.sprite_open(name=edit_name)
+            msg = encode.sprite_open(name=edit_name, flags=img.sb_props.sync_flags)
         else:
             pixels = np.asarray(np.array(img.pixels) * 255, dtype=np.ubyte)
             pixels.shape = (img.size[1], pixels.size // img.size[1])
@@ -520,7 +522,7 @@ class SB_OT_replace_sprite(bpy.types.Operator):
         self.__class__._last_relative = self.relative
 
         context.edit_image.sb_props.source_set(self.filepath, self.relative)
-        msg = encode.sprite_open(self.filepath)
+        msg = encode.sprite_open(name=self.filepath, flags=context.edit_image.sb_props.sync_flags)
         addon.server.send(msg)
 
         return {'FINISHED'}

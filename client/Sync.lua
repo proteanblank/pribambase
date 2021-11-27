@@ -39,20 +39,22 @@ else
 
     --[[ global ]] pribambase_docs = pribambase_docs or {} -- used as shadow table for docList, not directly
 
+    local BIT_SYNC_SHEET = 1
+
     local settings = pribambase_settings
     local ws
     local connected = false
     -- blender file identifier, unique but not permanent (path or random hex string)
     local blendfile = ""
-    -- the list of texures open in blender, structured as { identifier:str=true }
+    -- the list of texures open in blender, structured as { identifier:str=flags:int_bitfield }
     local syncList = {}
-    -- the list of currently open sprites ever synced, structured as { doc:Sprite=origin:str }
+    -- the list of currently open sprites ever synced, items structured as { blend:str(uid or file), animated:bool }
     -- needed to a) avoid syncing same named texture to different docs b) (TODO) when blender is not available, store critical changes to process later
     local docList = {}
     -- map MessageID to handler callback
     local handlers = {}
-    -- main dialog
-    local dlg = app.isUIAvailable and Dialog()
+    -- main dialog, created later
+    local dlg = nil
     -- used to track the change of active sprite
     local spr = app.activeSprite
     -- used to track saving the image under a different name
@@ -61,11 +63,6 @@ else
     local frame = -1
     -- used to pause the app from processing updates
     local pause_app_change = false
-    -- pick how much to send to blender
-    local SYNC_VIEW = "View"
-    local SYNC_SHEET = "All Frames"
-    local DOMAINS = { SYNC_VIEW, SYNC_SHEET }
-    local domain = SYNC_VIEW
 
 
     -- Set up an image buffer for two reasons:
@@ -143,7 +140,7 @@ else
 
     local function findOpenDoc(name, origin)
         for _,s in ipairs(app.sprites) do
-            if s.filename == name and (origin == nil or docList[s] == origin) then
+            if s.filename == name and (origin == nil or docList[s].blend == origin) then
                 return s
             end
         end
@@ -331,13 +328,13 @@ else
         if spr == nil then return end
 
         local newname = spr.filename
-        if spr and spr == app.activeSprite and syncList[sprfile] and docList[spr] == blendfile and newname ~= sprfile then
+        if spr and spr == app.activeSprite and syncList[sprfile] ~= nil and docList[spr] and docList[spr].blend == blendfile and newname ~= sprfile then
             -- renamed
             if sprfile ~= "" then
                 ws:sendBinary(messageChangeName{ from=sprfile, to=newname })
             end
 
-            syncList[newname] = true
+            syncList[newname] = syncList[sprfile]
             syncList[sprfile] = nil
 
             sprfile = newname
@@ -353,11 +350,11 @@ else
         checkFilename()
 
         local s = spr.filename
-        if syncList[s] and docList[spr] == blendfile then
-            if domain == SYNC_VIEW then
-                sendImage(s)
-            elseif domain == SYNC_SHEET then
+        if syncList[s] ~= nil and docList[spr] and docList[spr].blend == blendfile then
+            if docList[spr].animated then
                 sendSpritesheet(s)
+            else
+                sendImage(s)
             end
         end
     end
@@ -398,6 +395,7 @@ else
                 sprfile = app.activeSprite.filename
                 frame = app.activeFrame.frameNumber
                 spr.events:on("change", syncSprite)
+                dlg:modify{ id="animated", selected=docList[spr] and docList[spr].animated }
                 syncSprite()
             end
 
@@ -408,7 +406,7 @@ else
             if spr ~= nil then
                 local sf = spr.filename
                 if (docList[spr] == nil or isSprite(sf)) and syncList[sf] ~= nil then
-                    docList[spr] = blendfile -- TODO after adding sync props, assign them
+                    docList[spr] = { blend=blendfile, animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0) }
                 end
             end
 
@@ -491,16 +489,20 @@ else
 
         while offset < ml do
             local len = string.unpack("<I4", msg, offset)
-            local name = string.unpack("<s4", msg, offset)
-            syncList[name] = true
-            offset = offset + 4 + len
+            local name, flags = string.unpack("<s4I2", msg, offset)
+            syncList[name] = flags
+            offset = offset + 6 + len -- 6 is string:packsize("<s4I2")
         end
 
-        for i,s in ipairs(app.sprites) do
+        for _,s in ipairs(app.sprites) do
             local sf = s.filename
-            if syncList[sf] and (docList[s] == nil or isSprite(sf)) then
-                docList[s] = blendfile -- TODO see comment on a similar statement in appchange
+            if syncList[sf] ~= nil and (docList[s] == nil or isSprite(sf)) then
+                docList[s] = { blend=blendfile, animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0) }
             end
+        end
+
+        if spr and docList[spr] then
+            dlg:modify{ id="animated", selected=docList[spr] and docList[spr].animated }
         end
 
         if not synced then
@@ -513,19 +515,18 @@ else
         -- creating sprite triggers the app change handler several times
         -- let's pause it and call later manually
         pause_app_change = true
-        local _id, mode, w, h, name = string.unpack("<BBHHs4", msg)
+        local _id, mode, w, h, flags, name = string.unpack("<BBHHHs4", msg)
 
         if mode == 0 then mode = ColorMode.RGB
         elseif mode == 1 then mode = ColorMode.INDEXED
         elseif mode == 2 then mode = ColorMode.GRAY end
 
-        local prev = spr
         local create = Sprite(w, h, mode)
         create.filename = name
         app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
         sprfile = name
 
-        syncList[name] = true
+        syncList[name] = flags
         pause_app_change = false
         onAppChange() -- adds to doclist
     end
@@ -542,12 +543,14 @@ else
 
 
     local function handleOpenSprite(msg)
-        local _id, path = string.unpack("<Bs4", msg)
+        local _id, flags, path = string.unpack("<BHs4", msg)
         local opened = findOpenDoc(path) -- ignore blendfile origin here bc this message is always file-based
 
-        syncList[path] = true
+        syncList[path] = flags
 
         if opened then
+            docList[spr] = { blend=blendfile, animated=(flags & BIT_SYNC_SHEET ~= 0) }
+
             if app.activeSprite ~= opened then
                 app.activeSprite = opened
             else
@@ -598,6 +601,7 @@ else
             connected = true
             dlg:modify{ id="status", text="Sync ON" }
             dlg:modify{ id="reconnect", visible=false }
+            dlg:modify{ id="animated", visible=true }
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
@@ -607,6 +611,7 @@ else
             connected = false
             dlg:modify{ id="status", text="Reconnecting..." }
             dlg:modify{ id="reconnect", visible=true }
+            dlg:modify{ id="animated", visible=false }
             if spr ~= nil then
                 spr.events:off(syncSprite)
             end
@@ -615,13 +620,17 @@ else
         checkFilename()
     end
 
-    
-    local function changeDomain()
-        domain = dlg.data.domain
-        dlg:modify{ id="full", visible=(domain==SYNC_VIEW) }
-        if domain==SYNC_SHEET then
-            syncSprite()
+
+    local function changeAnimated()
+        if pause_app_change then return end
+        local val = dlg.data.animated
+        if syncList[spr] then
+            syncList[spr] = (val and (syncList[spr] | BIT_SYNC_SHEET) or (syncList[spr] & ~BIT_SYNC_SHEET))
         end
+        if docList[spr] then
+            docList[spr].animated = val
+        end
+        syncSprite()
     end
 
 
@@ -640,12 +649,13 @@ else
 
     -- create an UI
 
+    dlg = Dialog{ title="Sync" }
+
     dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
 
-    dlg:combobox{ id="domain", label="Sync", option=domain, options=DOMAINS, onchange=changeDomain }
-    dlg:button{ id="full", text="Update", onclick=function() sendSpritesheet(spr.filename) end }
-    dlg:modify{ id="full", visible=(domain==SYNC_VIEW) }
+    dlg:check{ id="animated", text="Animation", onclick=changeAnimated }
+    dlg:modify{ id="animated", visible=(docList[spr] and docList[spr].animated) }
 
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=cleanup }
