@@ -85,4 +85,5 @@ handlers = addon.handlers
 handlers.add(handle.Batch)
 handlers.add(handle.Image)
 handlers.add(handle.Spritesheet)
+handlers.add(handle.Frame)
 handlers.add(handle.ChangeName)

@@ -206,6 +206,10 @@ else
 
         return string.pack("<BHHs4i4I4I4", id, buf.width, buf.height, name, start, nframes, opts.frame.frameNumber - 1), table.concat(_infos, ""), table.unpack(_frames)
     end
+    
+    local function messageFrame(opts)
+        return string.pack("<BI4s4", string.byte('F'), opts.frame, opts.name)
+    end
 
     local function messageChangeName(opts)
         return string.pack("<Bs4s4", string.byte('C'), opts.from, opts.to)
@@ -412,7 +416,12 @@ else
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
             frame = app.activeFrame.frameNumber
-            syncSprite()
+            if docList[spr] and docList[spr].animated then
+                -- all the data is already there, so we can avoid sending it each frame for a lot better performance
+                ws:sendBinary(messageFrame{ name=spr.filename, frame=frame })
+            else
+                syncSprite()
+            end
         end
     end
 

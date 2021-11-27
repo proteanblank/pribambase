@@ -122,6 +122,26 @@ class Spritesheet(Handler):
             util.update_spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
 
 
+class Frame(Handler):
+    """Change sprite frame without changing data"""
+    id = "F"
+
+    def parse(self, args):
+        args.frame = self.take_uint(4)
+        args.name = self.take_str()
+
+
+    async def execute(self, frame:int, name:str):
+        try:
+            if not bpy.context.window_manager.is_interface_locked:
+                util.update_frame(name, frame)
+            else:
+                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, frame flip skipped")
+        except:
+            # version 2.80... caveat emptor
+            util.update_frame(name, frame)
+
+
 class ChangeName(Handler):
     """Change textures' sources when aseprite saves the file under a new name"""
     id = "C"

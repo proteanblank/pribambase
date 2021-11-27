@@ -256,27 +256,35 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     bl_undo_group = "pribambase.update_spritesheet"
 
 
-    def update_actions(self, context, img:bpy.types.Image, start:int, frames:Collection[int], tags:Collection[Tuple[str, int, int, int]], current_tag:str):
+    def update_actions(self, context, img:bpy.types.Image, start:int, frames:Collection[int], current_frame:int, tags:Collection[Tuple[str, int, int, int]], current_tag:str):
         fps = context.scene.render.fps / context.scene.render.fps_base
 
-        # editor tag is the current play loop in aseprite
-        tag_editor = ("__editor__",)
+        # loop tag is the current playing part of the timeline in aseprite
+        tag_editor = ("__loop__",)
         if current_tag:
             tag_editor += next((t for t in tags if t[0] == current_tag))[1:]
         else:
             tag_editor += (start, start + len(frames), 0)
+        
+        # current frame tag just shows the current frame, to allow drawing with spritesheet materials same way as if without animation
+        tag_frame = ("__view__", current_frame, current_frame, 0)
 
         # purge actions for removed tags
-        tag_names = ["__editor__"] + [tag[0] for tag in tags]
+        tag_names = ["__loop__"] + [tag[0] for tag in tags]
         for action in bpy.data.actions:
             if action.sb_props.sprite == img and action.sb_props.tag not in tag_names:
                 bpy.data.actions.remove(action)
 
-        for tag, tag_first, tag_last, ani_dir in (tag_editor, *tags):
+        for tag, tag_first, tag_last, ani_dir in (tag_editor, tag_frame, *tags):
             try:
                 action = next(a for a in bpy.data.actions if a.sb_props.sprite == img and a.sb_props.tag == tag)
             except StopIteration:
-                action_name = f"{img.name} *Editor*" if tag == "__editor__" else f"{img.name}: {tag}"
+                action_name = f"{img.name}: {tag}"
+                if tag == "__loop__":
+                    action_name = f"{img.name} *Loop*"
+                elif tag == "__view__":
+                    action_name = f"{img.name} *View*"
+
                 action = bpy.data.actions.new(action_name)
                 action.id_root = 'OBJECT'
                 action.use_fake_user = True
@@ -354,7 +362,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         sheet.sb_props.sheet_size = count
         sheet.sb_props.sheet_start = start
 
-        self.update_actions(context, img, start, frames, tags, current_tag)
+        self.update_actions(context, img, start, frames, current_frame, tags, current_tag)
 
         self.args = tex_w, tex_h, tex_name, -1, pixels
         SB_OT_update_image.modal_execute(self, context) # clears self.args
@@ -384,6 +392,53 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     
     def execute(self, context):
         self.args = _update_spritesheet_args
+        return ModalExecuteMixin.execute(self, context)
+
+
+
+_update_frame_args = None
+def update_frame(name, frame):
+    # NOTE this operator removes animation flag from image
+    global _update_frame_args
+    _update_frame_args = name, frame
+    bpy.ops.pribambase.update_frame()
+
+class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
+    bl_idname = "pribambase.update_frame"
+    bl_label = "Update Frame"
+    bl_description = ""
+    bl_options = {'REGISTER', 'UNDO_GROUPED', 'INTERNAL'}
+    bl_undo_group = "pribambase.update_frame"
+
+    def modal_execute(self, context):
+        """Copy the frame from spritesheet to the image"""
+        name, frame = self.args
+
+        try:
+            img = next(i for i in bpy.data.images if name == image_name(i))
+        except StopIteration:
+            # to avoid accidentally reviving deleted images, we ignore anything doesn't exist already
+            return
+
+        # TODO getting data from the image might be a pain (it's that opengl thing)
+        # might just wait until implementing DNA access
+
+        for action in bpy.data.actions:
+            if action.sb_props.sprite == img and action.sb_props.tag == "__view__":
+                for fcurve in action.fcurves:
+                    for point in fcurve.keyframe_points:
+                        point.co = (point.co.x, frame)
+                    fcurve.update()
+
+        self.args = None
+        global _update_frame_args
+        _update_frame_args = None
+
+        return {'FINISHED'}
+
+
+    def execute(self, context):
+        self.args = _update_frame_args
         return ModalExecuteMixin.execute(self, context)
 
 
