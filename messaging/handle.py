@@ -76,12 +76,6 @@ class Spritesheet(Handler):
         return (name, start, end, ani_dir)
 
 
-    def take_frame(self):
-        cel = self.take_uint(2)
-        duration = self.take_uint(2)
-        return (cel,duration)
-
-
     def parse(self, args):
         args.size = self.take_uint(2), self.take_uint(2)
         args.name = self.take_str()
@@ -129,17 +123,20 @@ class Frame(Handler):
     def parse(self, args):
         args.frame = self.take_uint(4)
         args.name = self.take_str()
+        args.start = self.take_uint(2)
+        nframes = self.take_uint(4)
+        args.frames = [self.take_frame() for _ in range(nframes)]
 
 
-    async def execute(self, frame:int, name:str):
+    async def execute(self, frame:int, name:str, start:int, frames:List[Tuple[int, int]]):
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                util.update_frame(name, frame)
+                util.update_frame(name, frame, start, frames)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, frame flip skipped")
         except:
             # version 2.80... caveat emptor
-            util.update_frame(name, frame)
+            util.update_frame(name, frame, start, frames)
 
 
 class ChangeName(Handler):

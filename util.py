@@ -393,10 +393,10 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
 
 _update_frame_args = None
-def update_frame(name, frame):
+def update_frame(name, frame, start, frames):
     # NOTE this operator removes animation flag from image
     global _update_frame_args
-    _update_frame_args = name, frame
+    _update_frame_args = name, frame, start, frames
     bpy.ops.pribambase.update_frame()
 
 class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
@@ -408,7 +408,7 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
 
     def modal_execute(self, context):
         """Copy the frame from spritesheet to the image"""
-        name, frame = self.args
+        name, frame, start, frames = self.args
 
         try:
             img = next(i for i in bpy.data.images if name == image_name(i))
@@ -425,6 +425,30 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
                     for point in fcurve.keyframe_points:
                         point.co = (point.co.x, frame)
                     fcurve.update()
+            
+            elif action.sb_props.sprite == img and action.sb_props.tag == "__loop__":
+                fps = context.scene.render.fps / context.scene.render.fps_base
+                frames.append(frames[-1])
+
+                for fcurve in action.fcurves:
+                    points = fcurve.keyframe_points
+                    npoints = len(points)
+                    nframes = len(frames)
+                    if npoints < nframes:
+                        points.add(nframes - npoints)
+                    elif npoints > nframes:
+                        for _ in range(npoints - nframes):
+                            points.remove(points[0], fast=True)
+
+                    time = 0
+                    for point,(y, dt) in zip(points, frames):
+                        x = start + time * fps / 1000
+                        if addon.prefs.whole_frames:
+                            x = round(x)
+                        point.co = (x, start + y)
+                        point.select_control_point = point.select_left_handle = point.select_right_handle = False
+                        point.interpolation = 'CONSTANT'
+                        time += dt
 
         self.args = None
         global _update_frame_args

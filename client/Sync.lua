@@ -208,7 +208,19 @@ else
     end
     
     local function messageFrame(opts)
-        return string.pack("<BI4s4", string.byte('F'), opts.frame, opts.name)
+        local sprite = opts.sprite
+        local start = app.preferences.document(sprite).timeline.first_frame -- NOTE same as spritesheet
+
+        for i=1,opts.last - opts.first do
+            local frame = opts.first + i
+            _infos[i] = string.pack("<HH", frame - 1, math.tointeger(1000 * sprite.frames[frame].duration))
+        end
+
+        for i=opts.last - opts.first + 1,#_infos do
+            _infos[i] = nil
+        end
+
+        return string.pack("<BI4s4HI4", string.byte('F'), opts.frame, sprite.filename, start, #_infos), table.unpack(_infos)
     end
 
     local function messageChangeName(opts)
@@ -419,7 +431,11 @@ else
             frame = app.activeFrame.frameNumber
             if docList[spr] and docList[spr].animated then
                 -- all the data is already there, so we can avoid sending it each frame for a lot better performance
-                ws:sendBinary(messageFrame{ name=spr.filename, frame=frame })
+                local first, last = 0, #spr.frames - 1
+                if app.activeTag ~= nil and not app.preferences.editor.play_all then
+                    first, last = app.activeTag.fromFrame.frameNumber - 1, app.activeTag.toFrame.frameNumber
+                end
+                ws:sendBinary(messageFrame{ sprite=spr, frame=frame, first=first, last=last })
             else
                 syncSprite()
             end

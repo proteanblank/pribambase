@@ -79,6 +79,12 @@ class Handler:
         """Parse and decode a string prefixed with its length"""
         return str(self.take_data(), encoding)
 
+    
+    def take_frame(self):
+        cel = self.take_uint(2)
+        duration = self.take_uint(2)
+        return (cel,duration)
+
 
     def _parse(self, data:memoryview, args:MessageArgs):
         """Internal, use parse() instead"""
