@@ -232,7 +232,7 @@ class SB_OT_open_sprite(bpy.types.Operator):
     sheet: bpy.props.BoolProperty(name="Animation", description="If checked, entire animation will be synced to blender; if not, only the current frame will. Same as 'Animation' switch in Aseprite's sync popup")
 
     # dialog settings
-    filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;.bmp;.flc;.fli;.gif;.ico;.jpeg;.jpg;.pcx;.pcc;.png;.tga;.webp", options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;*.bmp;*.flc;*.fli;*.gif;*.ico;*.jpeg;*.jpg;*.pcx;*.pcc;*.png;*.tga;*.webp", options={'HIDDEN'})
     use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
 
 
@@ -511,7 +511,7 @@ class SB_OT_replace_sprite(bpy.types.Operator):
     relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
 
     # dialog settings
-    filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;.bmp;.flc;.fli;.gif;.ico;.jpeg;.jpg;.pcx;.pcc;.png;.tga;.webp", options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;*.bmp;*.flc;*.fli;*.gif;*.ico;*.jpeg;*.jpg;*.pcx;*.pcc;*.png;*.tga;*.webp", options={'HIDDEN'})
     use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
 
     @classmethod
