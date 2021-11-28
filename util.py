@@ -19,12 +19,12 @@
 # SOFTWARE.
 
 import bpy
-import imbuf
 import os
 from os import path
 import tempfile
 import numpy as np
 import re
+import binascii
 from typing import Collection, Tuple
 
 from .addon import addon
@@ -95,17 +95,21 @@ def image_name(img):
     return name
 
 
-def new_packed_image(name, w, h):
-    """Create a packed image with data that will be saved (unlike bpy.data.images.new that is cleaned when the file is opened)"""
-    img = bpy.data.images.new(name, w, h, alpha=True)
+def pack_empty_png(image):
+    """Load 1x1 ARGB png to the image and pack it"""
+    # write the file
     tmp = path.join(tempfile.gettempdir(), "__sb__delete_me.png")
-    img.filepath = tmp
-    img.save() # the file needs to exist for pack() to work
-    img.pack()
-    img.filepath=""
-    img.use_fake_user = True
+    with open(tmp, "wb", ) as out:
+        # https://png-pixel.com/
+        out.write(binascii.a2b_base64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='))
+        out.close()
+
+    image.filepath = tmp
+    image.pack()
+    image.filepath=""
+    image.use_fake_user = True
+    
     os.remove(tmp)
-    return img
 
 
 _update_image_args = None
@@ -134,16 +138,8 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
             return
 
         if not img.has_data:
-            # load *some* data so that the image can be packed, and then updated
-            ib = imbuf.new((w, h))
-            tmp = path.join(tempfile.gettempdir(), "__sb__delete_me.png")
-            imbuf.write(ib, tmp)
-            img.filepath = tmp
-            img.reload()
-            img.pack()
-            img.filepath=""
-            img.use_fake_user = True
-            os.remove(tmp)
+            # load *some* data so that the image can be updated
+            pack_empty_png(img)
 
         elif (img.size[0] != w or img.size[1] != h):
                 img.scale(w, h)
@@ -354,7 +350,8 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         except AttributeError:
             tex_name = img.name + " [sheet]"
             if tex_name not in bpy.data.images:
-                new_packed_image(tex_name, tex_w, tex_h)
+                tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
+                pack_empty_png(tex)
             sheet = img.sb_props.sheet = bpy.data.images[tex_name]
         
         sheet.sb_props.is_sheet = True
