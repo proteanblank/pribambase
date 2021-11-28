@@ -399,7 +399,6 @@ else
                 sprfile = app.activeSprite.filename
                 frame = app.activeFrame.frameNumber
                 spr.events:on("change", syncSprite)
-                dlg:modify{ id="animated", selected=docList[spr] and docList[spr].animated }
                 syncSprite()
             end
 
@@ -413,6 +412,8 @@ else
                     docList[spr] = { blend=blendfile, animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0) }
                 end
             end
+
+            dlg:modify{ id="animated", visible=(spr ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
             frame = app.activeFrame.frameNumber
@@ -518,9 +519,7 @@ else
             end
         end
 
-        if spr and docList[spr] then
-            dlg:modify{ id="animated", selected=docList[spr] and docList[spr].animated }
-        end
+        dlg:modify{ id="animated", visible=(spr ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
 
         if not synced then
             syncSprite()
@@ -673,8 +672,8 @@ else
     dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
 
-    dlg:check{ id="animated", text="Animation", onclick=changeAnimated }
-    dlg:modify{ id="animated", visible=(docList[spr] and docList[spr].animated) }
+    dlg:check{ id="animated", text="Animation", onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
+    dlg:modify{ id="animated", visible=(spr ~= nil) }
 
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=cleanup }
