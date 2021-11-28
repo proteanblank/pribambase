@@ -428,7 +428,7 @@ class SB_PT_panel_animation(bpy.types.Panel):
             except IndexError:
                 pass # no selected animation
 
-            row = anim_layout.row(align=True)
+            row = layout.row(align=True)
             if obj.animation_data:
                 row.prop(obj.animation_data, "action")
                 

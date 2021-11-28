@@ -95,14 +95,13 @@ def image_name(img):
     return name
 
 
+_empty_png = binascii.a2b_base64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
 def pack_empty_png(image):
     """Load 1x1 ARGB png to the image and pack it"""
     # write the file
     tmp = path.join(tempfile.gettempdir(), "__sb__delete_me.png")
-    with open(tmp, "wb", ) as out:
-        # https://png-pixel.com/
-        out.write(binascii.a2b_base64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='))
-        out.close()
+    with open(tmp, "wb", ) as f:
+        f.write(_empty_png)
 
     image.filepath = tmp
     image.pack()
@@ -289,7 +288,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             
             first = context.scene.frame_start
 
-            tag_frames = frames[tag_first - start:tag_last - start + 1]
+            tag_frames = frames[tag_first:tag_last + 1]
             if ani_dir == 1:
                 tag_frames = tag_frames[::-1]
             elif ani_dir == 2:
@@ -316,7 +315,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                     x = first + time * fps / 1000
                     if addon.prefs.whole_frames:
                         x = round(x)
-                    point.co = (x, y)
+                    point.co = (x, start + y)
                     point.select_control_point = point.select_left_handle = point.select_right_handle = False
                     point.interpolation = 'CONSTANT'
                     time += dt
