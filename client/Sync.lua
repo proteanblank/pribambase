@@ -426,6 +426,17 @@ else
     end
 
 
+    -- stop change handlers while executing code, appChange is called in the end unless supressed
+    local function batchAppChanges(fn, supress)
+        pause_app_change = true
+        fn()
+        pause_app_change = false
+        if not supress then
+            onAppChange()
+        end
+    end
+
+
     -- clean up and exit
     local function cleanup()
         if ws ~= nil then ws:close() end
@@ -447,17 +458,14 @@ else
             -- not updating existing images for time being, bc the result is only obvious for 1-layer 1-frame sprites
             app.activeSprite = sprite
         else
-            pause_app_change = true
-
-            sprite = Sprite(w, h, ColorMode.RGB)
-            if #name > 0 then
-                sprite.filename = name
-            end
-            app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
-            sprite.cels[1].image.bytes = pixels
-
-            pause_app_change = false
-            onAppChange()
+            batchAppChanges(function()
+                    sprite = Sprite(w, h, ColorMode.RGB)
+                    if #name > 0 then
+                        sprite.filename = name
+                    end
+                    app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
+                    sprite.cels[1].image.bytes = pixels
+                end)
         end
 
         syncSprite()
@@ -523,21 +531,21 @@ else
     local function handleNewSprite(msg)
         -- creating sprite triggers the app change handler several times
         -- let's pause it and call later manually
-        pause_app_change = true
-        local _id, mode, w, h, flags, name = string.unpack("<BBHHHs4", msg)
+        batchAppChanges(function()
+                local _id, mode, w, h, flags, name = string.unpack("<BBHHHs4", msg)
 
-        if mode == 0 then mode = ColorMode.RGB
-        elseif mode == 1 then mode = ColorMode.INDEXED
-        elseif mode == 2 then mode = ColorMode.GRAY end
+                if mode == 0 then mode = ColorMode.RGB
+                elseif mode == 1 then mode = ColorMode.INDEXED
+                elseif mode == 2 then mode = ColorMode.GRAY end
 
-        local create = Sprite(w, h, mode)
-        create.filename = name
-        app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
-        sprfile = name
+                local create = Sprite(w, h, mode)
+                create.filename = name
+                app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
+                sprfile = name
 
-        syncList[name] = flags
-        pause_app_change = false
-        onAppChange() -- adds to doclist
+                syncList[name] = flags
+                docList[create] = { blend=blendfile, animated=false }
+            end)
     end
 
 
@@ -558,7 +566,7 @@ else
         syncList[path] = flags
 
         if opened then
-            docList[spr] = { blend=blendfile, animated=(flags & BIT_SYNC_SHEET ~= 0) }
+            docList[opened] = { blend=blendfile, animated=(flags & BIT_SYNC_SHEET ~= 0) }
 
             if app.activeSprite ~= opened then
                 app.activeSprite = opened
@@ -566,7 +574,10 @@ else
                 syncSprite()
             end
         elseif isSprite(path) then -- check if absolute path; message can't contain rel path, so getting one mean it's a datablock name, and we don't need to open it if it isn't
-            Sprite{ fromFile=path }
+            batchAppChanges(function()
+                    s = Sprite{ fromFile=path }
+                    docList[s] = { blend=blendfile, animated=(flags & BIT_SYNC_SHEET ~= 0) }
+                end)
         end
     end
 
@@ -631,7 +642,6 @@ else
 
 
     local function changeAnimated()
-        if pause_app_change then return end
         local val = dlg.data.animated
         if syncList[spr] then
             syncList[spr] = (val and (syncList[spr] | BIT_SYNC_SHEET) or (syncList[spr] & ~BIT_SYNC_SHEET))
