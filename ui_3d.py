@@ -37,7 +37,7 @@ def scale_image(image, scale):
     try:
         # version >= 2.83
         image.pixels.foreach_set(px.ravel())
-    except:
+    except AttributeError:
         # version < 2.83
         image.pixels[:] = px.ravel()
     image.update()
@@ -296,7 +296,7 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
         try:
             context.active_object.sb_props.animations[context.active_object.sb_props.animation_index]
             return context.active_object.select_get()
-        except:
+        except (AttributeError, IndexError):
             return False
     
     def execute(self, context):

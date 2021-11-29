@@ -59,7 +59,7 @@ class Image(Handler):
                 util.update_image(size[0], size[1], name, frame, data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
-        except:
+        except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
             util.update_image(size[0], size[1], name, frame, data)
 
@@ -123,7 +123,7 @@ class Spritesheet(Handler):
                 util.update_spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
-        except:
+        except AttributeError:
             # version 2.80... caveat emptor
             util.update_spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
 
@@ -146,7 +146,7 @@ class Frame(Handler):
                 util.update_frame(name, frame, start, frames)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, frame flip skipped")
-        except:
+        except AttributeError:
             # version 2.80... caveat emptor
             util.update_frame(name, frame, start, frames)
 
@@ -166,7 +166,7 @@ class ChangeName(Handler):
             while bpy.context.window_manager.is_interface_locked:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, waiting to update image source..")
                 asyncio.sleep(0.1)
-        except:
+        except AttributeError:
             # version 2.80... caveat emptor
             pass
 

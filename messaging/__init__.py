@@ -91,7 +91,7 @@ class Handler:
         self._position = 0
         try:
             self._data = data.toreadonly()
-        except:
+        except AttributeError:
             self._data = data # we're time travelling in the era before python 2.8
         self.parse(args)
         self._data.release()
