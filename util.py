@@ -358,6 +358,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             sheet = img.sb_props.sheet = bpy.data.images[tex_name]
         
         sheet.sb_props.is_sheet = True
+        sheet.sb_props.origin = img
         sheet.sb_props.animation_length = len(frames)
         sheet.sb_props.sheet_size = count
         sheet.sb_props.sheet_start = start

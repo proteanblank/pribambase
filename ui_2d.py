@@ -355,6 +355,8 @@ class SB_OT_edit_sprite(bpy.types.Operator):
 
     def execute(self, context):
         img = context.edit_image
+        if img.sb_props.is_sheet:
+            img = next((i for i in bpy.data.images if i.sb_props.sheet == img), img)
         edit_name = util.image_name(img)
         msg = None
 
@@ -522,8 +524,10 @@ class SB_OT_replace_sprite(bpy.types.Operator):
 
     def execute(self, context):
         self.__class__._last_relative = self.relative
-
-        context.edit_image.sb_props.source_set(self.filepath, self.relative)
+        img = context.edit_image
+        if img.sb_props.is_sheet:
+            img = next((i for i in bpy.data.images if i.sb_props.sheet == img), img)
+        img.sb_props.source_set(self.filepath, self.relative)
         msg = encode.sprite_open(name=self.filepath, flags=context.edit_image.sb_props.sync_flags)
         addon.server.send(msg)
 
@@ -556,8 +560,6 @@ class SB_MT_menu_2d(bpy.types.Menu):
         layout.operator("pribambase.replace_sprite")
         layout.separator()
         layout.operator("pribambase.set_uv", icon='UV_VERTEXSEL')
-        layout.separator()
-        layout.operator("pribambase.purge_sprite", icon='TRASH')
 
 
     def header_draw(self, context):
@@ -565,15 +567,36 @@ class SB_MT_menu_2d(bpy.types.Menu):
         self.layout.menu("SB_MT_menu_2d")
 
 
-def sb_draw_image_info(self, context):
-    layout = self.layout
+class SB_PT_panel_sprite(bpy.types.Panel):
+    bl_idname = "SB_PT_sprite"
+    bl_label = "Sprite"
+    bl_category = "Image"
+    bl_space_type = "IMAGE_EDITOR"
+    bl_region_type = "UI"
 
-    if context.edit_image is not None:
-        layout.prop(context.edit_image.sb_props, "source")
-        if context.edit_image.sb_props.is_sheet:
-            sub = layout.box()
-            sub.enabled = False
-            sub.label(text=f"Spritesheet ({context.edit_image.sb_props.animation_length} frames):")
-            sub.prop(context.edit_image.sb_props, "sheet_size")
+    @classmethod
+    def poll(cls, context):
+        return context.edit_image is not None
+
+    def draw(self, context):
+        layout = self.layout
+        img = context.edit_image
+        props = img.sb_props
+        origin = next((i for i in bpy.data.images if i.sb_props.sheet == img), None)
+
+        sprite = layout.row(align=True)
+        source = sprite.row()
+        if props.is_sheet:
+            source.prop(origin.sb_props, "source")
+            
+            sub = layout.row()
+            sub.alignment = 'RIGHT'
+            sub.label(text=f"Sheet {props.sheet_size[0]}x{props.sheet_size[1]}, {props.animation_length} frames")
+
         else:
-            layout.prop(context.edit_image.sb_props, "sheet")
+            source.prop(context.edit_image.sb_props, "source")
+            row = layout.row()
+            row.enabled = False
+            row.prop(context.edit_image.sb_props, "sheet")
+
+        sprite.operator("pribambase.purge_sprite", icon='TRASH', text="")
