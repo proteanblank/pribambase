@@ -93,18 +93,30 @@ class Spritesheet(Handler):
         count_x = math.ceil(length ** 0.5)
         count_y = math.ceil(length / count_x)
         w, h = size
-        stride = w * 4
+        stride = (w + 2) * 4
 
         # TODO profile if changing to .empty gives significant perf (at cost of messy look)
-        sheet_data = np.zeros((h * count_y, w * count_x * 4), dtype=np.ubyte)
+        # copying with 1px padding on each side (so there's 1px space on the edge, 2px between tiles)
+        sheet_data = np.zeros(((h + 2) * count_y, stride * count_x), dtype=np.ubyte)
 
         for n,frame in enumerate(images):
             # TODO is there a way to just swap the nparray's buffer? 
             x, y = n % count_x, n // count_x
             fd = np.frombuffer(frame, dtype=np.ubyte)
-            fd.shape = (h, stride)
-            dst = sheet_data[y * h : (y + 1) * h, x * stride: (x + 1) * stride]
+            fd.shape = (h, w * 4)
+            dst = sheet_data[y * (h + 2) + 1: (y + 1) * (h + 2) - 1, x * stride + 4: (x + 1) * stride - 4]
             np.copyto(dst, fd, casting='no')
+
+        sheet_data.shape = (count_x * count_y * (h + 2), stride) # turn sheet into a single column
+        np.copyto(sheet_data[:, :4],sheet_data[:, 4:8], casting='no') # left
+        np.copyto(sheet_data[:, -4:],sheet_data[:, -8:-4], casting='no') # right
+
+        wstride = count_x * stride
+        sheet_data.shape = (count_y, (h + 2) * wstride) # turn sheet into a asjhdaskjdhajf
+        np.copyto(sheet_data[:, :wstride],sheet_data[:, wstride:2 * wstride], casting='no') # top
+        np.copyto(sheet_data[:, -wstride:],sheet_data[:, -2 * wstride:-wstride], casting='no') # bottom
+
+        sheet_data.shape = ((h + 2) * count_y, stride * count_x) # turn sheet back
 
         try:
             if not bpy.context.window_manager.is_interface_locked:

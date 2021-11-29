@@ -202,8 +202,9 @@ def update_sheet_animation(anim):
         obj[prop_name] = max(start, min(obj[prop_name], start + nframes - 1))
 
         w,h = sheet.sb_props.sheet_size
+        iw, ih = img.size
         uvwarp = obj.modifiers[prop_name]
-        uvwarp.scale = (1/w, 1/h)
+        uvwarp.scale = (iw/sheet.size[0], ih/sheet.size[1])
 
         if obj.animation_data is None:
             obj.animation_data_create()
@@ -220,7 +221,10 @@ def update_sheet_animation(anim):
             # curve shape
             curve.keyframe_points.add(nframes)
             for i,p in enumerate(curve.keyframe_points):
-                p.co = (start + i - 0.5, (i % w) if curve == dx else -(i // w))
+                if curve == dx:
+                    p.co = (start + i - 0.5, (i % w) * (1 + 2 / iw) + 1 / iw)
+                else:  
+                    p.co = (start + i - 0.5, -(i // w) * (1 + 2 / ih) - 1 / ih)
                 p.interpolation = 'CONSTANT'
 
             # add variable
@@ -334,7 +338,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
     def modal_execute(self, context):
         size, count, name, start, frames, tags, current_frame, current_tag, pixels = self.args
-        tex_w, tex_h = size[0] * count[0], size[1] * count[1]
+        tex_w, tex_h = (size[0] + 2) * count[0], (size[1] + 2) * count[1]
 
         # find or prepare sheet image; pixels update will fix its size
         try:
@@ -366,7 +370,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         # cut out the current frame and copy to view image
         frame_x = current_frame % count[0]
         frame_y = current_frame // count[0]
-        frame_pixels = np.ravel(pixels[frame_y * size[1] : (frame_y + 1) * size[1], frame_x * size[0] * 4 : (frame_x + 1) * size[0] * 4])
+        frame_pixels = np.ravel(pixels[frame_y * (size[1] + 2) + 1 : (frame_y + 1) * (size[1] + 2) - 1, frame_x * (size[0] + 2) * 4 + 4 : (frame_x + 1) * (size[0] + 2) * 4 - 4])
         self.args = *size, name, current_frame, frame_pixels
         SB_OT_update_image.modal_execute(self, context) # clears self.args and animation flag
 
