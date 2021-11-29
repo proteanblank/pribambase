@@ -147,7 +147,30 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
 def set_new_animation_name(self, v):
     self["name"] = util.unique_name(v, bpy.context.active_object.sb_props.animations)
 
+_image_enum_items_ref = None
+def _image_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _image_enum_items_ref
+    _image_enum_items_ref = [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))]
+    return _image_enum_items_ref
 
+_action_enum_items_ref = None
+def _action_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _action_enum_items_ref
+    _action_enum_items_ref = [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite.name == self.image))]
+    return _action_enum_items_ref
+
+_uv_map_enum_items_ref = None
+def _uv_map_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _uv_map_enum_items_ref
+    if context is None:
+        _uv_map_enum_items_ref = []
+    else: 
+        _uv_map_enum_items_ref = [("__none__", "", "", 0)] + [(layer.name, layer.name, "", i + 1) for i,layer in enumerate(context.active_object.data.uv_layers)]
+    return _uv_map_enum_items_ref
+    
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
     bl_label = "Set Up"
@@ -164,19 +187,19 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     image: bpy.props.EnumProperty(
         name="Sprite",
         description="Animation to use (needed to calculate spritesheet UV transforms)",
-        items=lambda self, context: [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))],
+        items=_image_enum_items,
         default=0)
 
     action: bpy.props.EnumProperty(
         name="Action",
         description="If set, replaces object's current timeline with sprite animation. Old keyframes can be acessed in action editor, and WILL BE LOST after reloading unless protected. \"Editor\" action syncs with the loop section of Asperite's timeline.",
-        items=lambda self,context: [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite.name == self.image))],
+        items=_action_enum_items,
         default=0)
 
     uv_map: bpy.props.EnumProperty(
         name="UV Layer",
         description="UV Layer that transforms apply to",
-        items=lambda self, context : [] if context is None else [("__none__", "", "", 0)] + [(layer.name, layer.name, "", i + 1) for i,layer in enumerate(context.active_object.data.uv_layers)],
+        items=_uv_map_enum_items,
         default=0)
     
 
