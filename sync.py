@@ -167,7 +167,7 @@ class SB_OT_texture_list(bpy.types.Operator):
 
     def execute(self, context):
         if addon.connected:
-            images = (util.image_name(img) for img in bpy.data.images)
+            images = [(util.image_name(img), img.sb_props.sync_flags) for img in bpy.data.images]
             bf = context.scene.sb_state.identifier
             msg = encode.texture_list(bf, images)
             addon.server.send(msg)
