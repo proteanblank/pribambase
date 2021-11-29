@@ -69,6 +69,8 @@ classes = (
     SB_OT_replace_sprite,
     SB_OT_purge_sprite,
     SB_OT_reference_add,
+    SB_OT_reference_replace,
+    SB_OT_reference_rescale,
     SB_OT_reference_reload,
     SB_OT_reference_reload_all,
     SB_OT_update_image,
@@ -86,8 +88,10 @@ classes = (
     SB_PT_panel_link,
     SB_PT_panel_animation,
     SB_PT_panel_sprite,
+    SB_PT_panel_reference,
     # Menus
-    SB_MT_menu_2d
+    SB_MT_menu_2d,
+    SB_MT_global
 )
 
 
@@ -108,6 +112,8 @@ def register():
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.append(SB_MT_menu_2d.header_draw)
+
+    bpy.types.VIEW3D_MT_image_add.append(menu_reference_add)
 
     # delay is just in case something else happens at startup
     # `persistent` protects the timer if the user loads a file before it fires
@@ -138,6 +144,8 @@ def unregister():
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.remove(SB_MT_menu_2d.header_draw)
+
+    bpy.types.VIEW3D_MT_image_add.remove(menu_reference_add)
 
     del bpy.types.Scene.sb_state
     del bpy.types.Image.sb_props

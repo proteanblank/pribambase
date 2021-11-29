@@ -134,8 +134,16 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         name="Prescale",
         description="",
         min=1,
-        max=50,
+        max=20,
         default=1)
+
+    prescale_actual: bpy.props.IntProperty(
+        name="Actual Prescale",
+        description="Prescale value during the last resize operation",
+        min=1,
+        max=20,
+        default=1, 
+        options={'HIDDEN'})
     
     source_abs:bpy.props.StringProperty(
         name="Sprite Path",

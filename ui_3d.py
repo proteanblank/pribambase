@@ -21,18 +21,21 @@
 import bpy
 import numpy as np
 from math import pi
-from operator import attrgetter
 
 from .addon import addon
 from . import util
 
 
-def scale_image(image, scale):
+def scale_image(image:bpy.types.Image, scale:int, desample:int=1):
     """Scale image in-place without filtering"""
     w, h = image.size
     px = np.array(image.pixels, dtype=np.float32)
     px.shape = (w, h, 4)
-    image.scale(w * scale, h * scale)
+
+    if desample > 1:
+        px = px[::desample,::desample,:]
+
+    image.scale((w // desample) * scale, (h // desample) * scale)
     px = px.repeat(scale, 0).repeat(scale, 1)
     try:
         # version >= 2.83
@@ -40,6 +43,7 @@ def scale_image(image, scale):
     except AttributeError:
         # version < 2.83
         image.pixels[:] = px.ravel()
+    image.sb_props.prescale_actual = scale
     image.update()
 
 
@@ -77,7 +81,7 @@ class SB_OT_reference_add(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return not context.object or context.object.mode == 'OBJECT'
+        return not context.active_object or context.active_object.mode == 'OBJECT'
 
 
     def invoke(self, context, event):
@@ -116,21 +120,101 @@ class SB_OT_reference_reload(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return context.object and context.object.type == 'EMPTY' \
-                and context.object.empty_display_type == 'IMAGE'
+        return context.active_object and context.active_object.type == 'EMPTY' \
+                and context.active_object.empty_display_type == 'IMAGE'
 
 
     def execute(self, context):
-        image = context.object.data
+        image = context.active_object.data
         image.reload()
         scale_image(image, image.sb_props.prescale)
 
         return {'FINISHED'}
 
 
+class SB_OT_reference_rescale(bpy.types.Operator):
+    bl_idname = "pribambase.reference_rescale"
+    bl_label = "Refresh Scale"
+    bl_description = "Refresh reference scaling without reloading the image. Sometimes behaves in a dumb manner"
+    bl_options = {'REGISTER', 'UNDO'}
+
+
+    @classmethod
+    def poll(self, context):
+        return context.active_object and context.active_object.type == 'EMPTY' \
+                and context.active_object.empty_display_type == 'IMAGE'
+
+
+    def execute(self, context):
+        ref = context.active_object
+        image = ref.data
+        descale = 1
+        # a heuristic guess, there's a fat chance to mess up here
+        if image.is_dirty and not (image.size[0] % image.sb_props.prescale_actual or image.size[0] % image.sb_props.prescale_actual):
+            descale = image.sb_props.prescale_actual
+        scale_image(image, image.sb_props.prescale, descale)
+
+        return {'FINISHED'}
+
+
+class SB_OT_reference_replace(bpy.types.Operator):
+    bl_idname = "pribambase.reference_replace"
+    bl_label = "Replace Reference"
+    bl_description = "Replace reference image, keep it aligned to pixel grid."
+    bl_options = {'REGISTER', 'UNDO'}
+
+    scale: bpy.props.IntProperty(
+        name="Prescale",
+        description="Prescale the image",
+        default=10,
+        min=1,
+        max=50)
+
+    opacity: bpy.props.FloatProperty(
+        name="Opacity",
+        description="Image's viewport opacity",
+        default=0.33,
+        min=0.0,
+        max=1.0,
+        subtype='FACTOR')
+
+    # dialog
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    filter_glob: bpy.props.StringProperty(default="*.bmp;*.png", options={'HIDDEN'})
+    use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
+
+
+    @classmethod
+    def poll(self, context):
+        return context.active_object and context.active_object.type == 'EMPTY' \
+            and context.active_object.empty_display_type == 'IMAGE'
+
+
+    def invoke(self, context, event):
+        self.invoke_context = context
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+    def execute(self, context):
+        image = bpy.data.images.load(self.filepath)
+        #image.pack() # NOTE without packing it breaks after reload but so what
+        w, h = image.size
+        scale_image(image, self.scale)
+        image.sb_props.prescale = self.scale
+
+        ref = context.active_object
+        ref.data = image
+        ref.use_empty_image_alpha = self.opacity < 1.0
+        ref.color[3] = self.opacity
+        ref.empty_display_size = max(w, h) * context.space_data.overlay.grid_scale
+
+        return {'FINISHED'}
+
+
 class SB_OT_reference_reload_all(bpy.types.Operator):
     bl_idname = "pribambase.reference_reload_all"
-    bl_label = "Reload All References"
+    bl_label = "Reload References"
     bl_description = "Reload all references (including non-pribamabase's), while keeping them prescaled"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -372,7 +456,7 @@ class SB_OT_set_action_preview(bpy.types.Operator):
 
         bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner) # try to unsub in case we're changing the object
         bpy.msgbus.subscribe_rna(
-            key=bpy.context.object.animation_data,
+            key=bpy.context.active_object.animation_data,
             owner=msgbus_anim_data_callback_owner,
             args=tuple(),
             notify=sb_msgbus_anim_data_callback,
@@ -422,7 +506,7 @@ class SB_PT_panel_animation(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None
+        return context.active_object and context.active_object.type == 'MESH'
 
 
     def draw(self, context):        
@@ -473,6 +557,33 @@ class SB_PT_panel_animation(bpy.types.Panel):
                     row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
 
 
+class SB_PT_panel_reference(bpy.types.Panel):
+    bl_idname = "SB_PT_panel_reference"
+    bl_label = "Reference"
+    bl_category = "Item"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and context.active_object.type == 'EMPTY' and context.active_object.empty_display_type == 'IMAGE'
+
+
+    def draw(self, context):
+        layout = self.layout
+        obj = context.active_object
+        img = obj.data
+        layout.row().template_ID(obj, "data", unlink="object.unlink_data", open="pribambase.reference_replace")
+        row = layout.row(align=True)
+        row.operator("pribambase.reference_rescale", icon='FULLSCREEN_ENTER', text="Rescale")
+        row.operator("pribambase.reference_reload", icon='FILE_REFRESH', text="Reload")
+        if img:
+            layout.row().prop(img.sb_props, "prescale")
+        layout.row().prop(obj, "color", text="Opacity", index=3, slider=True)
+
+
+
 class SB_PT_panel_link(bpy.types.Panel):
     bl_idname = "SB_PT_panel_link_3d"
     bl_label = "Sync"
@@ -502,9 +613,19 @@ class SB_PT_panel_link(bpy.types.Panel):
             row.operator("pribambase.stop_server", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
             row.operator("pribambase.start_server", text="Connect", icon="DECORATE_LINKED")
-        row.operator("pribambase.preferences", icon='PREFERENCES', text="")
+        row.menu("SB_MT_global", icon='DOWNARROW_HLT', text="")
 
-        col = layout.column(align=True)
-        col.operator("pribambase.reference_add")
-        col.operator("pribambase.reference_reload")
-        col.operator("pribambase.reference_reload_all")
+
+class SB_MT_global(bpy.types.Menu):
+    bl_label = "Pribambase"
+    bl_idname = "SB_MT_global"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("pribambase.reference_reload_all")
+        layout.separator()
+        layout.operator("pribambase.preferences", icon='PREFERENCES')
+
+
+def menu_reference_add(self, context):
+    self.layout.operator("pribambase.reference_add", text="Pixel Reference", icon='ALIASED')
