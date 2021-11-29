@@ -457,7 +457,11 @@ else
     -- clean up and exit
     local function cleanup()
         if ws ~= nil then ws:close() end
-        if dlg ~= nil then dlg:close() dlg = nil end
+        if dlg ~= nil then
+            local d = dlg -- avoid calling ui onClose callback
+            dlg = nil
+            d:close()
+        end
         pribambase_dlg = nil
         if spr~=nil then spr.events:off(syncSprite) end
         app.events:off(onAppChange)
@@ -668,6 +672,17 @@ else
     end
 
 
+    local function dlgClose()
+        if not dlg then
+            return
+        end
+        local d = dlg
+        dlg = nil -- avoid recursive calling itself via ui callback
+        cleanup()
+        d:close()
+    end
+
+
     -- set up a websocket
     ws = WebSocket{
         url=table.concat{"http://", settings.host, ":", settings.port},
@@ -683,7 +698,7 @@ else
 
     -- create an UI
 
-    dlg = Dialog{ title="Sync" }
+    dlg = Dialog{ title="Sync", onclose=dlgClose }
 
     dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
