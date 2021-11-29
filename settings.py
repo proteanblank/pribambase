@@ -80,8 +80,14 @@ class SB_SheetAnimation(bpy.types.PropertyGroup):
 
             # custom property
             assert prop_name in obj
-            assert obj["_RNA_UI"]
-            assert obj["_RNA_UI"][prop_name]
+            try:
+                # seems like in 3.0+ this part is managed automatically, and we just asserted the property
+                # so this just checks if fallback is needed
+                obj.id_properties_ui(prop_name)
+            except AttributeError:
+                # v2.[8/9]x, there's no manager so need to check with available methods
+                assert "_RNA_UI" in obj
+                assert prop_name in obj["_RNA_UI"]
 
             # modifier
             assert prop_name in obj.modifiers

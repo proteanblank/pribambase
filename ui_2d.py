@@ -471,8 +471,13 @@ class SB_OT_purge_sprite(bpy.types.Operator):
                             obj.modifiers.remove(obj.modifiers[prop_name])
 
                         # custom property
-                        if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
-                            del obj["_RNA_UI"][prop_name]
+                        try:
+                            # 3.0+
+                            obj.id_properties_ui(prop_name).clear()
+                        except AttributeError:
+                            # 2.[8/9]x
+                            if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
+                                del obj["_RNA_UI"][prop_name]
 
                         if prop_name in obj:
                             del obj[prop_name]

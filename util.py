@@ -196,9 +196,14 @@ def update_sheet_animation(anim):
         sheet = img.sb_props.sheet
 
         start,nframes = sheet.sb_props.sheet_start, sheet.sb_props.animation_length
-        rna_ui = obj["_RNA_UI"][prop_name]
-        rna_ui["min"] = rna_ui["soft_min"] = start
-        rna_ui["max"] = rna_ui["soft_max"] = start + nframes - 1
+        try:
+            # version 3.0 and onwards
+            obj.id_properties_ui(prop_name).update(min=start, soft_min=start, max=start + nframes - 1, soft_max=start + nframes - 1)
+        except AttributeError:
+            # 2.8x and 2.9x
+            rna_ui = obj["_RNA_UI"][prop_name]
+            rna_ui["min"] = rna_ui["soft_min"] = start
+            rna_ui["max"] = rna_ui["soft_max"] = start + nframes - 1
         obj[prop_name] = max(start, min(obj[prop_name], start + nframes - 1))
 
         w,h = sheet.sb_props.sheet_size

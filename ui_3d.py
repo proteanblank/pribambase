@@ -231,9 +231,14 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         if prop_name not in obj:
             obj[prop_name] = start
 
-        if "_RNA_UI" not in obj:
-            obj["_RNA_UI"] = {}
-        obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite" }
+        try:
+            # 3.0
+            obj.id_properties_ui(prop_name).update(description="Animation frame, uses the same numbering as timeline in Aseprite")
+        except AttributeError:
+            # 2.[8/9]x
+            if "_RNA_UI" not in obj:
+                obj["_RNA_UI"] = {}
+            obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite" }
 
         # modifier
         if prop_name not in obj.modifiers:
@@ -305,8 +310,13 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
                 obj.animation_data.drivers.remove(driver)
 
         # custom property
-        if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
-            del obj["_RNA_UI"][prop_name]
+        try:
+            # 3.0+
+            obj.id_properties_ui(prop_name).clear()
+        except AttributeError:
+            # 2.[8/9]x
+            if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
+                del obj["_RNA_UI"][prop_name]
 
         if prop_name in obj:
             del obj[prop_name]
