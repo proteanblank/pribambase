@@ -420,7 +420,7 @@ msgbus_anim_data_callback_owner = object()
 def sb_msgbus_anim_data_callback():
     global action
     scene = bpy.context.scene
-    obj = scene.sb_state.action_preview
+    obj = addon.state.action_preview
 
     if not scene.use_preview_range or not obj:
         bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner)
@@ -428,7 +428,7 @@ def sb_msgbus_anim_data_callback():
 
     if obj.animation_data.action != action:
         action = obj.animation_data.action.name
-        scene.frame_preview_start, scene.frame_preview_end = scene.sb_state.action_preview.animation_data.action.frame_range
+        scene.frame_preview_start, scene.frame_preview_end = addon.state.action_preview.animation_data.action.frame_range
         # try to revive the curves
         for fcurve in obj.animation_data.action.fcurves:
             fcurve.data_path += ""
@@ -443,14 +443,14 @@ class SB_OT_set_action_preview(bpy.types.Operator):
     def poll(cls, context):
         return context.active_object and context.active_object.type == 'MESH' and \
             context.active_object.animation_data and context.active_object.animation_data.action and \
-            not context.active_object == context.scene.sb_state.action_preview
+            not context.active_object == addon.state.action_preview
     
     def execute(self, context):
         # NOTE when using self here, note that this method is directly invoked during scene initialization
         scene = context.scene
         obj = context.active_object
-        scene.sb_state.action_preview = obj
-        scene.sb_state.action_preview_enabled = True
+        addon.state.action_preview = obj
+        addon.state.action_preview_enabled = True
         scene.use_preview_range = True
         scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
 
@@ -474,12 +474,12 @@ class SB_OT_clear_action_preview(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         scene = context.scene
-        return scene.sb_state.action_preview_enabled and scene.use_preview_range
+        return addon.state.action_preview_enabled and scene.use_preview_range
     
     def execute(self, context):
         scene = context.scene
-        scene.sb_state.action_preview = None
-        scene.sb_state.action_preview_enabled = False
+        addon.state.action_preview = None
+        addon.state.action_preview_enabled = False
         scene.use_preview_range = False
         bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner)
         return {'FINISHED'}
@@ -549,8 +549,8 @@ class SB_PT_panel_animation(bpy.types.Panel):
             if obj.animation_data:
                 row.prop(obj.animation_data, "action")
                 
-                if context.scene.sb_state.action_preview_enabled:
-                    active_picked = (context.active_object == context.scene.sb_state.action_preview)
+                if addon.state.action_preview_enabled:
+                    active_picked = (context.active_object == addon.state.action_preview)
                     row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
                     row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
                 else:

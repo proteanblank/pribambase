@@ -137,4 +137,4 @@ def erase_async_loop():
 
         ticks = ticks + 1
     else:
-        bpy.ops.pribambase.report(message_type='ERROR', message="Failed to stop the server loop")
+        bpy.ops.pribambase.report(message_type='ERROR', message="Failed to close the connection. Sometimes that blocks new connections until blender restarts")

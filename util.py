@@ -333,12 +333,12 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             action.update_tag()
         
         scene = context.scene
-        if scene.sb_state.action_preview_enabled:
-            obj = context.scene.sb_state.action_preview
+        if addon.state.action_preview_enabled:
+            obj = addon.state.action_preview
             if obj and obj.animation_data and obj.animation_data.action:
                 scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
             else:
-                scene.sb_state.action_preview_enabled = False
+                addon.state.action_preview_enabled = False
 
 
     def modal_execute(self, context):
