@@ -50,11 +50,6 @@ def scale_image(image:bpy.types.Image, scale:int, desample:int=1):
 
 # Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
 _material_sprite_common_props = {
-    "animated": bpy.props.BoolProperty(
-        name="Animated", 
-        description="Add animation rig. Will enable animation sync for the sprite", 
-        default=False),
-
     "shading": bpy.props.EnumProperty(name="Shading", description="Material",
         items=(
             ('LIT', "Lit", "Basic material that receives lighting", 1), 
@@ -73,11 +68,8 @@ _material_sprite_common_props = {
         default=0)}
 
 
-def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout, *, animated_enabled:bool):
+def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
     layout.prop(self, "shading", expand=True)
-    row = layout.row()
-    row.enabled = animated_enabled
-    row.prop(self, "animated")
     layout.prop(self, "two_sided")
     layout.prop(self, "blend")
 
@@ -88,7 +80,6 @@ class SB_OT_material_add(bpy.types.Operator):
     bl_description = "Quick pixel material setup"
     bl_options = {'REGISTER', 'UNDO'}
 
-    animated: _material_sprite_common_props["animated"]
     shading: _material_sprite_common_props["shading"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
@@ -98,8 +89,10 @@ class SB_OT_material_add(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
 
-        layout.prop(addon.state.op_props, "image_sprite")
-        _draw_material_props(self, layout,  animated_enabled=True)
+        row = layout.row()
+        row.enabled = self.invoke
+        row.prop(addon.state.op_props, "image_sprite")
+        _draw_material_props(self, layout)
 
 
     @classmethod
@@ -109,14 +102,15 @@ class SB_OT_material_add(bpy.types.Operator):
     
 
     def execute(self, context):
+        self.invoke = False
+        
         img = addon.state.op_props.image_sprite
         if not img:
             self.report({'ERROR'}, "No image selected")
             return {'CANCELLED'}
         
         if img.sb_props.sheet:
-            # TODO animated
-            pass
+            img = img.sb_props.sheet
 
         mat = bpy.data.materials.new(addon.state.op_props.image_sprite.name)
         # create nodes
@@ -167,6 +161,7 @@ class SB_OT_material_add(bpy.types.Operator):
 
 
     def invoke(self, context, event):
+        self.invoke = True
         addon.state.op_props.image_sprite = next(i for i in bpy.data.images if not i.sb_props.is_sheet)
         return context.window_manager.invoke_props_dialog(self)
 
@@ -198,13 +193,12 @@ class SB_OT_sprite_add(bpy.types.Operator):
             ('XPOS', "Right", "Positive X axis"),
             ('ZPOS', "Top", "Positive Z axis"),
             ('ZNEG', "Bottom", "Negative Z axis"),
-            ("SPH", "Cammera", "Face the selected object, usually camera, from any angle (AKA spherical billboard)"),
-            ("CYL", "Camera XY", "Face the selected object by rotating around Z axis only (AKA cylindrical billboard)")),
+            ('SPH', "Camera", "Face the selected object, usually camera, from any angle (AKA spherical billboard)"),
+            ('CYL', "Camera XY", "Face the selected object by rotating around Z axis only (AKA cylindrical billboard)")),
         default=0)
 
     ## MATERIAL PROPS
     hide_image_prop: bpy.props.BoolProperty(options={'HIDDEN'}, default=True) # to avoid drawing twice in the add sprite draw()
-    animated: _material_sprite_common_props["animated"]
     shading: _material_sprite_common_props["shading"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
@@ -212,20 +206,25 @@ class SB_OT_sprite_add(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
-        box = layout.box()
-        box.label(text="Sprite")
-        box.prop(addon.state.op_props, "image_sprite")
-        box.prop(self, "facing")
-        if self.facing in ('SPH', 'CYL'):
-            box.row().prop(addon.state.op_props, "look_at")
-        box.prop(self, "scale")
-        box.prop(self, "pivot")
         
-        box = layout.box()
-        box.label(text="Material")
-        box.prop(addon.state.op_props, "material")
+        layout.label(text="Sprite")
+        row = layout.row()
+        row.enabled = self.invoke
+        row.prop(addon.state.op_props, "image_sprite")
+        layout.prop(self, "facing")
+        if self.facing in ('SPH', 'CYL'):
+            row = layout.row()
+            row.enabled = self.invoke
+            row.prop(addon.state.op_props, "look_at")
+        layout.prop(self, "scale")
+        layout.prop(self, "pivot")
+        
+        layout.label(text="Material")
+        row = layout.row()
+        row.enabled = self.invoke
+        row.prop(addon.state.op_props, "material")
         if not addon.state.op_props.material:
-            _draw_material_props(self, box, animated_enabled=False)
+            _draw_material_props(self, layout)
 
 
     @classmethod
@@ -234,6 +233,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
     
 
     def execute(self, context):
+        self.invoke = False
         img = addon.state.op_props.image_sprite
         if not img:
             self.report({'ERROR'}, "No image selected")
@@ -247,14 +247,13 @@ class SB_OT_sprite_add(bpy.types.Operator):
         points = []
         for u,v in [(w - px, -py), (-px, -py), (-px, h - py), (w - px, h - py)]:
             # scale to grid, flip if needed
-            f = -1 if self.facing in ('XPOS', 'YNEG', 'ZPOS') else 1
+            f = -1 if self.facing in ('XPOS', 'YNEG', 'ZPOS', 'SPH', 'CYL') else 1
             u = u * f / self.scale
             v = v / self.scale
-            # add third coord
-            # TODO billboard
+            # now add third coord
             if self.facing in ('XPOS', 'XNEG'):
                 points.append((0, u, v))
-            elif self.facing in ('YPOS', 'YNEG'):
+            elif self.facing in ('YPOS', 'YNEG', 'SPH', 'CYL'):
                 points.append((u, 0, v))
             elif self.facing == 'ZPOS':
                 points.append((u, v, 0))
@@ -268,22 +267,37 @@ class SB_OT_sprite_add(bpy.types.Operator):
             faces=[(0, 1, 2, 3)])
         mesh.uv_layers.new().data.foreach_set("uv", [0, 0, 1, 0, 1, 1, 0, 1])
 
-        obj:bpy.types.Object = object_utils.object_data_add(context, mesh, name="Sprite")
+        obj = object_utils.object_data_add(context, mesh, name="Sprite")
         if addon.state.op_props.material:
             obj.active_material = addon.state.op_props.material
         else:
-            bpy.ops.pribambase.material_add(animated=self.animated, shading=self.shading, two_sided=self.two_sided, blend=self.blend)
+            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend)
+        
+        if img.sb_props.sheet:
+            bpy.ops.pribambase.spritesheet_rig(image=img.name)
 
-        # TODO billboard constraints
+        if self.facing in ('SPH', 'CYL'):
+            # Face camera
+            face:bpy.types.TrackToConstraint = obj.constraints.new('TRACK_TO')
+            face.track_axis = 'TRACK_NEGATIVE_Y'
+            face.up_axis = 'UP_Z'
+            face.target = addon.state.op_props.look_at
+
+            if self.facing == 'CYL':
+                # For cylindric, also constrain rotation
+                lock = obj.constraints.new('LIMIT_ROTATION')
+                lock.use_limit_x = True
+                lock.use_limit_y = True
 
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        addon.state.op_props.image_sprite = next(i for i in bpy.data.images if not i.sb_props.is_sheet)
+        addon.state.op_props.image_sprite = None
         addon.state.op_props.look_at = context.scene.camera
         addon.state.op_props.material = None
         self.scale = 1 / context.space_data.overlay.grid_scale
         self.animated = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
+        self.invoke = True
         return context.window_manager.invoke_props_dialog(self)
 
 

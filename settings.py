@@ -43,23 +43,20 @@ class SB_OpProps(bpy.types.PropertyGroup):
     look_at: bpy.props.PointerProperty(
         name="Look At",
         description="Object the sprite will be facing",
-        type=bpy.types.Object, 
-        options={'SKIP_SAVE'})
+        type=bpy.types.Object)
 
     # used by: SB_OT_sprite_add, SB_OT_material_add
     image_sprite: bpy.props.PointerProperty(
         name="Image", 
         description="Image to use",
         type=bpy.types.Image,
-        options={'SKIP_SAVE'},
         poll=lambda self,img:not img.sb_props.is_sheet)
     
     # used by: SB_OT_sprite_add
     material: bpy.props.PointerProperty(
         name="Material",
         description="Material to use. If none, a new one can be created",
-        type=bpy.types.Material, 
-        options={'SKIP_SAVE'})
+        type=bpy.types.Material)
 
 
 class SB_State(bpy.types.PropertyGroup):
