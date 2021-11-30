@@ -270,7 +270,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
     uv_scale:bpy.props.FloatProperty(
         name="UV Scale",
         description="Default resolution of the UV layer relative to the texture size",
-        default=8.0,
+        default=2.0,
         min=0.0,
         max=50.0)
 
@@ -291,7 +291,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
     uv_weight: bpy.props.FloatProperty(
         name="UV Thickness",
         description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
-        default=4.0)
+        default=1.0)
 
     use_relative_path: bpy.props.BoolProperty(
         name="Relative Paths",

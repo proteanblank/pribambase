@@ -165,7 +165,7 @@ class SB_OT_send_uv(bpy.types.Operator):
             with gpu.matrix.push_pop():
                 # see explanation in https://blender.stackexchange.com/questions/153697/gpu-python-module-why-drawed-pixels-are-shifted-in-the-result-image
                 projection_matrix = Matrix.Diagonal((2.0, -2.0, 1.0))
-                projection_matrix = Matrix.Translation((-1.0, 1.0, 0.0)) @ projection_matrix.to_4x4()
+                projection_matrix = Matrix.Translation((-1.0 + 1.0 / w, 1.0 + 1.0 / h, 0.0)) @ projection_matrix.to_4x4()
                 gpu.matrix.load_projection_matrix(projection_matrix)
 
                 bgl.glEnable(bgl.GL_BLEND)
