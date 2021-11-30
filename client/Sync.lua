@@ -693,12 +693,12 @@ else
     -- doclist can have stuff from the last launch
     docListClean()
 
-    --[[ global ]] pribambase_dlg = dlg
     app.events:on("sitechange", onAppChange)
-
+    
     -- create an UI
-
+    
     dlg = Dialog{ title="Sync", onclose=dlgClose }
+    --[[ global ]] pribambase_dlg = dlg
 
     dlg:label{ id="status", text="Connecting..." }
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
