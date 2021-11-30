@@ -308,8 +308,8 @@ class SB_OT_reference_add(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     scale: bpy.props.IntProperty(
-        name="Prescale",
-        description="Prescale the image",
+        name="Pre-scale",
+        description="Pre-scale the image",
         default=10,
         min=1,
         max=50)
@@ -418,8 +418,8 @@ class SB_OT_reference_replace(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     scale: bpy.props.IntProperty(
-        name="Prescale",
-        description="Prescale the image",
+        name="Pre-scale",
+        description="Pre-scale the image",
         default=10,
         min=1,
         max=50)

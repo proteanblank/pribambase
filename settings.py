@@ -156,15 +156,15 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         subtype='FILE_PATH')
 
     prescale: bpy.props.IntProperty(
-        name="Prescale",
+        name="Pre-scale",
         description="",
         min=1,
         max=20,
         default=1)
 
     prescale_actual: bpy.props.IntProperty(
-        name="Actual Prescale",
-        description="Prescale value during the last resize operation",
+        name="Actual Pre-scale",
+        description="Pre-scale value during the last resize operation",
         min=1,
         max=20,
         default=1, 
