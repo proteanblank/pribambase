@@ -512,7 +512,7 @@ def _uv_map_enum_items(self, context):
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
     bl_label = "Set Up"
-    bl_description = "Set up spritesheet UV animation for this object. Does not affect materials or textures"
+    bl_description = "Set up spritesheet UV animation for this object. Does not assign materials or textures"
     bl_options = {'UNDO'}
 
 
@@ -539,6 +539,11 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         description="UV Layer that transforms apply to",
         items=_uv_map_enum_items,
         default=0)
+    
+    update_nodes: bpy.props.BoolProperty(
+        name="Update Image Nodes",
+        description="Replace the image with spritesheet in Image Texture nodes of the object's material, if there's any",
+        default=True)
     
 
     @classmethod
@@ -603,7 +608,11 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         obj.animation_data.drivers.update()
         obj.update_tag()
 
-        
+        # try updating the material
+        if self.update_nodes and obj.active_material and obj.active_material.use_nodes:
+            for node in obj.active_material.node_tree.nodes:
+                if node.bl_idname == 'ShaderNodeTexImage' and node.image == img:
+                    node.image = img.sb_props.sheet
 
         util.refresh()
 
