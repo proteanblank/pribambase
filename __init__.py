@@ -51,6 +51,7 @@ bl_info = {
 
 classes = (
     # Property types
+    SB_OpProps,
     SB_State,
     SB_Preferences,
     SB_SheetAnimation,
@@ -68,6 +69,8 @@ classes = (
     SB_OT_edit_sprite_copy,
     SB_OT_replace_sprite,
     SB_OT_purge_sprite,
+    SB_OT_material_add,
+    SB_OT_sprite_add,
     SB_OT_reference_add,
     SB_OT_reference_replace,
     SB_OT_reference_rescale,
@@ -86,6 +89,7 @@ classes = (
     SB_UL_animations,
     # Panels
     SB_PT_panel_link,
+    SB_PT_panel_material,
     SB_PT_panel_animation,
     SB_PT_panel_sprite,
     SB_PT_panel_reference,
@@ -114,6 +118,7 @@ def register():
     editor_menus.append(SB_MT_menu_2d.header_draw)
 
     bpy.types.VIEW3D_MT_image_add.append(menu_reference_add)
+    bpy.types.VIEW3D_MT_mesh_add.append(menu_mesh_add)
 
     # delay is just in case something else happens at startup
     # `persistent` protects the timer if the user loads a file before it fires
@@ -146,6 +151,7 @@ def unregister():
     editor_menus.remove(SB_MT_menu_2d.header_draw)
 
     bpy.types.VIEW3D_MT_image_add.remove(menu_reference_add)
+    bpy.types.VIEW3D_MT_mesh_add.remove(menu_mesh_add)
 
     del bpy.types.Scene.sb_state
     del bpy.types.Image.sb_props

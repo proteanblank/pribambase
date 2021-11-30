@@ -21,6 +21,7 @@
 import bpy
 import numpy as np
 from math import pi
+from bpy_extras import object_utils
 
 from .addon import addon
 from . import util
@@ -45,6 +46,245 @@ def scale_image(image:bpy.types.Image, scale:int, desample:int=1):
         image.pixels[:] = px.ravel()
     image.sb_props.prescale_actual = scale
     image.update()
+
+
+# Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
+_material_sprite_common_props = {
+    "animated": bpy.props.BoolProperty(
+        name="Animated", 
+        description="Add animation rig. Will enable animation sync for the sprite", 
+        default=False),
+
+    "shading": bpy.props.EnumProperty(name="Shading", description="Material",
+        items=(
+            ('LIT', "Lit", "Basic material that receives lighting", 1), 
+            ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
+        default=2),
+    
+    "two_sided": bpy.props.BoolProperty(
+        name="Two-Sided",
+        description="Make both sided of each face visible",
+        default=False),
+
+    "blend": bpy.props.EnumProperty(name="Blend Mode", description="Imitate blending mode for the material", items=(
+        ('NORM', "Normal", "", 0),
+        ('ADD', "Additive", "", 1),
+        ('MUL', "Multply", "", 2)), 
+        default=0)}
+
+
+def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout, *, animated_enabled:bool):
+    layout.prop(self, "shading", expand=True)
+    row = layout.row()
+    row.enabled = animated_enabled
+    row.prop(self, "animated")
+    layout.prop(self, "two_sided")
+    layout.prop(self, "blend")
+
+
+class SB_OT_material_add(bpy.types.Operator):
+    bl_idname = "pribambase.material_add"
+    bl_label = "Set Up material"
+    bl_description = "Quick pixel material setup"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    animated: _material_sprite_common_props["animated"]
+    shading: _material_sprite_common_props["shading"]
+    two_sided: _material_sprite_common_props["two_sided"]
+    blend: _material_sprite_common_props["blend"]
+
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        layout.prop(addon.state.op_props, "image_sprite")
+        _draw_material_props(self, layout,  animated_enabled=True)
+
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and context.active_object.type == 'MESH' and \
+            next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
+    
+
+    def execute(self, context):
+        img = addon.state.op_props.image_sprite
+        if not img:
+            self.report({'ERROR'}, "No image selected")
+            return {'CANCELLED'}
+        
+        if img.sb_props.sheet:
+            # TODO animated
+            pass
+
+        mat = bpy.data.materials.new(addon.state.op_props.image_sprite.name)
+        # create nodes
+        mat.use_nodes = True
+        mat.use_backface_culling = not self.two_sided
+        mat.blend_method = 'BLEND'
+        
+        tree = mat.node_tree
+
+        tex = tree.nodes.new("ShaderNodeTexImage")
+        tex.location = (-500, 100)
+        tex.image = img
+        tex.interpolation = 'Closest'
+        tex.extension = 'CLIP'
+
+        bsdf = tree.nodes[tree.nodes.find("Principled BSDF")]
+        bsdf.location = (-200, 250)
+        bsdf.inputs["Base Color"].default_value = (0, 0, 0, 1)
+
+        if self.shading == 'LIT':
+            tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+        elif self.shading == 'SHADELESS':
+            bsdf.inputs["Specular"].default_value = 0
+            tree.links.new(tex.outputs["Color"], bsdf.inputs["Emission"])
+        tree.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+
+        out = tree.nodes[tree.nodes.find("Material Output")]
+        out.location = (300, 50)
+
+        if self.blend == 'ADD':
+            trans = tree.nodes.new("ShaderNodeBsdfTransparent")
+            trans.location = (80, 100)
+            add = tree.nodes.new("ShaderNodeAddShader")
+            add.location = (130, -100)
+            tree.links.new(trans.outputs["BSDF"], add.inputs[0])
+            tree.links.new(bsdf.outputs["BSDF"], add.inputs[1])
+            tree.links.new(add.outputs["Shader"], out.inputs["Surface"])
+
+        elif self.blend == 'MUL':
+            tree.nodes.remove(bsdf)
+            trans = tree.nodes.new("ShaderNodeBsdfTransparent")
+            trans.location = (0, -20)
+            tree.links.new(tex.outputs["Color"], trans.inputs["Color"])
+            tree.links.new(trans.outputs["BSDF"], out.inputs["Surface"])        
+
+        context.active_object.active_material = mat
+        return {'FINISHED'}
+
+
+    def invoke(self, context, event):
+        addon.state.op_props.image_sprite = next(i for i in bpy.data.images if not i.sb_props.is_sheet)
+        return context.window_manager.invoke_props_dialog(self)
+
+
+class SB_OT_sprite_add(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_add"
+    bl_label = "Add Sprite"
+    bl_description = "All-in-one 2D sprite setup"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    scale: bpy.props.FloatProperty(
+        name="Texture Density", 
+        description="In pixels per unit. Defaults to 1 pixel per 1 world grid step")
+
+    pivot: bpy.props.FloatVectorProperty(
+        name="Pivot",
+        description="Placement of the origin in the texture space. (X:0, Y:0) is lower-left, (X:0.5, Y:0) is lower-middle, and so on",
+        size=2,
+        subtype='COORDINATES',
+        default=(0.5,0.5))
+    
+    facing: bpy.props.EnumProperty(
+        name="Facing",
+        description="Sprite orientation, follow the opposite naming to camera shortcuts, so e.g. picking Top means the sprite will be facing Top camera view",
+        items=(
+            ('YNEG', "Front", "Negative Y axis"),
+            ('YPOS', "Back", "Positive Y axis"),
+            ('XNEG', "Left", "Negative X axis"),
+            ('XPOS', "Right", "Positive X axis"),
+            ('ZPOS', "Top", "Positive Z axis"),
+            ('ZNEG', "Bottom", "Negative Z axis"),
+            ("SPH", "Cammera", "Face the selected object, usually camera, from any angle (AKA spherical billboard)"),
+            ("CYL", "Camera XY", "Face the selected object by rotating around Z axis only (AKA cylindrical billboard)")),
+        default=0)
+
+    ## MATERIAL PROPS
+    hide_image_prop: bpy.props.BoolProperty(options={'HIDDEN'}, default=True) # to avoid drawing twice in the add sprite draw()
+    animated: _material_sprite_common_props["animated"]
+    shading: _material_sprite_common_props["shading"]
+    two_sided: _material_sprite_common_props["two_sided"]
+    blend: _material_sprite_common_props["blend"]
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        box = layout.box()
+        box.label(text="Sprite")
+        box.prop(addon.state.op_props, "image_sprite")
+        box.prop(self, "facing")
+        if self.facing in ('SPH', 'CYL'):
+            box.row().prop(addon.state.op_props, "look_at")
+        box.prop(self, "scale")
+        box.prop(self, "pivot")
+        
+        box = layout.box()
+        box.label(text="Material")
+        box.prop(addon.state.op_props, "material")
+        if not addon.state.op_props.material:
+            _draw_material_props(self, box, animated_enabled=False)
+
+
+    @classmethod
+    def poll(cls, context):
+        return next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
+    
+
+    def execute(self, context):
+        img = addon.state.op_props.image_sprite
+        if not img:
+            self.report({'ERROR'}, "No image selected")
+            return {'CANCELLED'}
+        w,h = img.size
+        # normalize to pixel coord
+        px, py = [self.pivot[i] * img.size[i] if -1 <= self.pivot[i] <= 1 else self.pivot[i] for i in (0,1)]
+        px = w - px
+
+        # start with 2d uv coords, scaled to pixels
+        points = []
+        for u,v in [(w - px, -py), (-px, -py), (-px, h - py), (w - px, h - py)]:
+            # scale to grid, flip if needed
+            f = -1 if self.facing in ('XPOS', 'YNEG', 'ZPOS') else 1
+            u = u * f / self.scale
+            v = v / self.scale
+            # add third coord
+            # TODO billboard
+            if self.facing in ('XPOS', 'XNEG'):
+                points.append((0, u, v))
+            elif self.facing in ('YPOS', 'YNEG'):
+                points.append((u, 0, v))
+            elif self.facing == 'ZPOS':
+                points.append((u, v, 0))
+            elif self.facing == 'ZNEG':
+                points.append((-u, -v, 0))
+
+        mesh = bpy.data.meshes.new("Plane")
+        mesh.from_pydata( # this will be z up?
+            vertices=points,
+            edges=[(0, 1),(1, 2),(2, 3),(3, 0)],
+            faces=[(0, 1, 2, 3)])
+        mesh.uv_layers.new().data.foreach_set("uv", [0, 0, 1, 0, 1, 1, 0, 1])
+
+        obj:bpy.types.Object = object_utils.object_data_add(context, mesh, name="Sprite")
+        if addon.state.op_props.material:
+            obj.active_material = addon.state.op_props.material
+        else:
+            bpy.ops.pribambase.material_add(animated=self.animated, shading=self.shading, two_sided=self.two_sided, blend=self.blend)
+
+        # TODO billboard constraints
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        addon.state.op_props.image_sprite = next(i for i in bpy.data.images if not i.sb_props.is_sheet)
+        addon.state.op_props.look_at = context.scene.camera
+        addon.state.op_props.material = None
+        self.scale = 1 / context.space_data.overlay.grid_scale
+        self.animated = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
+        return context.window_manager.invoke_props_dialog(self)
 
 
 class SB_OT_reference_add(bpy.types.Operator):
@@ -495,6 +735,35 @@ class SB_UL_animations(bpy.types.UIList):
             layout.label(text="", icon='DECORATE_LINKED')
 
 
+class SB_PT_panel_material(bpy.types.Panel):
+    bl_idname = "SB_PT_panel_Material"
+    bl_label = "Sprite Material"
+    bl_category = "Item"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 475
+
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and context.active_object.type == 'MESH'
+
+
+    def draw(self, context):        
+        if context.active_object and context.active_object.type == 'MESH':
+            layout = self.layout
+            obj = context.active_object
+
+            row = layout.row()
+            row.alignment = 'CENTER'
+            if not obj.active_material:
+                row.label(text="Current object has no material", icon='INFO')
+
+            row = layout.row(align=True)
+            row.prop(obj, "active_material", text="")
+            row.operator("pribambase.material_add", icon='ADD', text="")
+
+
 
 class SB_PT_panel_animation(bpy.types.Panel):
     bl_idname = "SB_PT_panel_animation"
@@ -502,6 +771,7 @@ class SB_PT_panel_animation(bpy.types.Panel):
     bl_category = "Item"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
+    bl_order = 476
 
 
     @classmethod
@@ -629,3 +899,6 @@ class SB_MT_global(bpy.types.Menu):
 
 def menu_reference_add(self, context):
     self.layout.operator("pribambase.reference_add", text="Pixel Reference", icon='ALIASED')
+
+def menu_mesh_add(self, context):
+    self.layout.operator("pribambase.sprite_add", text="Sprite", icon='ALIASED')
