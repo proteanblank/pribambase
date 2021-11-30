@@ -307,6 +307,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Round Fractional Frames",
         description="When sprite timings do not match the scene framerate, move keyframes to the nearest whole frame. Otherwise, use fractional frames to preserver timing",
         default=True)
+    
+    use_fake_users: bpy.props.BoolProperty(
+        name="Add Fake Users",
+        description="Turns on fake user for plugin-created data (images/actions/...) to protect it from disappearing after file reload. Changing this settin won't affect already existing data, only new",
+        default=True)
 
 
     def template_box(self, layout, label="Box"):
@@ -344,6 +349,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
         box = self.template_box(layout, label="Misc:")
 
+        box.row().prop(self, "use_fake_users")
         box.row().prop(self, "use_relative_path")
         box.row().prop(self, "whole_frames")
         box.row().prop(self, "skip_modal")

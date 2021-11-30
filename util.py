@@ -106,7 +106,7 @@ def pack_empty_png(image):
     image.filepath = tmp
     image.pack()
     image.filepath=""
-    image.use_fake_user = True
+    image.use_fake_user = addon.prefs.use_fake_users
     
     os.remove(tmp)
 
@@ -291,7 +291,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
                 action = bpy.data.actions.new(action_name)
                 action.id_root = 'OBJECT'
-                action.use_fake_user = True
+                action.use_fake_user = addon.prefs.use_fake_users
                 action.sb_props.tag = tag
                 action.sb_props.sprite = img
             
