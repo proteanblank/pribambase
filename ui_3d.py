@@ -748,6 +748,39 @@ class SB_OT_clear_action_preview(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SB_OT_set_grid(bpy.types.Operator):
+    bl_idname = "pribambase.set_grid"
+    bl_label = "Set Pixel Grid"
+    bl_description = "Set grid step in *every* viewport"
+    
+
+    step: bpy.props.FloatProperty(
+        name="Density (px/m)",
+        description="Grid step in pixels. It's inverse of what viewport uses",
+        default=10)
+    
+
+    def execute(self, context):
+        if not context or not context.window_manager:
+            return {'CANCELLED'}
+
+        context.scene.unit_settings.system = 'NONE'
+        # looong looong
+        for wsp in bpy.data.workspaces:
+            for screen in wsp.screens:
+                for area in screen.areas:
+                    if area.type == 'VIEW_3D':
+                        for space in area.spaces:
+                            if space.type == 'VIEW_3D':
+                                space.overlay.grid_scale = 1/self.step
+
+        return {'FINISHED'}
+    
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+
 
 class SB_UL_animations(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
@@ -916,6 +949,7 @@ class SB_MT_global(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator("pribambase.reference_reload_all")
+        layout.operator("pribambase.set_grid")
         layout.separator()
         layout.operator("pribambase.preferences", icon='PREFERENCES')
 
