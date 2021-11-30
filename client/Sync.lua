@@ -539,6 +539,10 @@ else
             end
         end
 
+        if not dlg.data.animated and spr and docList[spr] and docList[spr].animated then
+            synced = false
+        end
+        
         dlg:modify{ id="animated", visible=(spr ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
 
         if not synced then

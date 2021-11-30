@@ -551,6 +551,25 @@ class SB_OT_replace_sprite(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+class SB_OT_make_animated(bpy.types.Operator):
+    bl_idname = "pribambase.make_animated"
+    bl_label = "Enable Animation"
+    bl_description = "Mark the image as animated, same as checking Animated in aseprite popup. Takes effect immediately if Aseprite is connected, or next time it connects"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return addon.connected and context.area.type == 'IMAGE_EDITOR' and context.edit_image and \
+            'SHEET' not in context.edit_image.sb_props.sync_flags
+    
+    def execute(self, context):
+        img = context.edit_image
+        img.sb_props.sync_flags = {'SHEET', *img.sb_props.sync_flags}
+        msg = encode.sprite_open(util.image_name(img), img.sb_props.sync_flags)
+        addon.server.send(msg)
+        return {'FINISHED'}
+
+
 class SB_MT_menu_2d(bpy.types.Menu):
     bl_label = "Sprite"
     bl_idname = "SB_MT_menu_2d"
@@ -564,6 +583,7 @@ class SB_MT_menu_2d(bpy.types.Menu):
         layout.operator("pribambase.edit_sprite_copy")
         layout.operator("pribambase.replace_sprite")
         layout.separator()
+        layout.operator("pribambase.make_animated")
         layout.operator("pribambase.set_uv", icon='UV_VERTEXSEL')
 
 

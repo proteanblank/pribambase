@@ -68,6 +68,7 @@ classes = (
     SB_OT_edit_sprite,
     SB_OT_edit_sprite_copy,
     SB_OT_replace_sprite,
+    SB_OT_make_animated,
     SB_OT_purge_sprite,
     SB_OT_material_add,
     SB_OT_sprite_add,
