@@ -268,7 +268,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         if current_tag:
             tag_editor += next((t for t in tags if t[0] == current_tag))[1:]
         else:
-            tag_editor += (start, start + len(frames), 0)
+            tag_editor += (0, len(frames) - 1, 0)
         
         # current frame tag just shows the current frame, to allow drawing with spritesheet materials same way as if without animation
         tag_frame = ("__view__", current_frame, current_frame, 0)
