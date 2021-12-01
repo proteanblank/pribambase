@@ -53,6 +53,13 @@ class SB_OpProps(bpy.types.PropertyGroup):
         description="Image to use",
         type=bpy.types.Image,
         poll=lambda self,img:not img.sb_props.is_sheet)
+
+    # used by: SB_OT_spritesheet_rig
+    animated_sprite: bpy.props.PointerProperty(
+        name="Image", 
+        description="Animation to use",
+        type=bpy.types.Image,
+        poll=lambda self,img: bool(img.sb_props.sheet))
     
     # used by: SB_OT_sprite_add
     material: bpy.props.PointerProperty(

@@ -485,18 +485,12 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
 def set_new_animation_name(self, v):
     self["name"] = util.unique_name(v, bpy.context.active_object.sb_props.animations)
 
-_image_enum_items_ref = None
-def _image_enum_items(self, context):
-    # enum items reference must be stored to avoid crashing the UI
-    global _image_enum_items_ref
-    _image_enum_items_ref = [(img.name, img.name, "", i) for i,img in enumerate((img for img in bpy.data.images if img.sb_props.sheet))]
-    return _image_enum_items_ref
-
 _action_enum_items_ref = None
 def _action_enum_items(self, context):
     # enum items reference must be stored to avoid crashing the UI
     global _action_enum_items_ref
-    _action_enum_items_ref = [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite.name == self.image))]
+    _action_enum_items_ref = [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in \
+            enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite.name == addon.state.op_props.animated_sprite))]
     return _action_enum_items_ref
 
 _uv_map_enum_items_ref = None
@@ -522,12 +516,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         set=set_new_animation_name,
         get=lambda self: self["name"] if "name" in self else util.unique_name("Sprite Frame", bpy.context.active_object.sb_props.animations))
 
-    image: bpy.props.EnumProperty(
-        name="Sprite",
-        description="Animation to use (needed to calculate spritesheet UV transforms)",
-        items=_image_enum_items,
-        default=0)
-
     action: bpy.props.EnumProperty(
         name="Action",
         description="If set, replaces object's current timeline with sprite animation. Old keyframes can be acessed in action editor, and WILL BE LOST after reloading unless protected. \"Editor\" action syncs with the loop section of Asperite's timeline.",
@@ -544,6 +532,16 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         name="Update Image Nodes",
         description="Replace the image with spritesheet in Image Texture nodes of the object's material, if there's any",
         default=True)
+
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.prop(addon.state.op_props, "animated_sprite")
+        layout.prop(self, "name")
+        layout.prop(self, "uv_map")
+        layout.prop(self, "action")
+        layout.prop(self, "update_nodes")
     
 
     @classmethod
@@ -554,11 +552,15 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
-        img = bpy.data.images[self.image]
+        img = addon.state.op_props.animated_sprite
         start = img.sb_props.sheet.sb_props.sheet_start
 
+        if not img:
+            self.report({'ERROR'}, "No sprite selected")
+            return {'CANCELLED'}
+
         # Uniqualize the name in case there's already one from the same sprite
-        default_prop = f"Frame {self.image}" # this is the name that generated actions use by default
+        default_prop = f"Frame {img.name}" # this is the name that generated actions use by default
         prop_name = util.unique_name(default_prop, obj)
         prop_path = f'["{prop_name}"]'
 
