@@ -77,6 +77,7 @@ classes = (
     SB_OT_reference_rescale,
     SB_OT_reference_reload,
     SB_OT_reference_reload_all,
+    SB_OT_reference_freeze_all,
     SB_OT_set_grid,
     SB_OT_update_image,
     SB_OT_update_spritesheet,

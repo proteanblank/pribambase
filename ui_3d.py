@@ -507,6 +507,24 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SB_OT_reference_freeze_all(bpy.types.Operator):
+    bl_idname = "pribambase.reference_freeze_all"
+    bl_label = "Lock All References"
+    bl_description = "Make all references unselectabe (including non-pribamabase's)"
+    bl_options = {'UNDO'}
+
+    invert: bpy.props.BoolProperty(
+        name="Invert",
+        description="Make all references selectable instead")
+
+    def execute(self, context):
+        for obj in bpy.data.objects:
+            if obj.type == 'EMPTY' and obj.empty_display_type == 'IMAGE':
+                obj.hide_select = not self.invert
+
+        return {'FINISHED'}
+
+
 def set_new_animation_name(self, v):
     self["name"] = util.unique_name(v, bpy.context.active_object.sb_props.animations)
 
@@ -938,6 +956,7 @@ class SB_PT_panel_reference(bpy.types.Panel):
         if img:
             layout.row().prop(img.sb_props, "prescale")
         layout.row().prop(obj, "color", text="Opacity", index=3, slider=True)
+        layout.row().prop(obj, "hide_select", toggle=False)
 
 
 
@@ -979,8 +998,11 @@ class SB_MT_global(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("pribambase.reference_reload_all")
         layout.operator("pribambase.set_grid")
+        layout.separator()
+        layout.operator("pribambase.reference_reload_all")
+        layout.operator("pribambase.reference_freeze_all").invert = False
+        layout.operator("pribambase.reference_freeze_all", text="Unlock All References").invert = True
         layout.separator()
         layout.operator("pribambase.preferences", icon='PREFERENCES')
 
