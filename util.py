@@ -461,6 +461,14 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
                         point.select_control_point = point.select_left_handle = point.select_right_handle = False
                         point.interpolation = 'CONSTANT'
                         time += dt
+        
+        scene = context.scene
+        if addon.state.action_preview_enabled:
+            obj = addon.state.action_preview
+            if obj and obj.animation_data and obj.animation_data.action:
+                scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
+            else:
+                addon.state.action_preview_enabled = False
 
         self.args = None
         global _update_frame_args
