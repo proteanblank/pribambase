@@ -596,11 +596,10 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     def execute(self, context):
         obj = context.active_object
         img = addon.state.op_props.animated_sprite
-        start = img.sb_props.sheet.sb_props.sheet_start
-
         if not img:
             self.report({'ERROR'}, "No sprite selected")
             return {'CANCELLED'}
+        start = img.sb_props.sheet.sb_props.sheet_start
 
         # Uniqualize the name in case there's already one from the same sprite
         default_prop = f"Frame {img.name}" # this is the name that generated actions use by default
