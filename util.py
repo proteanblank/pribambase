@@ -124,7 +124,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_image"
     bl_label = "Update Image"
     bl_description = ""
-    bl_options = {'REGISTER', 'UNDO_GROUPED', 'INTERNAL'}
+    bl_options = {'UNDO_GROUPED', 'INTERNAL'}
     bl_undo_group = "pribambase.update_image"
 
     def modal_execute(self, context):
@@ -258,7 +258,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_spritesheet"
     bl_label = "Update Spritesheet"
     bl_description = ""
-    bl_options = {'REGISTER', 'UNDO_GROUPED', 'INTERNAL'}
+    bl_options = {'UNDO_GROUPED', 'INTERNAL'}
     bl_undo_group = "pribambase.update_spritesheet"
 
 
@@ -415,7 +415,7 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_frame"
     bl_label = "Update Frame"
     bl_description = ""
-    bl_options = {'REGISTER', 'UNDO_GROUPED', 'INTERNAL'}
+    bl_options = {'UNDO_GROUPED', 'INTERNAL'}
     bl_undo_group = "pribambase.update_frame"
 
     def modal_execute(self, context):

@@ -224,7 +224,7 @@ class SB_OT_open_sprite(bpy.types.Operator):
     bl_idname = "pribambase.open_sprite"
     bl_label = "Open..."
     bl_description = "Set up a texture from a file using Aseprite"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
@@ -282,7 +282,7 @@ class SB_OT_new_sprite(bpy.types.Operator):
     bl_idname = "pribambase.new_sprite"
     bl_label = "New"
     bl_description = "Set up a new texture using Aseprite"
-    bl_options={'REGISTER', 'UNDO'}
+    bl_options={'UNDO'}
 
     sprite: bpy.props.StringProperty(
         name="Name",
@@ -410,7 +410,7 @@ class SB_OT_purge_sprite(bpy.types.Operator):
     bl_label = "Purge"
     bl_idname = "pribambase.purge_sprite"
     bl_description = "Erase sprite-related data created by the plugin. Can remove unwanted animation setups"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
 
     remove_anim: bpy.props.BoolProperty(
@@ -514,7 +514,7 @@ class SB_OT_replace_sprite(bpy.types.Operator):
     bl_description = "Replace current texture with a file using Aseprite"
     bl_idname = "pribambase.replace_sprite"
     bl_label = "Replace..."
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
@@ -555,7 +555,7 @@ class SB_OT_make_animated(bpy.types.Operator):
     bl_idname = "pribambase.make_animated"
     bl_label = "Enable Animation"
     bl_description = "Mark the image as animated, same as checking Animated in aseprite popup. Takes effect immediately if Aseprite is connected, or next time it connects"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
     @classmethod
     def poll(cls, context):

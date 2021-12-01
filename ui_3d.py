@@ -394,7 +394,7 @@ class SB_OT_reference_reload(bpy.types.Operator):
     bl_idname = "pribambase.reference_reload"
     bl_label = "Reload Reference"
     bl_description = "Reload reference while keeping it prescaled"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
 
     @classmethod
@@ -415,7 +415,7 @@ class SB_OT_reference_rescale(bpy.types.Operator):
     bl_idname = "pribambase.reference_rescale"
     bl_label = "Refresh Scale"
     bl_description = "Refresh reference scaling without reloading the image. Sometimes behaves in a dumb manner"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
 
     @classmethod
@@ -440,7 +440,7 @@ class SB_OT_reference_replace(bpy.types.Operator):
     bl_idname = "pribambase.reference_replace"
     bl_label = "Replace Reference"
     bl_description = "Replace reference image, keep it aligned to pixel grid."
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
     scale: bpy.props.IntProperty(
         name="Pre-scale",
@@ -495,7 +495,7 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
     bl_idname = "pribambase.reference_reload_all"
     bl_label = "Reload References"
     bl_description = "Reload all references (including non-pribamabase's), while keeping them prescaled"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
     def execute(self, context):
         for obj in bpy.data.objects:
