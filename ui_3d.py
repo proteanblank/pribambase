@@ -18,9 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import math
 import bpy
 import numpy as np
 from math import pi
+from mathutils import Matrix
 from bpy_extras import object_utils
 
 from .addon import addon
@@ -185,7 +187,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
     
     facing: bpy.props.EnumProperty(
         name="Facing",
-        description="Sprite orientation, follow the opposite naming to camera shortcuts, so e.g. picking Top means the sprite will be facing Top camera view",
+        description="Sprite orientation, follows the opposite naming to camera shortcuts, so e.g. picking Top means the sprite will be facing Top camera view",
         items=(
             ('YNEG', "Front", "Negative Y axis"),
             ('YPOS', "Back", "Positive Y axis"),
@@ -307,6 +309,18 @@ class SB_OT_reference_add(bpy.types.Operator):
     bl_description = "Add reference image with pixels aligned to the view grid"
     bl_options = {'REGISTER', 'UNDO'}
 
+    facing: bpy.props.EnumProperty(
+        name="Facing",
+        description="Image orientation, follows the opposite naming to camera shortcuts, so e.g. picking Top means the image will be facing Top camera view",
+        items=(
+            ('YNEG', "Front", "Negative Y axis"),
+            ('YPOS', "Back", "Positive Y axis"),
+            ('XNEG', "Left", "Negative X axis"),
+            ('XPOS', "Right", "Positive X axis"),
+            ('ZPOS', "Top", "Positive Z axis"),
+            ('ZNEG', "Bottom", "Negative Z axis")),
+        default=0)
+
     scale: bpy.props.IntProperty(
         name="Pre-scale",
         description="Pre-scale the image",
@@ -361,6 +375,17 @@ class SB_OT_reference_add(bpy.types.Operator):
         if not self.selectable:
             ref.hide_select = True
             self.report({'INFO'}, "The reference won't be selectable. Use the outliner to reload/delete it")
+        
+        if self.facing == 'YPOS':
+            ref.matrix_basis @=  Matrix.Rotation(math.pi, 4, (0,1,0))
+        elif self.facing == 'XNEG':
+            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (0,-1,0))
+        elif self.facing == 'XPOS':
+            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (0,1,0))
+        elif self.facing == 'ZPOS':
+            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (-1,0,0))
+        elif self.facing == 'ZNEG':
+            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (1,0,0))
 
         return {'FINISHED'}
 
