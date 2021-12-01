@@ -774,6 +774,7 @@ class SB_OT_set_grid(bpy.types.Operator):
                     if area.type == 'VIEW_3D':
                         for space in area.spaces:
                             if space.type == 'VIEW_3D':
+                                space.overlay.grid_subdivisions = 1
                                 space.overlay.grid_scale = 1/self.step
 
         return {'FINISHED'}
