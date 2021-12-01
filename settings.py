@@ -356,7 +356,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
     use_fake_users: bpy.props.BoolProperty(
         name="Add Fake Users",
         description="Turns on fake user for plugin-created data (images/actions/...) to protect it from disappearing after file reload. Changing this settin won't affect already existing data, only new",
-        default=True)
+        default=False)
 
 
     def template_box(self, layout, label="Box"):
