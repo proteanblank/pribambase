@@ -611,7 +611,7 @@ class SB_PT_panel_sprite(bpy.types.Panel):
 
         sprite = layout.row(align=True)
         source = sprite.row()
-        if props.is_sheet:
+        if props.is_sheet and origin:
             source.prop(origin.sb_props, "source")
             
             sub = layout.row()
