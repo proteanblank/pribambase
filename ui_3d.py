@@ -872,15 +872,18 @@ class SB_PT_panel_animation(bpy.types.Panel):
                 pass # no selected animation
 
             row = layout.row(align=True)
-            if obj.animation_data:
-                row.prop(obj.animation_data, "action")
-                
-                if addon.state.action_preview_enabled:
-                    active_picked = (context.active_object == addon.state.action_preview)
-                    row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
-                    row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
-                else:
-                    row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
+            row.enabled = bool(obj.animation_data)
+
+            sub = row.column()
+            sub.enabled = bool(obj.sb_props.animations and obj.sb_props.animation_index > -1)
+            sub.prop(obj.sb_props, "animation_tag_setter")
+            
+            if addon.state.action_preview_enabled:
+                active_picked = (context.active_object == addon.state.action_preview)
+                row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
+                row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
+            else:
+                row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
 
 
 class SB_PT_panel_reference(bpy.types.Panel):

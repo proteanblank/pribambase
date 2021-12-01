@@ -22,6 +22,8 @@ import bpy
 import secrets
 import os.path
 
+from bpy import props
+
 from .addon import addon
 from . import util
 
@@ -121,6 +123,32 @@ class SB_SheetAnimation(bpy.types.PropertyGroup):
         return True
 
 
+_enum_tag_action_items = []
+def _enum_tag_actions(self, context):
+    global _enum_tag_action_items
+    if not context:
+        return []
+    obj = context.active_object
+    anim_sprite = obj.sb_props.animations[obj.sb_props.animation_index].image if obj.sb_props.animations else None
+    # TODO icons?
+    # tag actions
+    actions = []
+    for a in bpy.data.actions:
+        if a.sb_props.sprite == anim_sprite:
+            if a.sb_props.tag == "__loop__":
+                actions.append((a.name, "*Loop*", "Current playback section in Aseprite"))
+            elif a.sb_props.tag == "__view__":
+                actions.append((a.name, "*View*", "Current frame in aseprite, behaves the same as non-animated mode"))
+            else:
+                actions.append((a.name, a.sb_props.tag, "Tag Action"))
+    # add current action
+    if context.active_object.animation_data and context.active_object.animation_data.action and \
+            context.active_object.animation_data.action.sb_props.sprite != anim_sprite:
+        a = context.active_object.animation_data.action
+        actions = [("__other__", f"Other: {a.name}", "Non-sprite action is active in this object")] + actions
+    _enum_tag_action_items = actions
+    return _enum_tag_action_items
+
 class SB_ObjectProperties(bpy.types.PropertyGroup):
     animations: bpy.props.CollectionProperty(
         name="Animations",
@@ -132,6 +160,16 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         name="Animation Index",
         description="List index of the animation selected. For UI purposes",
         options={'HIDDEN', 'SKIP_SAVE'})
+    
+    animation_tag_setter: bpy.props.EnumProperty(
+        name="Tag",
+        description="Shortcut for changing the action to current animation tags",
+        options={'SKIP_SAVE'},
+        items=_enum_tag_actions,
+        get=lambda self : next((i for i,it in enumerate(_enum_tag_action_items) if self.id_data.animation_data and self.id_data.animation_data.action 
+                and self.id_data.animation_data.action.name == it[0]), 0),
+        set=lambda self,val : setattr(self.id_data.animation_data, "action", bpy.data.actions[_enum_tag_action_items[val][0]])
+    )
 
 
     def animations_new(self, name:str) -> SB_SheetAnimation:
