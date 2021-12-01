@@ -358,7 +358,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             sheet = img.sb_props.sheet
             tex_name = sheet.name
         except AttributeError:
-            tex_name = img.name + " [sheet]"
+            tex_name = img.name + " *Sheet*"
             if tex_name not in bpy.data.images:
                 tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
                 pack_empty_png(tex)
