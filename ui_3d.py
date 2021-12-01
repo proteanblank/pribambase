@@ -490,7 +490,7 @@ def _action_enum_items(self, context):
     # enum items reference must be stored to avoid crashing the UI
     global _action_enum_items_ref
     _action_enum_items_ref = [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in \
-            enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite.name == addon.state.op_props.animated_sprite))]
+            enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite == addon.state.op_props.animated_sprite))]
     return _action_enum_items_ref
 
 _uv_map_enum_items_ref = None
