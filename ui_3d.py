@@ -118,7 +118,7 @@ class SB_OT_material_add(bpy.types.Operator):
         # create nodes
         mat.use_nodes = True
         mat.use_backface_culling = not self.two_sided
-        mat.blend_method = 'BLEND'
+        mat.blend_method = 'CLIP'
         
         tree = mat.node_tree
 
@@ -143,6 +143,7 @@ class SB_OT_material_add(bpy.types.Operator):
         out.location = (300, 50)
 
         if self.blend == 'ADD':
+            mat.blend_method = 'BLEND'
             trans = tree.nodes.new("ShaderNodeBsdfTransparent")
             trans.location = (80, 100)
             add = tree.nodes.new("ShaderNodeAddShader")
@@ -152,6 +153,7 @@ class SB_OT_material_add(bpy.types.Operator):
             tree.links.new(add.outputs["Shader"], out.inputs["Surface"])
 
         elif self.blend == 'MUL':
+            mat.blend_method = 'BLEND'
             tree.nodes.remove(bsdf)
             trans = tree.nodes.new("ShaderNodeBsdfTransparent")
             trans.location = (0, -20)
