@@ -276,7 +276,8 @@ class SB_OT_sprite_add(bpy.types.Operator):
             bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend)
         
         if img.sb_props.sheet:
-            bpy.ops.pribambase.spritesheet_rig(image=img.name)
+            addon.state.op_props.animated_sprite = img
+            bpy.ops.pribambase.spritesheet_rig()
 
         if self.facing in ('SPH', 'CYL'):
             # Face camera
@@ -551,7 +552,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_label = "Set Up"
     bl_description = "Set up spritesheet UV animation for this object. Does not assign materials or textures"
     bl_options = {'UNDO'}
-
 
     name: bpy.props.StringProperty(
         name="Name",
