@@ -22,8 +22,6 @@ import bpy
 import secrets
 import os.path
 
-from bpy import props
-
 from .addon import addon
 from . import util
 
