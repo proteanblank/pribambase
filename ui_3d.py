@@ -33,13 +33,13 @@ def scale_image(image:bpy.types.Image, scale:int, desample:int=1):
     """Scale image in-place without filtering"""
     w, h = image.size
     px = np.array(image.pixels, dtype=np.float32)
-    px.shape = (w, h, 4)
+    px.shape = (h, w, 4)
 
     if desample > 1:
         px = px[::desample,::desample,:]
 
     image.scale((w // desample) * scale, (h // desample) * scale)
-    px = px.repeat(scale, 0).repeat(scale, 1)
+    px = px.repeat(scale, 1).repeat(scale, 0)
     try:
         # version >= 2.83
         image.pixels.foreach_set(px.ravel())
