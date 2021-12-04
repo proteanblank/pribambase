@@ -62,6 +62,11 @@ _material_sprite_common_props = {
         name="Two-Sided",
         description="Make both sided of each face visible",
         default=False),
+    
+    "animated": bpy.props.BoolProperty(
+        name="Animated",
+        description="Use spritesheet image in the material. Use when UV animation is set up, or will be.",
+        default=True),
 
     "blend": bpy.props.EnumProperty(name="Blend Mode", description="Imitate blending mode for the material", items=(
         ('NORM', "Normal", "", 0),
@@ -71,6 +76,9 @@ _material_sprite_common_props = {
 
 
 def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
+    img = addon.state.op_props.image_sprite
+    if img and img.sb_props.sheet:
+        layout.prop(self, "animated")
     layout.prop(self, "shading", expand=True)
     layout.prop(self, "two_sided")
     layout.prop(self, "blend")
@@ -82,6 +90,7 @@ class SB_OT_material_add(bpy.types.Operator):
     bl_description = "Quick pixel material setup"
     bl_options = {'REGISTER', 'UNDO'}
 
+    animated: _material_sprite_common_props["animated"]
     shading: _material_sprite_common_props["shading"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
@@ -111,7 +120,7 @@ class SB_OT_material_add(bpy.types.Operator):
             self.report({'ERROR'}, "No image selected")
             return {'CANCELLED'}
         
-        if img.sb_props.sheet:
+        if img.sb_props.sheet and self.animated:
             img = img.sb_props.sheet
 
         mat = bpy.data.materials.new(addon.state.op_props.image_sprite.name)
@@ -202,7 +211,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
         default=0)
 
     ## MATERIAL PROPS
-    hide_image_prop: bpy.props.BoolProperty(options={'HIDDEN'}, default=True) # to avoid drawing twice in the add sprite draw()
+    animated: _material_sprite_common_props["animated"]
     shading: _material_sprite_common_props["shading"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
@@ -226,7 +235,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
         layout.label(text="Material")
         row = layout.row()
         row.enabled = self.invoke
-        row.prop(addon.state.op_props, "material")
+        row.prop(addon.state.op_props, "material", text="Use Existing")
         if not addon.state.op_props.material:
             _draw_material_props(self, layout)
 
