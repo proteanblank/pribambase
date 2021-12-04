@@ -577,6 +577,10 @@ class SB_MT_menu_2d(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
 
+        if not addon.connected:
+            layout.operator("pribambase.start_server", icon="ERROR")
+            layout.separator()
+
         layout.operator("pribambase.new_sprite", icon='FILE_NEW')
         layout.operator("pribambase.open_sprite", icon='FILE_FOLDER')
         layout.operator("pribambase.edit_sprite", icon='GREASEPENCIL')
