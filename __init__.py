@@ -237,7 +237,7 @@ def sb_on_depsgraph_update_post(scene):
 
 
 @contextmanager
-def batch_depsgraph_updates():
+def pause_depsgraph_updates():
     """disable depsgraph listener in the context"""
     assert sb_on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post
 

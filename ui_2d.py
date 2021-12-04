@@ -252,9 +252,11 @@ class SB_OT_open_sprite(bpy.types.Operator):
             img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
         except StopIteration:
             # create a stub that will be filled after receiving data
-            img = bpy.data.images.new(name, 1, 1, alpha=True)
-            util.pack_empty_png(img)
-            img.sb_props.source_set(self.filepath, self.relative)
+            from . import pause_depsgraph_updates # pythonic af
+            with pause_depsgraph_updates():
+                img = bpy.data.images.new(name, 1, 1, alpha=True)
+                util.pack_empty_png(img)
+                img.sb_props.source_set(self.filepath, self.relative)
 
         # switch to the image in the editor
         if context.area.type == 'IMAGE_EDITOR':
@@ -315,8 +317,10 @@ class SB_OT_new_sprite(bpy.types.Operator):
             return {'CANCELLED'}
 
         # create a stub that will be filled after receiving data
-        img = bpy.data.images.new(self.sprite, 1, 1, alpha=True)
-        util.pack_empty_png(img)
+        from . import pause_depsgraph_updates # pythonic af
+        with pause_depsgraph_updates():
+            img = bpy.data.images.new(self.sprite, 1, 1, alpha=True)
+            util.pack_empty_png(img)
         # switch to it in the editor
         if context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
