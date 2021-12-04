@@ -726,8 +726,8 @@ def sb_msgbus_anim_data_callback():
 
 class SB_OT_set_action_preview(bpy.types.Operator):
     bl_idname = "pribambase.set_action_preview"
-    bl_label = "Action Preview"
-    bl_description = "Lock timeline preview range to action length"
+    bl_label = "Tag Preview"
+    bl_description = "Lock timeline preview range to selected tag action"
     
     @classmethod
     def poll(cls, context):

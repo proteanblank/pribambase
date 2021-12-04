@@ -247,6 +247,23 @@ def update_sheet_animation(anim):
             curve.update()
 
 
+def _update_action_range(scene):
+    # change nla strip action start/end
+    for obj in bpy.data.objects:
+        if obj.sb_props.animations and obj.animation_data:
+            for track in obj.animation_data.nla_tracks:
+                for strip in track.strips:
+                    if strip.action.sb_props.sprite and strip.use_sync_length:
+                        strip.action_frame_start, strip.action_frame_end = strip.action.frame_range
+
+    if addon.state.action_preview_enabled:
+        obj = addon.state.action_preview
+        if obj and obj.animation_data and obj.animation_data.action:
+            scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
+        else:
+            addon.state.action_preview_enabled = False
+
+
 _update_spritesheet_args = None
 def update_spritesheet(size, count, name, start, frames, tags, current_frame, current_tag, pixels):
     # NOTE this function sets animation flag
@@ -334,13 +351,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                 fcurve.update()
             action.update_tag()
         
-        scene = context.scene
-        if addon.state.action_preview_enabled:
-            obj = addon.state.action_preview
-            if obj and obj.animation_data and obj.animation_data.action:
-                scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
-            else:
-                addon.state.action_preview_enabled = False
+        _update_action_range(context.scene)
 
 
     def modal_execute(self, context):
@@ -462,13 +473,7 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
                         point.interpolation = 'CONSTANT'
                         time += dt
         
-        scene = context.scene
-        if addon.state.action_preview_enabled:
-            obj = addon.state.action_preview
-            if obj and obj.animation_data and obj.animation_data.action:
-                scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
-            else:
-                addon.state.action_preview_enabled = False
+        _update_action_range(context.scene)
 
         self.args = None
         global _update_frame_args
