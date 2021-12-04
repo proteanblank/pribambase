@@ -139,7 +139,7 @@ def _enum_tag_actions(self, context):
     anim_sprite = obj.sb_props.animations[obj.sb_props.animation_index].image if obj.sb_props.animations else None
     # TODO icons?
     # tag actions
-    actions = []
+    actions = [("__none__", "", "")] # empty list item
     for a in bpy.data.actions:
         if a.sb_props.sprite == anim_sprite:
             if a.sb_props.tag == "__loop__":
@@ -155,6 +155,10 @@ def _enum_tag_actions(self, context):
         actions = [("__other__", f"Other: {a.name}", "Non-sprite action is active in this object")] + actions
     _enum_tag_action_items = actions
     return _enum_tag_action_items
+
+def _set_animation_tag(self, val):
+    name = _enum_tag_action_items[val][0]
+    self.id_data.animation_data.action = bpy.data.actions[name] if name != "__none__" else None
 
 class SB_ObjectProperties(bpy.types.PropertyGroup):
     animations: bpy.props.CollectionProperty(
@@ -175,7 +179,7 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         items=_enum_tag_actions,
         get=lambda self : next((i for i,it in enumerate(_enum_tag_action_items) if self.id_data.animation_data and self.id_data.animation_data.action 
                 and self.id_data.animation_data.action.name == it[0]), 0),
-        set=lambda self,val : setattr(self.id_data.animation_data, "action", bpy.data.actions[_enum_tag_action_items[val][0]])
+        set=_set_animation_tag
     )
 
 
