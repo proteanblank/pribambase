@@ -528,17 +528,6 @@ class SB_OT_reference_freeze_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def set_new_animation_name(self, v):
-    self["name"] = util.unique_name(v, bpy.context.active_object.sb_props.animations)
-
-_action_enum_items_ref = None
-def _action_enum_items(self, context):
-    # enum items reference must be stored to avoid crashing the UI
-    global _action_enum_items_ref
-    _action_enum_items_ref = [("__none__", "", "", 0)] + [(a.name, a.name, "", i + 1) for i,a in \
-            enumerate((a for a in bpy.data.actions if a.sb_props.sprite and a.sb_props.sprite == addon.state.op_props.animated_sprite))]
-    return _action_enum_items_ref
-
 _uv_map_enum_items_ref = None
 def _uv_map_enum_items(self, context):
     # enum items reference must be stored to avoid crashing the UI
@@ -554,18 +543,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_label = "Set Up"
     bl_description = "Set up spritesheet UV animation for this object. Does not assign materials or textures"
     bl_options = {'UNDO'}
-
-    name: bpy.props.StringProperty(
-        name="Name",
-        description="Name for animation",
-        set=set_new_animation_name,
-        get=lambda self: self["name"] if "name" in self else util.unique_name("Sprite Frame", bpy.context.active_object.sb_props.animations))
-
-    action: bpy.props.EnumProperty(
-        name="Action",
-        description="If set, replaces object's current timeline with sprite animation. Old keyframes can be acessed in action editor, and WILL BE LOST after reloading unless protected. \"Editor\" action syncs with the loop section of Asperite's timeline.",
-        items=_action_enum_items,
-        default=0)
 
     uv_map: bpy.props.EnumProperty(
         name="UV Layer",
@@ -583,9 +560,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
         layout.prop(addon.state.op_props, "animated_sprite")
-        layout.prop(self, "name")
         layout.prop(self, "uv_map")
-        layout.prop(self, "action")
         layout.prop(self, "update_nodes")
     
 
@@ -611,7 +586,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         if prop_name != default_prop:
             self.report({'WARNING'}, "Several animations of this object use the same sprite. Change FCurves' channel to the object property with the name of the desired modifier")
 
-        anim = obj.sb_props.animations_new(self.name)
+        anim = obj.sb_props.animations_new(util.unique_name("FrameAnim", obj.sb_props.animations))
         anim.image = img
         anim.prop_name = prop_name
         obj.sb_props.animation_index = obj.sb_props.animations.find(anim.name)
@@ -647,9 +622,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
                     # Seems that changing the path does that as a side effect
                     fcurve.data_path += ""
                     fcurve.update()
-        
-        if self.action != "__none__" and self.action in bpy.data.actions:
-            obj.animation_data.action = bpy.data.actions[self.action]
 
         obj.animation_data.drivers.update()
         obj.update_tag()
