@@ -63,6 +63,7 @@ else
     local frame = -1
     -- used to pause the app from processing updates
     local pause_app_change = false
+    local pause_dlg_close = false
 
 
     -- Set up an image buffer for two reasons:
@@ -454,7 +455,7 @@ else
     end
 
 
-    -- clean up and exit
+    -- clean up
     local function cleanup()
         if ws ~= nil then ws:close() end
         if dlg ~= nil then
@@ -677,13 +678,12 @@ else
 
 
     local function dlgClose()
-        if not dlg then
+        if pause_dlg_close then
             return
         end
-        local d = dlg
-        dlg = nil -- avoid recursive calling itself via ui callback
+        pause_dlg_close = true
         cleanup()
-        d:close()
+        pause_dlg_close = false
     end
 
 
@@ -711,8 +711,8 @@ else
     dlg:modify{ id="animated", visible=(spr ~= nil) }
 
     dlg:newrow()
-    dlg:button{ text="X Stop", onclick=cleanup }
-    dlg:button{ text="_ Hide" }
+    dlg:button{ text="X Stop", onclick=dlgClose }
+    dlg:button{ text="_ Hide", onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
 
     -- GO
 
