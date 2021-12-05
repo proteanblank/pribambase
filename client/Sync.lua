@@ -436,7 +436,10 @@ else
                 if app.activeTag ~= nil and not app.preferences.editor.play_all then
                     first, last = app.activeTag.fromFrame.frameNumber - 1, app.activeTag.toFrame.frameNumber
                 end
-                ws:sendBinary(messageFrame{ sprite=spr, frame=frame, first=first, last=last })
+                -- ignore some weird behavior for activeTag/Frame persisting after frames get deleted
+                if math.max(frame, first, last) <= #spr.frames then
+                    ws:sendBinary(messageFrame{ sprite=spr, frame=frame, first=first, last=last })
+                end
             else
                 syncSprite()
             end

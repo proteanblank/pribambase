@@ -563,7 +563,7 @@ class SB_OT_make_animated(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return addon.connected and context.area.type == 'IMAGE_EDITOR' and context.edit_image and \
+        return context.area.type == 'IMAGE_EDITOR' and context.edit_image and \
             'SHEET' not in context.edit_image.sb_props.sync_flags and not context.edit_image.sb_props.is_sheet
     
     def execute(self, context):
