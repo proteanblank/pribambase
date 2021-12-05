@@ -86,7 +86,7 @@ def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
 
 class SB_OT_material_add(bpy.types.Operator):
     bl_idname = "pribambase.material_add"
-    bl_label = "Set Up material"
+    bl_label = "Create Pixel Material"
     bl_description = "Quick pixel material setup"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -108,8 +108,8 @@ class SB_OT_material_add(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'MESH' and \
-            next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
+        return context.active_object and context.active_object.type == 'MESH' and not context.active_object.active_material \
+            and next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
     
 
     def execute(self, context):
@@ -819,39 +819,9 @@ class SB_UL_animations(bpy.types.UIList):
             layout.label(text="", icon='DECORATE_LINKED')
 
 
-class SB_PT_panel_material(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_Material"
-    bl_label = "Sprite Material"
-    bl_category = "Item"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_order = 475
-
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object and context.active_object.type == 'MESH'
-
-
-    def draw(self, context):        
-        if context.active_object and context.active_object.type == 'MESH':
-            layout = self.layout
-            obj = context.active_object
-
-            row = layout.row()
-            row.alignment = 'CENTER'
-            if not obj.active_material:
-                row.label(text="Current object has no material", icon='INFO')
-
-            row = layout.row(align=True)
-            row.prop(obj, "active_material", text="")
-            row.operator("pribambase.material_add", icon='ADD', text="")
-
-
-
 class SB_PT_panel_animation(bpy.types.Panel):
     bl_idname = "SB_PT_panel_animation"
-    bl_label = "Sprite Animation"
+    bl_label = "Sprite"
     bl_category = "Item"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -867,6 +837,11 @@ class SB_PT_panel_animation(bpy.types.Panel):
         if context.active_object and context.active_object.type == 'MESH':
             layout = self.layout
             obj = context.active_object
+            
+            if not obj.active_material:
+                layout.row().operator("pribambase.material_add", icon='ADD')
+
+            layout.row().label(text="Animation:")
 
             # Info
             row = layout.row()
@@ -875,7 +850,6 @@ class SB_PT_panel_animation(bpy.types.Panel):
                 row.label(text="No synced sprites have animations", icon='INFO')
             elif not obj.sb_props.animations:
                 row.label(text="Press \"+\" to set up 2D animation", icon='INFO')
-
             row = layout.row()
             row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
 

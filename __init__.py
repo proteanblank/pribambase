@@ -92,7 +92,6 @@ classes = (
     SB_UL_animations,
     # Panels
     SB_PT_panel_link,
-    SB_PT_panel_material,
     SB_PT_panel_animation,
     SB_PT_panel_sprite,
     SB_PT_panel_reference,
