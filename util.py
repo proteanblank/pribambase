@@ -131,48 +131,44 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
         """Replace the image with pixel data"""
         img = None
         w, h, name, frame, pixels = self.args
-
-        try:
-            img = next(i for i in bpy.data.images if name == image_name(i))
-        except StopIteration:
-            # to avoid accidentally reviving deleted images, we ignore anything doesn't exist already
-            return
-
-        if not img.has_data:
-            # load *some* data so that the image can be updated
-            pack_empty_png(img)
-
-        if img.size != (w, h):
-            img.scale(w, h)
         
-        if frame != -1:
-            img.sb_props.frame = frame
-        
-        flags = img.sb_props.sync_flags
-        if 'SHEET' in flags:
-            flags.remove('SHEET')
-            img.sb_props.sync_flags = flags
-
         # convert data to blender accepted floats
         pixels = np.float32(pixels) / 255.0
         # flip y axis ass backwards
         pixels.shape = (h, pixels.size // h)
         pixels = pixels[::-1,:].ravel()
 
-        # change blender data
-        try:
-            # version >= 2.83; this is much faster
-            img.pixels.foreach_set(pixels)
-        except AttributeError:
-            # version < 2.83
-            img.pixels[:] = pixels
+        for img in bpy.data.images:
+            if name == image_name(img):
+                if not img.has_data:
+                    # load *some* data so that the image can be updated
+                    pack_empty_png(img)
 
-        img.update()
+                if img.size != (w, h):
+                    img.scale(w, h)
+                
+                if frame != -1:
+                    img.sb_props.frame = frame
+                
+                flags = img.sb_props.sync_flags
+                if 'SHEET' in flags:
+                    flags.remove('SHEET')
+                    img.sb_props.sync_flags = flags
 
-        # [#12] for some users viewports do not update from update() alone
-        img.update_tag()
+                # change blender data
+                try:
+                    # version >= 2.83; this is much faster
+                    img.pixels.foreach_set(pixels)
+                except AttributeError:
+                    # version < 2.83
+                    img.pixels[:] = pixels
+
+                img.update()
+                # [#12] for some users viewports do not update from update() alone
+                img.update_tag()
+
         refresh()
-        
+                
         self.args = None
         global _update_image_args
         _update_image_args = None
@@ -359,51 +355,47 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         tex_w, tex_h = (size[0] + 2) * count[0], (size[1] + 2) * count[1]
 
         # find or prepare sheet image; pixels update will fix its size
-        try:
-            img = next(i for i in bpy.data.images if name == image_name(i))
-        except StopIteration:
-            # did not set up the texture first, or deleted it
-            return
-        
-        try:
-            sheet = img.sb_props.sheet
-            tex_name = sheet.name
-        except AttributeError:
-            tex_name = img.name + " *Sheet*"
-            if tex_name not in bpy.data.images:
-                tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
-                pack_empty_png(tex)
-            sheet = img.sb_props.sheet = bpy.data.images[tex_name]
-        
-        sheet.sb_props.is_sheet = True
-        sheet.sb_props.origin = img
-        sheet.sb_props.animation_length = len(frames)
-        sheet.sb_props.sheet_size = count
-        sheet.sb_props.sheet_start = start
+        for img in bpy.data.images:
+            if name == image_name(img):
+                try:
+                    sheet = img.sb_props.sheet
+                    tex_name = sheet.name
+                except AttributeError:
+                    tex_name = img.name + " *Sheet*"
+                    if tex_name not in bpy.data.images:
+                        tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
+                        pack_empty_png(tex)
+                    sheet = img.sb_props.sheet = bpy.data.images[tex_name]
+                
+                sheet.sb_props.is_sheet = True
+                sheet.sb_props.origin = img
+                sheet.sb_props.animation_length = len(frames)
+                sheet.sb_props.sheet_size = count
+                sheet.sb_props.sheet_start = start
 
-        self.update_actions(context, img, start, frames, current_frame, tags, current_tag)
+                self.update_actions(context, img, start, frames, current_frame, tags, current_tag)
 
-        self.args = tex_w, tex_h, tex_name, -1, pixels
-        SB_OT_update_image.modal_execute(self, context) # clears self.args
+                self.args = tex_w, tex_h, tex_name, -1, pixels
+                SB_OT_update_image.modal_execute(self, context) # clears self.args
 
-        # cut out the current frame and copy to view image
-        frame_x = current_frame % count[0]
-        frame_y = current_frame // count[0]
-        frame_pixels = np.ravel(pixels[frame_y * (size[1] + 2) + 1 : (frame_y + 1) * (size[1] + 2) - 1, frame_x * (size[0] + 2) * 4 + 4 : (frame_x + 1) * (size[0] + 2) * 4 - 4])
-        self.args = *size, name, current_frame, frame_pixels
-        SB_OT_update_image.modal_execute(self, context) # clears self.args and animation flag
+                # cut out the current frame and copy to view image
+                frame_x = current_frame % count[0]
+                frame_y = current_frame // count[0]
+                frame_pixels = np.ravel(pixels[frame_y * (size[1] + 2) + 1 : (frame_y + 1) * (size[1] + 2) - 1, frame_x * (size[0] + 2) * 4 + 4 : (frame_x + 1) * (size[0] + 2) * 4 - 4])
+                self.args = *size, name, current_frame, frame_pixels
+                SB_OT_update_image.modal_execute(self, context) # clears self.args and animation flag
 
-        flags = img.sb_props.sync_flags
-        flags.add('SHEET')
-        img.sb_props.sync_flags = flags
+                flags = img.sb_props.sync_flags
+                flags.add('SHEET')
+                img.sb_props.sync_flags = flags
 
-        # update rig
-        for obj in bpy.data.objects:
-            for anim in obj.sb_props.animations:
-                if anim.image == img:
-                    update_sheet_animation(anim)
-            
-            obj.update_tag
+                # update rig
+                for obj in bpy.data.objects:
+                    for anim in obj.sb_props.animations:
+                        if anim.image == img:
+                            update_sheet_animation(anim)
+                    
+                    obj.update_tag
 
         # clean up
         global _update_spritesheet_args
