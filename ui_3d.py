@@ -560,7 +560,7 @@ def _uv_map_enum_items(self, context):
     
 class SB_OT_spritesheet_rig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_rig"
-    bl_label = "Set Up"
+    bl_label = "Set Up Animation"
     bl_description = "Set up spritesheet UV animation for this object. Does not assign materials or textures"
     bl_options = {'UNDO'}
 
