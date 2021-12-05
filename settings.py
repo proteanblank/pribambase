@@ -58,12 +58,6 @@ class SB_OpProps(bpy.types.PropertyGroup):
         description="Animation to use",
         type=bpy.types.Image,
         poll=lambda self,img: bool(img.sb_props.sheet))
-    
-    # used by: SB_OT_sprite_add
-    material: bpy.props.PointerProperty(
-        name="Material",
-        description="Material to use. If none, a new one can be created",
-        type=bpy.types.Material)
 
 
 class SB_State(bpy.types.PropertyGroup):

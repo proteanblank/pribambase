@@ -51,19 +51,13 @@ def scale_image(image:bpy.types.Image, scale:int, desample:int=1):
 
 
 # Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
-_material_sprite_common_props = {
-    "shading": bpy.props.EnumProperty(name="Shading", description="Material",
-        items=(
-            ('LIT', "Lit", "Basic material that receives lighting", 1), 
-            ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
-        default=2),
-    
+_material_sprite_common_props = {    
     "two_sided": bpy.props.BoolProperty(
         name="Two-Sided",
         description="Make both sided of each face visible",
         default=False),
     
-    "animated": bpy.props.BoolProperty(
+    "sheet": bpy.props.BoolProperty(
         name="Animated",
         description="Use spritesheet image in the material. Use when UV animation is set up, or will be.",
         default=True),
@@ -78,8 +72,7 @@ _material_sprite_common_props = {
 def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
     img = addon.state.op_props.image_sprite
     if img and img.sb_props.sheet:
-        layout.prop(self, "animated")
-    layout.prop(self, "shading", expand=True)
+        layout.prop(self, "sheet")
     layout.prop(self, "two_sided")
     layout.prop(self, "blend")
 
@@ -90,8 +83,13 @@ class SB_OT_material_add(bpy.types.Operator):
     bl_description = "Quick pixel material setup"
     bl_options = {'REGISTER', 'UNDO'}
 
-    animated: _material_sprite_common_props["animated"]
-    shading: _material_sprite_common_props["shading"]
+    shading: bpy.props.EnumProperty(name="Shading", description="Material",
+        items=(
+            ('LIT', "Lit", "Basic material that receives lighting", 1), 
+            ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
+        default=2)
+
+    sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
 
@@ -103,6 +101,7 @@ class SB_OT_material_add(bpy.types.Operator):
         row = layout.row()
         row.enabled = self.invoke
         row.prop(addon.state.op_props, "image_sprite")
+        layout.row().prop(self, "shading", expand=True)
         _draw_material_props(self, layout)
 
 
@@ -120,7 +119,7 @@ class SB_OT_material_add(bpy.types.Operator):
             self.report({'ERROR'}, "No image selected")
             return {'CANCELLED'}
         
-        if img.sb_props.sheet and self.animated:
+        if img.sb_props.sheet and self.sheet:
             img = img.sb_props.sheet
 
         mat = bpy.data.materials.new(addon.state.op_props.image_sprite.name)
@@ -196,6 +195,11 @@ class SB_OT_sprite_add(bpy.types.Operator):
         subtype='COORDINATES',
         default=(0.5,0.5))
     
+    pivot_relative: bpy.props.BoolProperty(
+        name="Relative Pivot Coordinates",
+        description="If checked, pivot position is interpreted as UV coordinate (0 to 1), otherwise as pixels",
+        default=True)
+    
     facing: bpy.props.EnumProperty(
         name="Facing",
         description="Sprite orientation, follows the opposite naming to camera shortcuts, so e.g. picking Top means the sprite will be facing Top camera view",
@@ -210,9 +214,15 @@ class SB_OT_sprite_add(bpy.types.Operator):
             ('CYL', "Camera XY", "Face the selected object by rotating around Z axis only (AKA cylindrical billboard)")),
         default=0)
 
+    shading: bpy.props.EnumProperty(name="Shading", description="Material",
+        items=(
+            ('NONE', "None", "Do not create material", 0),
+            ('LIT', "Lit", "Basic material that receives lighting", 1), 
+            ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
+        default=2)
+
     ## MATERIAL PROPS
-    animated: _material_sprite_common_props["animated"]
-    shading: _material_sprite_common_props["shading"]
+    sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
 
@@ -221,9 +231,12 @@ class SB_OT_sprite_add(bpy.types.Operator):
         layout.use_property_split = True
         
         layout.label(text="Sprite")
-        row = layout.row()
+        row = layout.row(align=True)
         row.enabled = self.invoke
         row.prop(addon.state.op_props, "image_sprite")
+        if not addon.state.op_props.image_sprite:
+            row.label(text="", icon='ERROR')
+
         layout.prop(self, "facing")
         if self.facing in ('SPH', 'CYL'):
             row = layout.row()
@@ -231,12 +244,11 @@ class SB_OT_sprite_add(bpy.types.Operator):
             row.prop(addon.state.op_props, "look_at")
         layout.prop(self, "scale")
         layout.prop(self, "pivot")
+        layout.prop(self, "pivot_relative", text="Relative")
         
         layout.label(text="Material")
-        row = layout.row()
-        row.enabled = self.invoke
-        row.prop(addon.state.op_props, "material", text="Use Existing")
-        if not addon.state.op_props.material:
+        layout.row().prop(self, "shading", expand=True)
+        if self.shading != 'NONE':
             _draw_material_props(self, layout)
 
 
@@ -253,7 +265,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
             return {'CANCELLED'}
         w,h = img.size
         # normalize to pixel coord
-        px, py = [self.pivot[i] * img.size[i] if -1 <= self.pivot[i] <= 1 else self.pivot[i] for i in (0,1)]
+        px, py = [self.pivot[i] * img.size[i] if self.pivot_relative else self.pivot[i] for i in (0,1)]
         px = w - px
 
         # start with 2d uv coords, scaled to pixels
@@ -281,9 +293,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
         mesh.uv_layers.new().data.foreach_set("uv", [0, 0, 1, 0, 1, 1, 0, 1])
 
         obj = object_utils.object_data_add(context, mesh, name="Sprite")
-        if addon.state.op_props.material:
-            obj.active_material = addon.state.op_props.material
-        else:
+        if self.shading != 'NONE':
             bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend)
         
         if img.sb_props.sheet:
@@ -305,13 +315,14 @@ class SB_OT_sprite_add(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
     def invoke(self, context, event):
         addon.state.op_props.image_sprite = None
         addon.state.op_props.look_at = context.scene.camera
-        addon.state.op_props.material = None
         self.scale = 1 / context.space_data.overlay.grid_scale
-        self.animated = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
+        self.sheet = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
         self.invoke = True
+
         return context.window_manager.invoke_props_dialog(self)
 
 
