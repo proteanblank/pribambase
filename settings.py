@@ -137,25 +137,27 @@ def _enum_tag_actions(self, context):
     anim_sprite = obj.sb_props.animations[obj.sb_props.animation_index].image if obj.sb_props.animations else None
     # TODO icons?
     # tag actions
-    actions = [("__none__", "", "")] # empty list item
+    idx = 0
+    actions = [("__none__", "", "", 'BLANK1', idx)] # empty list item
     for a in bpy.data.actions:
+        idx += 1
         if a.sb_props.sprite == anim_sprite:
             if a.sb_props.tag == "__loop__":
-                actions.append((a.name, "*Loop*", "Current playback section in Aseprite"))
+                actions.append((a.name, "*Loop*", "Playback section in Aseprite", 'SEQUENCE', idx))
             elif a.sb_props.tag == "__view__":
-                actions.append((a.name, "*View*", "Current frame in aseprite, behaves the same as non-animated mode"))
-            else:
-                actions.append((a.name, a.sb_props.tag, "Tag Action"))
+                actions.append((a.name, "*View*", "Current frame in aseprite, behaves the same as non-animated mode", 'HIDE_OFF', idx))
+            elif a.sb_props.tag:
+                actions.append((a.name, a.sb_props.tag, "Tag Action", 'KEYFRAME', idx))
     # add current action
     if context.active_object.animation_data and context.active_object.animation_data.action and \
             context.active_object.animation_data.action.sb_props.sprite != anim_sprite:
         a = context.active_object.animation_data.action
-        actions = [("__other__", f"Other: {a.name}", "Non-sprite action is active in this object")] + actions
+        actions.insert(1, (a.name, a.name, "Current non-sprite action of this object", 'ACTION', idx))
     _enum_tag_action_items = actions
     return _enum_tag_action_items
 
 def _set_animation_tag(self, val):
-    name = _enum_tag_action_items[val][0]
+    name = next(it[0] for it in _enum_tag_action_items if it[4] == val)
     self.id_data.animation_data.action = bpy.data.actions[name] if name != "__none__" else None
 
 class SB_ObjectProperties(bpy.types.PropertyGroup):
@@ -175,7 +177,7 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         description="Shortcut for changing the action to current animation tags",
         options={'SKIP_SAVE'},
         items=_enum_tag_actions,
-        get=lambda self : next((i for i,it in enumerate(_enum_tag_action_items) if self.id_data.animation_data and self.id_data.animation_data.action 
+        get=lambda self : next((it[4] for it in _enum_tag_action_items if self.id_data.animation_data and self.id_data.animation_data.action 
                 and self.id_data.animation_data.action.name == it[0]), 0),
         set=_set_animation_tag
     )
