@@ -142,8 +142,8 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
             # load *some* data so that the image can be updated
             pack_empty_png(img)
 
-        elif (img.size[0] != w or img.size[1] != h):
-                img.scale(w, h)
+        if img.size != (w, h):
+            img.scale(w, h)
         
         if frame != -1:
             img.sb_props.frame = frame
