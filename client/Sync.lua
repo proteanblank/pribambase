@@ -426,7 +426,7 @@ else
                 end
             end
 
-            dlg:modify{ id="animated", visible=(spr ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+            dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
             frame = app.activeFrame.frameNumber
@@ -547,7 +547,7 @@ else
             synced = false
         end
         
-        dlg:modify{ id="animated", visible=(spr ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+        dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
 
         if not synced then
             syncSprite()
@@ -648,7 +648,6 @@ else
             connected = true
             dlg:modify{ id="status", text="Sync ON" }
             dlg:modify{ id="reconnect", visible=false }
-            dlg:modify{ id="animated", visible=true }
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
@@ -711,7 +710,7 @@ else
     dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
 
     dlg:check{ id="animated", text="Animation", onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
-    dlg:modify{ id="animated", visible=(spr ~= nil) }
+    dlg:modify{ id="animated", visible=false }
 
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=dlgClose }

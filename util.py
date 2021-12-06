@@ -362,9 +362,11 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                     tex_name = sheet.name
                 except AttributeError:
                     tex_name = img.name + " *Sheet*"
-                    if tex_name not in bpy.data.images:
-                        tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
-                        pack_empty_png(tex)
+                    from . import pause_depsgraph_updates
+                    with pause_depsgraph_updates():
+                        if tex_name not in bpy.data.images:
+                            tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
+                            pack_empty_png(tex)
                     sheet = img.sb_props.sheet = bpy.data.images[tex_name]
                 
                 sheet.sb_props.is_sheet = True
