@@ -480,7 +480,6 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
         self.args = _update_frame_args
         return ModalExecuteMixin.execute(self, context)
 
-# TODO these can be normal operator props
 
 class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.new_texture"
