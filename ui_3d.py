@@ -29,24 +29,36 @@ from .addon import addon
 from . import util
 
 
-def scale_image(image:bpy.types.Image, scale:int, desample:int=1):
+def prescale(image:bpy.types.Image):
     """Scale image in-place without filtering"""
+
+    if image.sb_props.prescale_size[0] < 1:
+        image.sb_props.prescale_size = image.size
+
     w, h = image.size
+    scale = image.sb_props.prescale
+    presize = image.sb_props.prescale_size
+    desample = max(w // presize[0], 1)
     px = np.array(image.pixels, dtype=np.float32)
     px.shape = (h, w, 4)
 
-    if desample > 1:
+    if desample != h // presize[1]:
+        raise ValueError("The image is unevenly scaled")
+
+    if desample == scale:
+        # already scaled as we want it to
+        return
+    elif desample > 1:
         px = px[::desample,::desample,:]
+    px = px.repeat(scale, 1).repeat(scale, 0)
 
     image.scale((w // desample) * scale, (h // desample) * scale)
-    px = px.repeat(scale, 1).repeat(scale, 0)
     try:
         # version >= 2.83
         image.pixels.foreach_set(px.ravel())
     except AttributeError:
         # version < 2.83
         image.pixels[:] = px.ravel()
-    image.sb_props.prescale_actual = scale
     image.update()
 
 
@@ -383,16 +395,15 @@ class SB_OT_reference_add(bpy.types.Operator):
 
     def execute(self, context):
         image = bpy.data.images.load(self.filepath)
-        #image.pack() # NOTE without packing it breaks after reload but so what
         w, h = image.size
-        scale_image(image, self.scale)
         image.sb_props.prescale = self.scale
+        prescale(image)
 
         bpy.ops.object.add(align='WORLD', rotation=(pi/2, 0, 0), location = (0, 0, 0))
         ref = context.active_object
         ref.data = image
         ref.empty_display_type = 'IMAGE'
-        ref.use_empty_image_alpha = self.opacity < 1.0
+        ref.use_empty_image_alpha = True
         ref.color[3] = self.opacity
         ref.empty_display_size = max(w, h) * context.space_data.overlay.grid_scale
         if not self.selectable:
@@ -429,7 +440,8 @@ class SB_OT_reference_reload(bpy.types.Operator):
     def execute(self, context):
         image = context.active_object.data
         image.reload()
-        scale_image(image, image.sb_props.prescale)
+        image.sb_props.prescale_size = (-1, -1)
+        prescale(image)
 
         return {'FINISHED'}
 
@@ -437,7 +449,7 @@ class SB_OT_reference_reload(bpy.types.Operator):
 class SB_OT_reference_rescale(bpy.types.Operator):
     bl_idname = "pribambase.reference_rescale"
     bl_label = "Refresh Scale"
-    bl_description = "Refresh reference scaling without reloading the image. Sometimes behaves in a dumb manner"
+    bl_description = "Refresh reference scaling without reloading the image."
     bl_options = {'UNDO'}
 
 
@@ -449,13 +461,7 @@ class SB_OT_reference_rescale(bpy.types.Operator):
 
     def execute(self, context):
         ref = context.active_object
-        image = ref.data
-        descale = 1
-        # a heuristic guess, there's a fat chance to mess up here
-        if image.is_dirty and not (image.size[0] % image.sb_props.prescale_actual or image.size[0] % image.sb_props.prescale_actual):
-            descale = image.sb_props.prescale_actual
-        scale_image(image, image.sb_props.prescale, descale)
-
+        prescale(ref.data)
         return {'FINISHED'}
 
 
@@ -500,10 +506,10 @@ class SB_OT_reference_replace(bpy.types.Operator):
 
     def execute(self, context):
         image = bpy.data.images.load(self.filepath)
-        #image.pack() # NOTE without packing it breaks after reload but so what
         w, h = image.size
-        scale_image(image, self.scale)
         image.sb_props.prescale = self.scale
+        image.sb_props.prescale_size = (-1, -1)
+        prescale(image)
 
         ref = context.active_object
         ref.data = image
@@ -525,7 +531,8 @@ class SB_OT_reference_reload_all(bpy.types.Operator):
             if obj.type == 'EMPTY' and obj.empty_display_type == 'IMAGE':
                 image = obj.data
                 image.reload()
-                scale_image(image, image.sb_props.prescale)
+                image.sb_props.prescale_size = (-1, -1)
+                prescale(image)
 
         return {'FINISHED'}
 

@@ -205,12 +205,11 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         max=20,
         default=1)
 
-    prescale_actual: bpy.props.IntProperty(
-        name="Actual Pre-scale",
-        description="Pre-scale value during the last resize operation",
-        min=1,
-        max=20,
-        default=1, 
+    prescale_size: bpy.props.IntVectorProperty(
+        name="Size Before Pre-scale",
+        description="",
+        size=2,
+        default=(-1, -1),
         options={'HIDDEN'})
     
     source_abs:bpy.props.StringProperty(
