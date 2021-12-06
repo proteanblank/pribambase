@@ -5,7 +5,7 @@ Pribambase is a small tool that connects Aseprite and Blender, to allow painting
 Currently, the addon has mostly one-way workflow where you paint in Ase and not much in Blender. Better bidirectional workflow ~~is quite a task tell ya what~~ is planned in future versions.
 
 * [Download](https://lampysprites.itch.io/pribambase) packaged version for your platform.
-* [Geeting Started](https://github.com/lampysprites/pribambase/wiki/Getting-Started) after installing, look there.
+* [How Do I...](https://github.com/lampysprites/pribambase/wiki/How-Do-I...) has some advice.
 * [Reference](https://github.com/lampysprites/pribambase/wiki/Reference) explains each button and setting.
 * [Itchio forum](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
 * [Issue tracker](https://github.com/lampysprites/pribambase/issues) for bug reports and feature requests. Kindly don't submit non-technical help requests.
@@ -71,4 +71,5 @@ See COPYING for full license text.
 Specific files or libraries might be also available under different terms, see included comment or package licenses.
 
 ## Acknowledgements
-Async loop handling is based on [Blender Cloud Addon](https://cloud.blender.org/services)
+- David Capello did a significant part of the work on interprocessing API for Aseprite
+- Async handling is based on [Blender Cloud Addon](https://cloud.blender.org/services)
