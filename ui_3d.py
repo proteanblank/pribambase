@@ -78,7 +78,7 @@ _material_sprite_common_props = {
         ('NORM', "Normal", "", 0),
         ('ADD', "Additive", "", 1),
         ('MUL', "Multply", "", 2)), 
-        default=0)}
+        default='NORM')}
 
 
 def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
@@ -99,7 +99,7 @@ class SB_OT_material_add(bpy.types.Operator):
         items=(
             ('LIT', "Lit", "Basic material that receives lighting", 1), 
             ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
-        default=2)
+        default='LIT')
 
     sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
@@ -204,7 +204,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
         name="Pivot",
         description="Placement of the origin in the texture space. (X:0, Y:0) is lower-left, (X:0.5, Y:0) is lower-middle, and so on",
         size=2,
-        subtype='COORDINATES',
+        subtype='XYZ',
         default=(0.5,0.5))
     
     pivot_relative: bpy.props.BoolProperty(
@@ -224,14 +224,14 @@ class SB_OT_sprite_add(bpy.types.Operator):
             ('ZNEG', "Bottom", "Negative Z axis"),
             ('SPH', "Camera", "Face the selected object, usually camera, from any angle (AKA spherical billboard)"),
             ('CYL', "Camera XY", "Face the selected object by rotating around Z axis only (AKA cylindrical billboard)")),
-        default=0)
+        default='YNEG')
 
     shading: bpy.props.EnumProperty(name="Shading", description="Material",
         items=(
             ('NONE', "None", "Do not create material", 0),
             ('LIT', "Lit", "Basic material that receives lighting", 1), 
             ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
-        default=2)
+        default='LIT')
 
     ## MATERIAL PROPS
     sheet: _material_sprite_common_props["sheet"]
@@ -354,7 +354,7 @@ class SB_OT_reference_add(bpy.types.Operator):
             ('XPOS', "Right", "Positive X axis"),
             ('ZPOS', "Top", "Positive Z axis"),
             ('ZNEG', "Bottom", "Negative Z axis")),
-        default=0)
+        default='YNEG')
 
     scale: bpy.props.IntProperty(
         name="Pre-scale",
@@ -574,8 +574,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     uv_map: bpy.props.EnumProperty(
         name="UV Layer",
         description="UV Layer that transforms apply to",
-        items=_uv_map_enum_items,
-        default=0)
+        items=_uv_map_enum_items)
     
     update_nodes: bpy.props.BoolProperty(
         name="Update Image Nodes",
@@ -598,6 +597,10 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
 
     def execute(self, context):
+        if bpy.app.version < (2, 83):
+            self.report({'ERROR'}, "UVWarp transforms needed for animation are not supported in your blender version. Has to be 2.83 or newer.")
+            return {'CANCELLED'}
+
         obj = context.active_object
         img = addon.state.op_props.animated_sprite
         if not img:
@@ -954,6 +957,9 @@ class SB_PT_panel_link(bpy.types.Panel):
         elif addon.server_up:
             status = "Waiting..."
             icon = 'SORTTIME'
+
+        if bpy.app.version < (2, 81):
+            icon = 'NONE' # :\
 
         row.label(text=status, icon=icon)
 

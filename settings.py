@@ -248,7 +248,6 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
     sheet_size: bpy.props.IntVectorProperty(
         name="Size",
         description="Spritesheed size in frames",
-        subtype='COORDINATES',
         size=2,
         default=(1, 1),
         min=1)
