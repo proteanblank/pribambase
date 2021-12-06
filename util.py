@@ -480,6 +480,30 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
         self.args = _update_frame_args
         return ModalExecuteMixin.execute(self, context)
 
+# TODO these can be normal operator props
+
+class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
+    bl_idname = "pribambase.new_texture"
+    bl_label = "New Texture"
+    bl_description = ""
+    bl_options = {'UNDO', 'INTERNAL'}
+
+    name:bpy.props.StringProperty(name="Name")
+    path:bpy.props.StringProperty(name="Path")
+
+    def modal_execute(self, context):
+        if self.path:
+            bpy.ops.pribambase.open_sprite(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=False)
+        else:
+            from . import pause_depsgraph_updates
+            with pause_depsgraph_updates():
+                img = bpy.data.images.new(self.name, 1, 1, alpha=True)
+                pack_empty_png(img)
+                img.sb_props.source=self.name
+            bpy.ops.pribambase.texture_list()
+
+        return {'FINISHED'}
+
 
 class SB_OT_report(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.report"

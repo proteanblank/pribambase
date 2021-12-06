@@ -82,6 +82,7 @@ classes = (
     SB_OT_update_image,
     SB_OT_update_spritesheet,
     SB_OT_update_frame,
+    SB_OT_new_texture,
     SB_OT_set_action_preview,
     SB_OT_clear_action_preview,
     SB_OT_spritesheet_rig,

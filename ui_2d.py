@@ -259,7 +259,7 @@ class SB_OT_open_sprite(bpy.types.Operator):
                 img.sb_props.source_set(self.filepath, self.relative)
 
         # switch to the image in the editor
-        if context.area.type == 'IMAGE_EDITOR':
+        if context and context.area and context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
 
         msg = encode.sprite_open(name=self.filepath, flags={'SHEET'} if self.sheet else set())

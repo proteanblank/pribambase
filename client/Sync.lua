@@ -148,6 +148,20 @@ else
         return nil
     end
 
+    local function _repl_next(s)
+        return string.format("%03d", tonumber(s) + 1)
+    end
+    local function unique_name(name)
+        if syncList[name] ~= nil and not string.match(name, "%d%d%d$") then
+            name = name .. "001"
+        end
+
+        while syncList[name] ~= nil do
+            name = string.gsub(name, "%d%d%d$", _repl_next)
+        end
+        return name
+    end
+
     --[[
         State-independent messsage packing functions.
         May have multiple returns, WebSocket:send() concatenates its arguments
@@ -228,6 +242,10 @@ else
         return string.pack("<Bs4s4", string.byte('C'), opts.from, opts.to)
     end
 
+    local function messageNewTexture(opts)
+        return string.pack("<Bs4s4", string.byte('O'), opts.name, opts.path)
+    end
+
     local function _messageBatchImpl(msg, ...)
         -- FIXME this is not lisp
         if msg then
@@ -255,6 +273,29 @@ else
                 tag = app.activeTag.name
             end
             ws:sendBinary(messageSpritesheet{ sprite=spr, name=name, frame=app.activeFrame, tag=tag })
+        end
+    end
+
+    local function sendNewTexture()
+        if spr == nil then
+            return
+        end
+        if isSprite(spr.filename) then
+            ws:sendBinary(messageNewTexture{ name="", path=spr.filename })
+        else
+            docList[spr] = { blend=blendfile, animated=false }
+
+            local popup = Dialog{ title="Choose Texture Name" }
+            popup:entry{ id="name", text=unique_name(spr.filename or "Sprite"), focus=true }
+            popup:button{ id="cancel", text= "Cancel"}
+            popup:button{ id="ok", text= "OK"}
+            popup:show()
+
+            if popup.data.ok then
+                spr.filename = unique_name(popup.data.name)
+                app.command.RunScript() -- refresh name on the tab
+                ws:sendBinary(messageNewTexture{ name=spr.filename, path="" })
+            end
         end
     end
 
@@ -427,6 +468,7 @@ else
             end
 
             dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+            dlg:modify{ id="sendopen", visible=(spr ~= nil and syncList[spr.filename] == nil) }
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
             frame = app.activeFrame.frameNumber
@@ -548,6 +590,7 @@ else
         end
         
         dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+        dlg:modify{ id="sendopen", visible=(spr ~= nil and syncList[spr.filename] == nil) }
 
         if not synced then
             syncSprite()
@@ -648,6 +691,7 @@ else
             connected = true
             dlg:modify{ id="status", text="Sync ON" }
             dlg:modify{ id="reconnect", visible=false }
+            -- animated and sendopen are modified during texture list sync
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
@@ -658,6 +702,7 @@ else
             dlg:modify{ id="status", text="Reconnecting..." }
             dlg:modify{ id="reconnect", visible=true }
             dlg:modify{ id="animated", visible=false }
+            dlg:modify{ id="sendopen", visible=false }
             if spr ~= nil then
                 spr.events:off(syncSprite)
             end
@@ -711,6 +756,9 @@ else
 
     dlg:check{ id="animated", text="Animation", onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
     dlg:modify{ id="animated", visible=false }
+    
+    dlg:button{ id="sendopen", text="Add to Blendfile", onclick=sendNewTexture }
+    dlg:modify{ id="sendopen", visible=false }
 
     dlg:newrow()
     dlg:button{ text="X Stop", onclick=dlgClose }

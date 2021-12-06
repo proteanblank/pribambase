@@ -181,3 +181,21 @@ class ChangeName(Handler):
                     img.filepath = ""
 
         bpy.ops.pribambase.texture_list()
+
+
+class NewTexture(Handler):
+    id = "O"
+
+    def parse(self, args):
+        args.name = self.take_str()
+        args.path = self.take_str()
+
+    async def execute(self, *, name:str, path:str):
+        try:
+            if not bpy.context.window_manager.is_interface_locked:
+                bpy.ops.pribambase.new_texture(name=name, path=path)
+            else:
+                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+        except AttributeError:
+            # blender 2.80... if it crashes, it crashes :\
+            bpy.ops.pribambase.new_texture(name=name, path=path)
