@@ -162,7 +162,7 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         options={'HIDDEN'})
     
     animation_index: bpy.props.IntProperty(
-        name="Animation Index",
+        name="Animation",
         description="List index of the animation selected. For UI purposes",
         options={'HIDDEN', 'SKIP_SAVE'})
     
@@ -200,21 +200,21 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
 
     prescale: bpy.props.IntProperty(
         name="Pre-scale",
-        description="",
+        description="Scale the sprite by this factor for blender images",
         min=1,
         max=20,
         default=1)
 
     prescale_size: bpy.props.IntVectorProperty(
-        name="Size Before Pre-scale",
-        description="",
+        name="Orignal Size",
+        description="Size before pre-scale",
         size=2,
         default=(-1, -1),
         options={'HIDDEN'})
     
     source_abs:bpy.props.StringProperty(
         name="Sprite Path",
-        description="Absolute and normalized source path, or an empty string if it's empty. Should be used to look up the images.",
+        description="Absolute and normalized source path",
         subtype='FILE_PATH',
         get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
 
@@ -300,23 +300,23 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
     autostart: bpy.props.BoolProperty(
         name="Start Automatically",
-        description="Set up the connection when Blender starts. Enabling increases blender's launch time",
+        description="Set up the connection when Blender starts",
         default=False)
 
     uv_layer:bpy.props.StringProperty(
-        name="UV Layer Name",
-        description="Name of the reference layer that will be created/used to display the UVs in Aseprite",
+        name="Layer Name",
+        description="Name of the reference layer that will be created to display the UVs in Aseprite",
         default="UVMap")
 
     uv_scale:bpy.props.FloatProperty(
-        name="UV Scale",
+        name="Scale",
         description="Default resolution of the UV layer relative to the texture size",
         default=2.0,
         min=0.0,
         max=50.0)
 
     uv_color: bpy.props.FloatVectorProperty(
-        name="UV Color",
+        name="Color",
         description="Default color to draw the UVs with",
         size=4,
         default=(0.0, 0.0, 0.0, 0.45),
@@ -325,12 +325,12 @@ class SB_Preferences(bpy.types.AddonPreferences):
         subtype='COLOR')
 
     uv_aa: bpy.props.BoolProperty(
-        name="Anti-aliased UVs",
+        name="Anti-aliased",
         description="Apply anti-aliasing to the UV map",
         default=True)
 
     uv_weight: bpy.props.FloatProperty(
-        name="UV Thickness",
+        name="Thickness",
         description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
         default=1.0)
 
@@ -366,13 +366,13 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
         box = self.template_box(layout, label="UV Map:")
 
-        box.row().prop(self, "uv_layer", text="Layer Name")
+        box.row().prop(self, "uv_layer")
         box.row().prop(self, "uv_color")
 
         row = box.row()
-        row.prop(self, "uv_scale", text="Scale")
-        row.prop(self, "uv_weight", text="Thickness")
-        row.prop(self, "uv_aa", text="Anti-aliasing")
+        row.prop(self, "uv_scale")
+        row.prop(self, "uv_weight")
+        row.prop(self, "uv_aa",)
 
         box = self.template_box(layout, label="Connection:")
 
@@ -398,7 +398,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
 class SB_OT_preferences(bpy.types.Operator):
     bl_idname = "pribambase.preferences"
-    bl_label = "Preferences"
+    bl_label = "Preferences..."
     bl_description = "Open this addon's settings"
 
     def execute(self, context):

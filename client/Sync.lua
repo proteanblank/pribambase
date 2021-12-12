@@ -18,16 +18,18 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
+local tr = pribambase_gettext
+
 if app.apiVersion < 15 then
-    app.alert{title="Pribambase: Error", text={"This version of Aseprite is not supported", "",
-        "Current:", "  Version: " .. tostring(app.version), "  API version: " .. tostring(app.apiVersion),
-        "", "Required:", "  Version: 1.2.30 or 1.3-beta7 or newer", "  API version: 15 or newer",
+    app.alert{title=tr("Pribambase: Error"), text={tr("This version of Aseprite is not supported"), "",
+        tr("Current"), ":  " .. tr("Version") .. ": " .. tostring(app.version), "  " .. tr("API version") .. ": " .. tostring(app.apiVersion),
+        "", tr("Required") .. ":", "  " .. tr("Version: 1.2.30 or 1.3-beta7 or newer"), "  " .. tr("API version: 15 or newer"),
     }}
     error()
 
 elseif WebSocket == nil then
-    app.alert{title="Pribambase: Error", text={"Websocket functionality is disabled in Aseprite.",
-        "If you're compiling it yourself, add \"-DENABLE_WEBSOCKET=ON\" to CMake options."}}
+    app.alert{title=tr("Pribambase: Error"), text={tr("Websocket functionality is disabled in Aseprite."),
+        tr("If you're compiling it yourself, add") .. ' "-DENABLE_WEBSOCKET=ON" ' .. tr("to CMake options.")}}
     error()
 
 elseif pribambase_dlg then
@@ -285,10 +287,10 @@ else
         else
             docList[spr] = { blend=blendfile, animated=false }
 
-            local popup = Dialog{ title="Choose Texture Name" }
-            popup:entry{ id="name", text=unique_name(spr.filename or "Sprite"), focus=true }
-            popup:button{ id="cancel", text= "Cancel"}
-            popup:button{ id="ok", text= "OK"}
+            local popup = Dialog{ title=tr("Choose Texture Name") }
+            popup:entry{ id="name", text=unique_name(spr.filename or tr("Sprite")), focus=true }
+            popup:button{ id="cancel", text= tr("Cancel")}
+            popup:button{ id="ok", text= tr("OK")}
             popup:show()
 
             if popup.data.ok then
@@ -567,7 +569,7 @@ else
         local offset = 2 + 4 + bflen -- start of the image names
 
         blendfile = string.unpack("<s4", msg, 2)
-        dlg:modify{ id="status", text=(isUntitled(blendfile) and "ON: untitled" or "ON: " .. app.fs.fileName(blendfile)) }
+        dlg:modify{ id="status", text=tr("ON:") .. " " .. (isUntitled(blendfile) and "untitled" or app.fs.fileName(blendfile)) }
 
         syncList = {}
 
@@ -689,7 +691,7 @@ else
 
         elseif t == WebSocketMessageType.OPEN then
             connected = true
-            dlg:modify{ id="status", text="Sync ON" }
+            dlg:modify{ id="status", text=tr("Sync ON") }
             dlg:modify{ id="reconnect", visible=false }
             -- animated and sendopen are modified during texture list sync
 
@@ -699,7 +701,7 @@ else
 
         elseif t == WebSocketMessageType.CLOSE and dlg ~= nil then
             connected = false
-            dlg:modify{ id="status", text="Reconnecting..." }
+            dlg:modify{ id="status", text=tr("Reconnecting...") }
             dlg:modify{ id="reconnect", visible=true }
             dlg:modify{ id="animated", visible=false }
             dlg:modify{ id="sendopen", visible=false }
@@ -748,21 +750,21 @@ else
     
     -- create an UI
     
-    dlg = Dialog{ title="Sync", onclose=dlgClose }
+    dlg = Dialog{ title=tr("Sync"), onclose=dlgClose }
     --[[ global ]] pribambase_dlg = dlg
 
-    dlg:label{ id="status", text="Connecting..." }
-    dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
+    dlg:label{ id="status", text=tr("Connecting...") }
+    dlg:button{ id="reconnect", text=tr("Reconnect"), onclick=function() ws:close() ws:connect() end }
 
-    dlg:check{ id="animated", text="Animation", onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
+    dlg:check{ id="animated", text=tr("Animation"), onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
     dlg:modify{ id="animated", visible=false }
     
-    dlg:button{ id="sendopen", text="Add to Blendfile", onclick=sendNewTexture }
+    dlg:button{ id="sendopen", text=tr("Add to Blendfile"), onclick=sendNewTexture }
     dlg:modify{ id="sendopen", visible=false }
 
     dlg:newrow()
-    dlg:button{ text="X Stop", onclick=dlgClose }
-    dlg:button{ text="_ Hide", onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
+    dlg:button{ text="X " .. tr("Stop"), onclick=dlgClose }
+    dlg:button{ text="_ " .. tr("Hide"), onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
 
     -- GO
 

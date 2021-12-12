@@ -36,6 +36,7 @@ from .ui_2d import *
 from .ui_3d import *
 from .util import *
 from .addon import addon
+from .translations import translation
 
 
 bl_info = {
@@ -44,7 +45,6 @@ bl_info = {
     "description": "Paint pixelart textures in Blender using Aseprite",
     "blender": (2, 80, 0),
     "version": (2, 1, 0),
-    "location": "\"Sync\" section in 3D Tool paned; \"Sprite Animation\" in 3D Item panel; \"Sprite\" menu in UV/Image Editor",
     "category": "Paint"
 }
 
@@ -105,6 +105,8 @@ classes = (
 def register():
     async_loop.setup_asyncio_executor()
 
+    bpy.app.translations.register(__name__, translation)
+
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)
@@ -164,6 +166,8 @@ def unregister():
     from bpy.utils import unregister_class
     for cls in reversed(classes):
         unregister_class(cls)
+    
+    bpy.app.translations.unregister(__name__)
 
 
 # hash for the set of image sources/names that is used to check if new images were added

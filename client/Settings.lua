@@ -19,6 +19,7 @@
 -- SOFTWARE.
 
 local dlg = Dialog()
+local tr = pribambase_gettext
 
 
 local function restoreDefaults()
@@ -46,15 +47,15 @@ local function changeAutoshow()
 end
 
 
-dlg:separator{text="Connection"}
-    :entry{id="host", label="Server", text=pribambase_settings.host}
-    :entry{id="port", label="Port", text=pribambase_settings.port}
-    :check{id="autostart", label="Connect when Aseprite launches", selected=pribambase_settings.autostart, onclick=changeAutoshow}
-    :check{id="autoshow", label="Show when Aseprite launches", selected=pribambase_settings.autoshow, visible=dlg.data.autostart}
+dlg:separator{text=tr("Connection")}
+    :entry{id="host", label=tr("Server"), text=pribambase_settings.host}
+    :entry{id="port", label=tr("Port"), text=pribambase_settings.port}
+    :check{id="autostart", label=tr("Connect when Aseprite launches"), selected=pribambase_settings.autostart, onclick=changeAutoshow}
+    :check{id="autoshow", label=tr("Show when Aseprite launches"), selected=pribambase_settings.autoshow, visible=dlg.data.autostart}
 
     :separator()
-    :button{text="Defaults", onclick=restoreDefaults}
-    :button{text="Cancel", focus=true}
-    :button{text="OK", onclick=function() save() dlg:close() end}
+    :button{text=tr("Defaults"), onclick=restoreDefaults}
+    :button{text=tr("Cancel"), focus=true}
+    :button{text=tr("OK"), onclick=function() save() dlg:close() end}
 
     :show()

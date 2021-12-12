@@ -20,6 +20,7 @@
 
 import math
 import bpy
+from bpy.app.translations import pgettext
 import numpy as np
 from math import pi
 from mathutils import Matrix
@@ -71,7 +72,7 @@ _material_sprite_common_props = {
     
     "sheet": bpy.props.BoolProperty(
         name="Animated",
-        description="Use spritesheet image in the material. Use when UV animation is set up, or will be.",
+        description="Use spritesheet image in the material. Use when UV animation is set up, or will be",
         default=True),
 
     "blend": bpy.props.EnumProperty(name="Blend Mode", description="Imitate blending mode for the material", items=(
@@ -408,7 +409,7 @@ class SB_OT_reference_add(bpy.types.Operator):
         ref.empty_display_size = max(w, h) * context.space_data.overlay.grid_scale
         if not self.selectable:
             ref.hide_select = True
-            self.report({'INFO'}, "The reference won't be selectable. Use the outliner to reload/delete it")
+            self.report({'INFO'}, "The reference won't be selectable. Use the outliner to reload or delete it")
         
         if self.facing == 'YPOS':
             ref.matrix_basis @=  Matrix.Rotation(math.pi, 4, (0,1,0))
@@ -449,7 +450,7 @@ class SB_OT_reference_reload(bpy.types.Operator):
 class SB_OT_reference_rescale(bpy.types.Operator):
     bl_idname = "pribambase.reference_rescale"
     bl_label = "Refresh Scale"
-    bl_description = "Refresh reference scaling without reloading the image."
+    bl_description = "Refresh reference scaling without reloading the image"
     bl_options = {'UNDO'}
 
 
@@ -468,7 +469,7 @@ class SB_OT_reference_rescale(bpy.types.Operator):
 class SB_OT_reference_replace(bpy.types.Operator):
     bl_idname = "pribambase.reference_replace"
     bl_label = "Replace Reference"
-    bl_description = "Replace reference image, keep it aligned to pixel grid."
+    bl_description = "Replace reference image, keep it aligned to pixel grid"
     bl_options = {'UNDO'}
 
     scale: bpy.props.IntProperty(
@@ -598,7 +599,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
     def execute(self, context):
         if bpy.app.version < (2, 83):
-            self.report({'ERROR'}, "UVWarp transforms needed for animation are not supported in your blender version. Has to be 2.83 or newer.")
+            self.report({'ERROR'}, "UVWarp transforms needed for animation are not supported in your blender version. Has to be 2.83 or newer")
             return {'CANCELLED'}
 
         obj = context.active_object
@@ -627,12 +628,12 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
         try:
             # 3.0
-            obj.id_properties_ui(prop_name).update(description="Animation frame, uses the same numbering as timeline in Aseprite")
+            obj.id_properties_ui(prop_name).update(description=pgettext("Animation frame, uses the same numbering as timeline in Aseprite"))
         except AttributeError:
             # 2.[8/9]x
             if "_RNA_UI" not in obj:
                 obj["_RNA_UI"] = {}
-            obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite" }
+            obj["_RNA_UI"][prop_name] = { "description": pgettext("Animation frame, uses the same numbering as timeline in Aseprite" )}
 
         # modifier
         if prop_name not in obj.modifiers:
@@ -673,7 +674,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             return {'CANCELLED'}
 
         if not context.active_object.data.uv_layers:
-            self.report({'ERROR'}, "THe object must have at least one UV map")
+            self.report({'ERROR'}, "The object must have at least one UV map")
             return {'CANCELLED'}
         
         return context.window_manager.invoke_props_dialog(self)
@@ -899,7 +900,7 @@ class SB_PT_panel_animation(bpy.types.Panel):
 
             sub = row.column()
             sub.enabled = bool(obj.sb_props.animations and obj.sb_props.animation_index > -1)
-            sub.prop(obj.sb_props, "animation_tag_setter")
+            sub.prop(obj.sb_props, "animation_tag_setter", text="Tag", text_ctxt="ase")
             
             if addon.state.action_preview_enabled:
                 active_picked = (context.active_object == addon.state.action_preview)

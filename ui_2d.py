@@ -19,6 +19,7 @@
 # SOFTWARE.
 
 import bpy
+from bpy.app.translations import pgettext
 import bmesh
 import gpu
 import bgl
@@ -39,7 +40,7 @@ COLOR_MODES = [
 
 UV_DEST = [
     ('texture', "Texture Source", "Show UV map in the file of the image editor's texture"),
-    ('active', "Active Sprite", "Show UV map in the currently open documet")
+    ('active', "Active Sprite", "Show UV map in the currently open document")
 ]
 
 
@@ -51,7 +52,7 @@ class SB_OT_send_uv(bpy.types.Operator):
 
     destination: bpy.props.EnumProperty(
         name="Show In",
-        description="Which document's UV map will be created/updated in aseprite",
+        description="Which document's UV map will be shown in aseprite",
         items=UV_DEST,
         default='texture')
 
@@ -65,7 +66,7 @@ class SB_OT_send_uv(bpy.types.Operator):
         default=(1, 1))
 
     color: bpy.props.FloatVectorProperty(
-        name="UV color",
+        name="Color",
         description="Color to draw the UVs with",
         size=4,
         min=0.0,
@@ -74,7 +75,7 @@ class SB_OT_send_uv(bpy.types.Operator):
         subtype='COLOR')
 
     weight: bpy.props.FloatProperty(
-        name="UV Thickness",
+        name="Thickness",
         description="Thickness of the UV map lines at its original resolution",
         min=0,
         max=65535,
@@ -624,7 +625,7 @@ class SB_PT_panel_sprite(bpy.types.Panel):
             
             sub = layout.row()
             sub.alignment = 'RIGHT'
-            sub.label(text=f"Sheet {props.sheet_size[0]}x{props.sheet_size[1]}, {props.animation_length} frames")
+            sub.label(text=f"{pgettext('Sheet')} {props.sheet_size[0]}x{props.sheet_size[1]}, {props.animation_length} {pgettext('frames')}")
 
         else:
             source.prop(context.edit_image.sb_props, "source")

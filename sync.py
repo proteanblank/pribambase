@@ -26,6 +26,7 @@ import asyncio
 import aiohttp
 from aiohttp import web
 from time import time
+from bpy.app.translations import pgettext
 
 from . import async_loop
 from . import util
@@ -80,7 +81,7 @@ class Server():
             asyncio.get_event_loop().run_until_complete(stop)
             util.refresh()
         except asyncio.TimeoutError:
-            raise RuntimeError(f"Could not start server at {self.host}:{self.port}")
+            raise RuntimeError(f"{pgettext('Could not start server at')} {self.host}:{self.port}")
 
 
     def stop(self):
@@ -113,7 +114,7 @@ class Server():
                 await addon.handlers.process(msg.data)
 
             elif msg.type == aiohttp.WSMsgType.ERROR:
-                bpy.ops.pribambase.report(message_type='ERROR', message=f"Connection closed with exception {self._ws.exception()}")
+                bpy.ops.pribambase.report(message_type='ERROR', message=f"{pgettext('Aseprite connection closed with exception')} {self._ws.exception()}")
 
         # client disconnected
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite disconnected")
@@ -141,7 +142,7 @@ class SB_OT_serv_start(bpy.types.Operator):
 class SB_OT_serv_stop(bpy.types.Operator):
     bl_idname = "pribambase.stop_server"
     bl_label = "Close Connection"
-    bl_description = "Shut down Aseprite link"
+    bl_description = "Disconnect and stop accepting connections from Aseprite"
 
 
     @classmethod
@@ -158,6 +159,7 @@ class SB_OT_texture_list(bpy.types.Operator):
     bl_idname = "pribambase.texture_list"
     bl_label = "Update Texture List"
     bl_description = "Update Aseprite about which textures are used in the blendfile"
+    bl_options = {'INTERNAL'}
 
 
     @classmethod
