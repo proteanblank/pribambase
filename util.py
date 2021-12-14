@@ -325,6 +325,12 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                 fcurve.lock = True
 
             for fcurve in action.fcurves:
+                if not fcurve.data_path.startswith('["'):
+                    # Only update curves for all custom properties 
+                    # For multiple animations on one object, the user might need to change path on some curves
+                    #    so we can't be certain that the name is same as default and update all of them
+                    continue
+
                 points = fcurve.keyframe_points
                 npoints = len(points)
                 nframes = len(tag_frames)
@@ -439,6 +445,9 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
         for action in bpy.data.actions:
             if action.sb_props.sprite == img and action.sb_props.tag == "__view__":
                 for fcurve in action.fcurves:
+                    if not fcurve.data_path.startswith('["'):
+                        continue
+
                     for point in fcurve.keyframe_points:
                         point.co = (point.co.x, frame)
                     fcurve.update()
@@ -448,6 +457,9 @@ class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
                 frames.append(frames[-1])
 
                 for fcurve in action.fcurves:
+                    if not fcurve.data_path.startswith('["'):
+                        continue
+                    
                     points = fcurve.keyframe_points
                     npoints = len(points)
                     nframes = len(frames)
