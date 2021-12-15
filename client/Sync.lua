@@ -669,6 +669,32 @@ else
     end
 
 
+    local function handlePeek(msg)
+        local _id, count = string.unpack("<BH", msg)
+        local offset = 4
+        batchAppChanges(function()
+            for i=1,count do
+                local len = string.unpack("<I4", msg, offset)
+                local name, flags = string.unpack("<s4I2", msg, offset)
+                offset = offset + 6 + len -- 6 is string:packsize("<s4I2")
+
+                local animated = flags & BIT_SYNC_SHEET ~= 0
+                local s = Sprite{fromFile=name}
+                if animated then
+                    tag = ""
+                    if app.activeTag ~= nil and not app.preferences.editor.play_all then
+                        tag = app.activeTag.name
+                    end
+                    ws:sendBinary(messageSpritesheet{ sprite=s, name=name, frame=app.activeFrame, tag=tag })
+                else
+                    ws:sendBinary(messageImage{ sprite=s, name=name, frame=app.activeFrame})
+                end
+                s:close()
+            end
+        end, true)
+    end
+
+
     handlers = {
         [string.byte('I')] = handleImage,
         [string.byte('[')] = handleBatch,
@@ -677,6 +703,7 @@ else
         [string.byte('S')] = handleNewSprite,
         [string.byte('O')] = handleOpenSprite,
         [string.byte('F')] = handleFocus,
+        [string.byte('P')] = handlePeek,
     }
 
 

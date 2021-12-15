@@ -143,6 +143,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
             if name == image_name(img):
                 if not img.has_data:
                     # load *some* data so that the image can be updated
+                    # FIXME doesn't help :(
                     pack_empty_png(img)
 
                 if img.size != (w, h):

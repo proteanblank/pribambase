@@ -25,8 +25,10 @@ import numpy as np
 from math import pi
 from mathutils import Matrix
 from bpy_extras import object_utils
+import os.path
 
 
+from .messaging import encode
 from .addon import addon
 from .ui_2d import SB_OT_open_sprite
 from . import util
@@ -587,6 +589,30 @@ class SB_OT_reference_freeze_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SB_OT_sprite_reload_all(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_reload_all"
+    bl_label = "Reload All Sprites"
+    bl_description = "Update data for all sprite textures from their original files"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return addon.connected
+
+    def execute(self, context):
+        images = []
+
+        for img in bpy.data.images:
+            if img.sb_props.source:
+                if os.path.exists(img.sb_props.source_abs):
+                    images.append((util.image_name(img), img.sb_props.sync_flags))
+                else:
+                    self.report({'INFO'}, f"Image {img.name} skipped: file '{img.sb_props.source_abs}' does not exist")
+
+        addon.server.send(encode.peek(images))
+        return {'FINISHED'}
+
+
 _uv_map_enum_items_ref = None
 def _uv_map_enum_items(self, context):
     # enum items reference must be stored to avoid crashing the UI
@@ -1011,6 +1037,8 @@ class SB_MT_global(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator("pribambase.set_grid")
+        layout.separator()
+        layout.operator("pribambase.sprite_reload_all")
         layout.separator()
         layout.operator("pribambase.reference_reload_all")
         layout.operator("pribambase.reference_freeze_all").invert = False

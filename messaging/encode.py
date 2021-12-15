@@ -91,3 +91,15 @@ def sprite_focus(name:str) -> bytearray:
     add_id(data, 'F')
     add_string(data, name)
     return data
+
+
+def peek(images:Iterable[Tuple[str, Set[str]]]) -> bytearray:
+    data = bytearray()
+    add_id(data, 'P')
+    add_uint(data, len(images), 2)
+
+    for img,flags in images:
+        add_string(data, img)
+        add_sync_flags(data, flags)
+
+    return data

@@ -72,6 +72,7 @@ classes = (
     SB_OT_purge_sprite,
     SB_OT_material_add,
     SB_OT_sprite_add,
+    SB_OT_sprite_reload_all,
     SB_OT_reference_add,
     SB_OT_reference_replace,
     SB_OT_reference_rescale,
