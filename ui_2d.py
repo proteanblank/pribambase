@@ -263,8 +263,11 @@ class SB_OT_open_sprite(bpy.types.Operator):
         if context and context.area and context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
 
-        msg = encode.sprite_open(name=self.filepath, flags={'SHEET'} if self.sheet else set())
-        addon.server.send(msg)
+        if addon.connected:
+            msg = encode.sprite_open(name=self.filepath, flags={'SHEET'} if self.sheet else set())
+            addon.server.send(msg)
+        else:
+            self.report({'WARNING'}, "Aseprite not connected - image data might not be loaded")
 
         return {'FINISHED'}
 

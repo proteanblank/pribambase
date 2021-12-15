@@ -26,8 +26,11 @@ from math import pi
 from mathutils import Matrix
 from bpy_extras import object_utils
 
+
 from .addon import addon
+from .ui_2d import SB_OT_open_sprite
 from . import util
+from . import ase
 
 
 def prescale(image:bpy.types.Image):
@@ -233,6 +236,14 @@ class SB_OT_sprite_add(bpy.types.Operator):
             ('LIT', "Lit", "Basic material that receives lighting", 1), 
             ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
         default='LIT')
+    
+    ## FILE DIALOG
+    from_file: bpy.props.BoolProperty("Open File", options={'HIDDEN'})
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
+    # dialog settings
+    filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;*.bmp;*.jpeg;*.jpg;*.png", options={'HIDDEN'})
+    use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
 
     ## MATERIAL PROPS
     sheet: _material_sprite_common_props["sheet"]
@@ -243,12 +254,13 @@ class SB_OT_sprite_add(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
         
-        layout.label(text="Sprite")
-        row = layout.row(align=True)
-        row.enabled = self.invoke
-        row.prop(addon.state.op_props, "image_sprite")
-        if not addon.state.op_props.image_sprite:
-            row.label(text="", icon='ERROR')
+        if not self.from_file:
+            layout.label(text="Sprite")
+            row = layout.row(align=True)
+            row.enabled = self.invoke
+            row.prop(addon.state.op_props, "image_sprite")
+            if not addon.state.op_props.image_sprite:
+                row.label(text="", icon='ERROR')
 
         layout.prop(self, "facing")
         if self.facing in ('SPH', 'CYL'):
@@ -266,17 +278,32 @@ class SB_OT_sprite_add(bpy.types.Operator):
 
 
     @classmethod
-    def poll(cls, context):
+    def poll(self, context):
         return next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
     
 
     def execute(self, context):
         self.invoke = False
+
+        if self.from_file:
+            if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
+                # ase files
+                # TODO should work without connection
+                SB_OT_open_sprite.execute(self, context)
+                addon.state.op_props.image_sprite = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
+                size, _ = ase.info(self.filepath)
+                addon.state.op_props.image_sprite.scale(*size)
+            else:
+                # blender supported
+                addon.state.op_props.image_sprite = bpy.data.images.load(self.filepath)
+            # TODO animation
+
         img = addon.state.op_props.image_sprite
         if not img:
             self.report({'ERROR'}, "No image selected")
             return {'CANCELLED'}
         w,h = img.size
+
         # normalize to pixel coord
         px, py = [self.pivot[i] * img.size[i] if self.pivot_relative else self.pivot[i] for i in (0,1)]
         px = w - px
@@ -336,7 +363,11 @@ class SB_OT_sprite_add(bpy.types.Operator):
         self.sheet = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
         self.invoke = True
 
-        return context.window_manager.invoke_props_dialog(self)
+        if self.from_file:
+            context.window_manager.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+        else:
+            return context.window_manager.invoke_props_dialog(self)
 
 
 class SB_OT_reference_add(bpy.types.Operator):
@@ -993,3 +1024,4 @@ def menu_reference_add(self, context):
 
 def menu_mesh_add(self, context):
     self.layout.operator("pribambase.sprite_add", text="Sprite", icon='ALIASED')
+    self.layout.operator("pribambase.sprite_add", text="Sprite (File)", icon='ALIASED').from_file=True
