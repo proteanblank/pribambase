@@ -109,6 +109,7 @@ def pack_empty_png(image):
     image.pack()
     image.filepath=""
     image.use_fake_user = addon.prefs.use_fake_users
+    image.pack()
     
     os.remove(tmp)
 
