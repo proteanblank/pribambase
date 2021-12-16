@@ -470,7 +470,7 @@ else
             end
 
             dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
-            dlg:modify{ id="sendopen", visible=(spr ~= nil and syncList[spr.filename] == nil) }
+            dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
             frame = app.activeFrame.frameNumber
@@ -592,7 +592,7 @@ else
         end
         
         dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
-        dlg:modify{ id="sendopen", visible=(spr ~= nil and syncList[spr.filename] == nil) }
+        dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         if not synced then
             syncSprite()
