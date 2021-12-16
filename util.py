@@ -97,21 +97,14 @@ def image_name(img):
     return name
 
 
-_empty_png = binascii.a2b_base64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
-def pack_empty_png(image):
-    """Load 1x1 ARGB png to the image and pack it"""
-    # write the file
-    tmp = path.join(tempfile.gettempdir(), "__sb__delete_me.png")
-    with open(tmp, "wb", ) as f:
-        f.write(_empty_png)
+_empty_png = binascii.a2b_base64(r'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
+_empty_png_len = len(_empty_png)
 
-    image.filepath = tmp
-    image.pack()
-    image.filepath=""
+def pack_empty_png(image:bpy.types.Image):
+    """Load 1x1 ARGB png to the image and pack it"""
+    image.filepath_raw = ""
     image.use_fake_user = addon.prefs.use_fake_users
-    image.pack()
-    
-    os.remove(tmp)
+    image.pack(data=_empty_png, data_len=_empty_png_len)
 
 
 _update_image_args = None
@@ -143,7 +136,6 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
             if name == image_name(img):
                 if not img.has_data:
                     # load *some* data so that the image can be updated
-                    # FIXME doesn't help :(
                     pack_empty_png(img)
 
                 if img.size != (w, h):
