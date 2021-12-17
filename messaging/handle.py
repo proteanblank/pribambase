@@ -180,7 +180,7 @@ class ChangeName(Handler):
                 else:
                     img.filepath = ""
 
-        bpy.ops.pribambase.texture_list()
+        bpy.ops.pribambase.send_texture_list()
 
 
 class NewTexture(Handler):

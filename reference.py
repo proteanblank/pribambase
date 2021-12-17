@@ -246,8 +246,8 @@ class SB_OT_reference_freeze_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_PT_panel_reference(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_reference"
+class SB_PT_reference(bpy.types.Panel):
+    bl_idname = "SB_PT_reference"
     bl_label = "Reference"
     bl_category = "Item"
     bl_space_type = "VIEW_3D"

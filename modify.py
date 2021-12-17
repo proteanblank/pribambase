@@ -455,13 +455,13 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
 
     def modal_execute(self, context):
         if self.path:
-            bpy.ops.pribambase.open_sprite(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=False)
+            bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=False)
         else:
             from . import pause_depsgraph_updates
             with pause_depsgraph_updates():
                 img = bpy.data.images.new(self.name, 1, 1, alpha=True)
                 pack_empty_png(img)
                 img.sb_props.source=self.name
-            bpy.ops.pribambase.texture_list()
+            bpy.ops.pribambase.send_texture_list()
 
         return {'FINISHED'}

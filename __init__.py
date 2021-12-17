@@ -62,19 +62,19 @@ classes = (
     SB_ImageProperties,
     SB_ActionProperties,
     # Operators
-    SB_OT_serv_start,
-    SB_OT_serv_stop,
-    SB_OT_send_uv,
-    SB_OT_texture_list,
-    SB_OT_open_sprite,
-    SB_OT_new_sprite,
-    SB_OT_edit_sprite,
-    SB_OT_edit_sprite_copy,
-    SB_OT_replace_sprite,
-    SB_OT_make_animated,
-    SB_OT_purge_sprite,
+    SB_OT_server_start,
+    SB_OT_server_stop,
+    SB_OT_uv_send,
+    SB_OT_send_texture_list,
+    SB_OT_sprite_open,
+    SB_OT_sprite_new,
+    SB_OT_sprite_edit,
+    SB_OT_sprite_edit_copy,
+    SB_OT_sprite_replace,
+    SB_OT_sprite_make_animated,
+    SB_OT_sprite_purge,
     SB_OT_material_add,
-    SB_OT_sprite_add,
+    SB_OT_plane_add,
     SB_OT_sprite_reload_all,
     SB_OT_reference_add,
     SB_OT_reference_replace,
@@ -82,13 +82,13 @@ classes = (
     SB_OT_reference_reload,
     SB_OT_reference_reload_all,
     SB_OT_reference_freeze_all,
-    SB_OT_set_grid,
+    SB_OT_grid_set,
     SB_OT_update_image,
     SB_OT_update_spritesheet,
     SB_OT_update_frame,
     SB_OT_new_texture,
-    SB_OT_set_action_preview,
-    SB_OT_clear_action_preview,
+    SB_OT_action_preview_set,
+    SB_OT_action_preview_clear,
     SB_OT_spritesheet_rig,
     SB_OT_spritesheet_unrig,
     SB_OT_preferences,
@@ -96,12 +96,12 @@ classes = (
     # Lists
     SB_UL_animations,
     # Panels
-    SB_PT_panel_link,
-    SB_PT_panel_animation,
-    SB_PT_panel_sprite,
-    SB_PT_panel_reference,
+    SB_PT_link,
+    SB_PT_animation,
+    SB_PT_sprite,
+    SB_PT_reference,
     # Menus
-    SB_MT_menu_2d,
+    SB_MT_sprite,
     SB_MT_global
 )
 
@@ -146,7 +146,7 @@ def register():
         editor_menus = bpy.types.IMAGE_MT_editor_menus
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
-    editor_menus.append(SB_MT_menu_2d.header_draw)
+    editor_menus.append(SB_MT_sprite.header_draw)
 
     bpy.types.VIEW3D_MT_image_add.append(menu_reference_add)
     bpy.types.VIEW3D_MT_mesh_add.append(menu_mesh_add)
@@ -179,7 +179,7 @@ def unregister():
         editor_menus = bpy.types.IMAGE_MT_editor_menus
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
-    editor_menus.remove(SB_MT_menu_2d.header_draw)
+    editor_menus.remove(SB_MT_sprite.header_draw)
 
     bpy.types.VIEW3D_MT_image_add.remove(menu_reference_add)
     bpy.types.VIEW3D_MT_mesh_add.remove(menu_mesh_add)
@@ -246,7 +246,7 @@ def sb_on_load_pre(scene):
 @persistent
 def sb_on_save_post(scene):
     if addon.server_up:
-        bpy.ops.pribambase.texture_list()
+        bpy.ops.pribambase.send_texture_list()
 
 
 @persistent

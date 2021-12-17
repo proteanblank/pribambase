@@ -123,8 +123,8 @@ class Server():
         return self._ws
 
 
-class SB_OT_serv_start(bpy.types.Operator):
-    bl_idname = "pribambase.start_server"
+class SB_OT_server_start(bpy.types.Operator):
+    bl_idname = "pribambase.server_start"
     bl_label = "Open Connection"
     bl_description = "Begin accepting connections from Aseprite"
 
@@ -139,8 +139,8 @@ class SB_OT_serv_start(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_OT_serv_stop(bpy.types.Operator):
-    bl_idname = "pribambase.stop_server"
+class SB_OT_server_stop(bpy.types.Operator):
+    bl_idname = "pribambase.server_stop"
     bl_label = "Close Connection"
     bl_description = "Disconnect and stop accepting connections from Aseprite"
 
@@ -155,8 +155,8 @@ class SB_OT_serv_stop(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SB_OT_texture_list(bpy.types.Operator):
-    bl_idname = "pribambase.texture_list"
+class SB_OT_send_texture_list(bpy.types.Operator):
+    bl_idname = "pribambase.send_texture_list"
     bl_label = "Update Texture List"
     bl_description = "Update Aseprite about which textures are used in the blendfile"
     bl_options = {'INTERNAL'}

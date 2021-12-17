@@ -43,13 +43,13 @@ def get_identifier(self):
 class SB_OpProps(bpy.types.PropertyGroup):
     """Workaround for operators not having pointer properties. Instead, they draw this group's props"""
 
-    # used by: SB_OT_sprite_add
+    # used by: SB_OT_plane_add
     look_at: bpy.props.PointerProperty(
         name="Look At",
         description="Object the sprite will be facing",
         type=bpy.types.Object)
 
-    # used by: SB_OT_sprite_add, SB_OT_material_add
+    # used by: SB_OT_plane_add, SB_OT_material_add
     image_sprite: bpy.props.PointerProperty(
         name="Image", 
         description="Image to use",
@@ -400,9 +400,9 @@ class SB_Preferences(bpy.types.AddonPreferences):
         row.prop(self, "port")
 
         if addon.server_up:
-            box.row().operator("pribambase.stop_server")
+            box.row().operator("pribambase.server_stop")
         else:
-            box.row().operator("pribambase.start_server")
+            box.row().operator("pribambase.server_start")
 
         box = self.template_box(layout, label="Misc:")
 

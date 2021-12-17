@@ -29,7 +29,7 @@ import os.path
 
 from .messaging import encode
 from .addon import addon
-from .image import SB_OT_open_sprite
+from .image import SB_OT_sprite_open
 from . import util
 from . import modify
 from . import ase
@@ -163,8 +163,8 @@ class SB_OT_material_add(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 
-class SB_OT_sprite_add(bpy.types.Operator):
-    bl_idname = "pribambase.sprite_add"
+class SB_OT_plane_add(bpy.types.Operator):
+    bl_idname = "pribambase.plane_add"
     bl_label = "Add Sprite"
     bl_description = "All-in-one 2D sprite setup"
     bl_options = {'REGISTER', 'UNDO'}
@@ -258,7 +258,7 @@ class SB_OT_sprite_add(bpy.types.Operator):
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
                 # ase files
                 # TODO should work without connection
-                SB_OT_open_sprite.execute(self, context)
+                SB_OT_sprite_open.execute(self, context)
                 addon.state.op_props.image_sprite = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
                 size, _ = ase.info(self.filepath)
                 addon.state.op_props.image_sprite.scale(*size)
@@ -337,30 +337,6 @@ class SB_OT_sprite_add(bpy.types.Operator):
             return {'RUNNING_MODAL'}
         else:
             return context.window_manager.invoke_props_dialog(self)
-
-
-class SB_OT_sprite_reload_all(bpy.types.Operator):
-    bl_idname = "pribambase.sprite_reload_all"
-    bl_label = "Reload All Sprites"
-    bl_description = "Update data for all sprite textures from their original files"
-    bl_options = {'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        return addon.connected
-
-    def execute(self, context):
-        images = []
-
-        for img in bpy.data.images:
-            if img.sb_props.source:
-                if os.path.exists(img.sb_props.source_abs):
-                    images.append((img.sb_props.sync_name, img.sb_props.sync_flags))
-                else:
-                    self.report({'INFO'}, f"Image {img.name} skipped: file '{img.sb_props.source_abs}' does not exist")
-
-        addon.server.send(encode.peek(images))
-        return {'FINISHED'}
 
 
 _uv_map_enum_items_ref = None
@@ -534,5 +510,5 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
 
 
 def menu_mesh_add(self, context):
-    self.layout.operator("pribambase.sprite_add", text="Sprite", icon='ALIASED')
-    self.layout.operator("pribambase.sprite_add", text="Sprite (File)", icon='ALIASED').from_file=True
+    self.layout.operator("pribambase.plane_add", text="Sprite", icon='ALIASED')
+    self.layout.operator("pribambase.plane_add", text="Sprite (File)", icon='ALIASED').from_file=True

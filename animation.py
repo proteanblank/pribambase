@@ -34,7 +34,7 @@ import os.path
 
 from .messaging import encode
 from .addon import addon
-from .image import SB_OT_open_sprite
+from .image import SB_OT_sprite_open
 from . import util
 from . import modify
 from . import ase
@@ -58,8 +58,8 @@ def sb_msgbus_anim_data_callback():
         for fcurve in obj.animation_data.action.fcurves:
             fcurve.data_path += ""
 
-class SB_OT_set_action_preview(bpy.types.Operator):
-    bl_idname = "pribambase.set_action_preview"
+class SB_OT_action_preview_set(bpy.types.Operator):
+    bl_idname = "pribambase.action_preview_set"
     bl_label = "Tag Preview"
     bl_description = "Lock timeline preview range to selected tag action"
     
@@ -89,8 +89,8 @@ class SB_OT_set_action_preview(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_OT_clear_action_preview(bpy.types.Operator):
-    bl_idname = "pribambase.clear_action_preview"
+class SB_OT_action_preview_clear(bpy.types.Operator):
+    bl_idname = "pribambase.action_preview_clear"
     bl_label = "Cancel Action Preview"
     bl_description = "Stop locking timeline preview range to action length"
     
@@ -117,8 +117,8 @@ class SB_UL_animations(bpy.types.UIList):
             layout.label(text="", icon='DECORATE_LINKED')
 
 
-class SB_PT_panel_animation(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_animation"
+class SB_PT_animation(bpy.types.Panel):
+    bl_idname = "SB_PT_animation"
     bl_label = "Sprite"
     bl_category = "Item"
     bl_space_type = "VIEW_3D"
@@ -180,7 +180,7 @@ class SB_PT_panel_animation(bpy.types.Panel):
             
             if addon.state.action_preview_enabled:
                 active_picked = (context.active_object == addon.state.action_preview)
-                row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
-                row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
+                row.operator("pribambase.action_preview_set", icon='EYEDROPPER', text="", depress=active_picked)
+                row.operator("pribambase.action_preview_clear", icon='PREVIEW_RANGE', text="", depress=True)
             else:
-                row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
+                row.operator("pribambase.action_preview_set", icon='PREVIEW_RANGE', text="")

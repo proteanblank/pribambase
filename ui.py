@@ -27,8 +27,8 @@ import bpy
 from .addon import addon
 
 
-class SB_OT_set_grid(bpy.types.Operator):
-    bl_idname = "pribambase.set_grid"
+class SB_OT_grid_set(bpy.types.Operator):
+    bl_idname = "pribambase.grid_set"
     bl_label = "Set Pixel Grid"
     bl_description = "Set grid step in every viewport"
     
@@ -61,8 +61,8 @@ class SB_OT_set_grid(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 
-class SB_PT_panel_link(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_link_3d"
+class SB_PT_link(bpy.types.Panel):
+    bl_idname = "SB_PT_link"
     bl_label = "Sync"
     bl_category = "Tool"
     bl_space_type = "VIEW_3D"
@@ -90,9 +90,9 @@ class SB_PT_panel_link(bpy.types.Panel):
         row = row.row(align=True)
         row.alignment = 'RIGHT'
         if addon.server_up:
-            row.operator("pribambase.stop_server", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
+            row.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
-            row.operator("pribambase.start_server", text="Connect", icon="DECORATE_LINKED")
+            row.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
         row.menu("SB_MT_global", icon='DOWNARROW_HLT', text="")
 
 
@@ -102,7 +102,7 @@ class SB_MT_global(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("pribambase.set_grid")
+        layout.operator("pribambase.grid_set")
         layout.separator()
         layout.operator("pribambase.sprite_reload_all")
         layout.separator()

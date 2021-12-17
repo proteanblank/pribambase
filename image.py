@@ -44,8 +44,8 @@ UV_DEST = [
 ]
 
 
-class SB_OT_send_uv(bpy.types.Operator):
-    bl_idname = "pribambase.set_uv"
+class SB_OT_uv_send(bpy.types.Operator):
+    bl_idname = "pribambase.uv_send"
     bl_label = "Send UV"
     bl_description = "Show UV in Aseprite"
 
@@ -221,8 +221,8 @@ class SB_OT_send_uv(bpy.types.Operator):
 
 
 
-class SB_OT_open_sprite(bpy.types.Operator):
-    bl_idname = "pribambase.open_sprite"
+class SB_OT_sprite_open(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_open"
     bl_label = "Open..."
     bl_description = "Set up a texture from a file using Aseprite"
     bl_options = {'UNDO'}
@@ -284,8 +284,8 @@ class SB_OT_open_sprite(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class SB_OT_new_sprite(bpy.types.Operator):
-    bl_idname = "pribambase.new_sprite"
+class SB_OT_sprite_new(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_new"
     bl_label = "New"
     bl_description = "Set up a new texture using Aseprite"
     bl_options={'UNDO'}
@@ -349,8 +349,8 @@ class SB_OT_new_sprite(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 
-class SB_OT_edit_sprite(bpy.types.Operator):
-    bl_idname = "pribambase.edit_sprite"
+class SB_OT_sprite_edit(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_edit"
     bl_label = "Edit"
     bl_description = "Open the file for this texture with Aseprite"
 
@@ -385,8 +385,8 @@ class SB_OT_edit_sprite(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_OT_edit_sprite_copy(bpy.types.Operator):
-    bl_idname = "pribambase.edit_sprite_copy"
+class SB_OT_sprite_edit_copy(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_edit_copy"
     bl_label = "Edit Copy"
     bl_description = "Open copy of the image in a new file in Aseprite, without syncing"
 
@@ -414,9 +414,9 @@ class SB_OT_edit_sprite_copy(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_OT_purge_sprite(bpy.types.Operator):
+class SB_OT_sprite_purge(bpy.types.Operator):
     bl_label = "Purge"
-    bl_idname = "pribambase.purge_sprite"
+    bl_idname = "pribambase.sprite_purge"
     bl_description = "Erase sprite-related data created by the plugin. Can remove unwanted animation setups"
     bl_options = {'UNDO'}
 
@@ -518,9 +518,9 @@ class SB_OT_purge_sprite(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 
-class SB_OT_replace_sprite(bpy.types.Operator):
+class SB_OT_sprite_replace(bpy.types.Operator):
     bl_description = "Replace current texture with a file using Aseprite"
-    bl_idname = "pribambase.replace_sprite"
+    bl_idname = "pribambase.sprite_replace"
     bl_label = "Replace..."
     bl_options = {'UNDO'}
 
@@ -559,8 +559,8 @@ class SB_OT_replace_sprite(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class SB_OT_make_animated(bpy.types.Operator):
-    bl_idname = "pribambase.make_animated"
+class SB_OT_sprite_make_animated(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_make_animated"
     bl_label = "Enable Animation"
     bl_description = "Mark the image as animated, same as checking Animated in aseprite popup. Takes effect immediately if Aseprite is connected, or next time it connects"
     bl_options = {'UNDO'}
@@ -578,33 +578,57 @@ class SB_OT_make_animated(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_MT_menu_2d(bpy.types.Menu):
+class SB_OT_sprite_reload_all(bpy.types.Operator):
+    bl_idname = "pribambase.sprite_reload_all"
+    bl_label = "Reload All Sprites"
+    bl_description = "Update data for all sprite textures from their original files"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return addon.connected
+
+    def execute(self, context):
+        images = []
+
+        for img in bpy.data.images:
+            if img.sb_props.source:
+                if path.exists(img.sb_props.source_abs):
+                    images.append((img.sb_props.sync_name, img.sb_props.sync_flags))
+                else:
+                    self.report({'INFO'}, f"Image {img.name} skipped: file '{img.sb_props.source_abs}' does not exist")
+
+        addon.server.send(encode.peek(images))
+        return {'FINISHED'}
+
+
+class SB_MT_sprite(bpy.types.Menu):
     bl_label = "Sprite"
-    bl_idname = "SB_MT_menu_2d"
+    bl_idname = "SB_MT_sprite"
 
     def draw(self, context):
         layout = self.layout
 
         if not addon.connected:
-            layout.operator("pribambase.start_server", icon="ERROR")
+            layout.operator("pribambase.server_start", icon="ERROR")
             layout.separator()
 
-        layout.operator("pribambase.new_sprite", icon='FILE_NEW')
-        layout.operator("pribambase.open_sprite", icon='FILE_FOLDER')
-        layout.operator("pribambase.edit_sprite", icon='GREASEPENCIL')
-        layout.operator("pribambase.edit_sprite_copy")
-        layout.operator("pribambase.replace_sprite")
+        layout.operator("pribambase.sprite_new", icon='FILE_NEW')
+        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER')
+        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL')
+        layout.operator("pribambase.sprite_edit_copy")
+        layout.operator("pribambase.sprite_replace")
         layout.separator()
-        layout.operator("pribambase.make_animated")
-        layout.operator("pribambase.set_uv", icon='UV_VERTEXSEL')
+        layout.operator("pribambase.sprite_make_animated")
+        layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL')
 
 
     def header_draw(self, context):
         # deceiptively, self is not the menu here but the header
-        self.layout.menu("SB_MT_menu_2d")
+        self.layout.menu("SB_MT_sprite")
 
 
-class SB_PT_panel_sprite(bpy.types.Panel):
+class SB_PT_sprite(bpy.types.Panel):
     bl_idname = "SB_PT_sprite"
     bl_label = "Sprite"
     bl_category = "Image"
@@ -636,4 +660,4 @@ class SB_PT_panel_sprite(bpy.types.Panel):
             row.enabled = False
             row.prop(context.edit_image.sb_props, "sheet")
 
-        sprite.operator("pribambase.purge_sprite", icon='TRASH', text="")
+        sprite.operator("pribambase.sprite_purge", icon='TRASH', text="")
