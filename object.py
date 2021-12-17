@@ -442,6 +442,14 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
         # try updating the material
         if self.update_nodes and obj.active_material and obj.active_material.use_nodes:
+            if obj.active_material.users > 1:
+                # duplicate the mat so it doesn't break the rest of the objects using it
+                mat_name = obj.active_material.name + " *Sheet*"
+                if mat_name not in bpy.data.materials:
+                    mat = obj.active_material.copy()
+                    mat.name = mat_name
+                obj.active_material = bpy.data.materials[mat_name]
+
             for node in obj.active_material.node_tree.nodes:
                 if node.bl_idname == 'ShaderNodeTexImage' and node.image == img:
                     node.image = img.sb_props.sheet
