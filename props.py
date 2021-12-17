@@ -28,6 +28,7 @@ import os.path
 
 from .addon import addon
 from . import util
+from . import modify
 
 
 def get_identifier(self):
@@ -202,10 +203,11 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
 
     prescale: bpy.props.IntProperty(
         name="Pre-scale",
-        description="Scale the sprite by this factor for blender images",
+        description="Scale the sprite by this factor for blender images. Will modify the image when changed!!",
         min=1,
         max=20,
-        default=1)
+        default=1,
+        update=lambda self, context: modify.prescale(self.id_data))
 
     prescale_size: bpy.props.IntVectorProperty(
         name="Orignal Size",

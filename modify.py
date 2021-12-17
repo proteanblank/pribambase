@@ -93,12 +93,14 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
 
         for img in bpy.data.images:
             if name == img.sb_props.sync_name:
+                prescale = img.sb_props.prescale
+
                 if not img.has_data:
                     # load *some* data so that the image can be updated
                     util.pack_empty_png(img)
 
-                if img.size != (w, h):
-                    img.scale(w, h)
+                if img.size != (w * prescale, h * prescale):
+                    img.scale(w * prescale, h * prescale)
 
                 if frame != -1:
                     img.sb_props.frame = frame
@@ -108,13 +110,19 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                     flags.remove('SHEET')
                     img.sb_props.sync_flags = flags
 
+                img_pixels = pixels
+                if prescale > 1:
+                    img_pixels.shape = (h, w, 4)
+                    img_pixels = img_pixels.repeat(prescale, 1).repeat(prescale, 0)
+                    img_pixels = img_pixels.ravel()
+
                 # change blender data
                 try:
                     # version >= 2.83; this is much faster
-                    img.pixels.foreach_set(pixels)
+                    img.pixels.foreach_set(img_pixels)
                 except AttributeError:
                     # version < 2.83
-                    img.pixels[:] = pixels
+                    img.pixels[:] = img_pixels
 
                 img.update()
                 # [#12] for some users viewports do not update from update() alone

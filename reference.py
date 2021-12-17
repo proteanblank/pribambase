@@ -140,7 +140,7 @@ class SB_OT_reference_reload(bpy.types.Operator):
 class SB_OT_reference_rescale(bpy.types.Operator):
     bl_idname = "pribambase.reference_rescale"
     bl_label = "Refresh Scale"
-    bl_description = "Refresh reference scaling without reloading the image"
+    bl_description = "Restore reference scaling without reloading the image"
     bl_options = {'UNDO'}
 
 
