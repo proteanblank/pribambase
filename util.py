@@ -20,8 +20,6 @@
 
 import bpy
 import os
-from os import path
-import tempfile
 import numpy as np
 import re
 import binascii
@@ -97,14 +95,13 @@ def image_name(img):
     return name
 
 
-_empty_png = binascii.a2b_base64(r'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
-_empty_png_len = len(_empty_png)
-
 def pack_empty_png(image:bpy.types.Image):
     """Load 1x1 ARGB png to the image and pack it"""
+    # Do NOT optimize the png. It might set flags that break color after reloading, and they are hard to fix for users.
+    contents = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x04\x00\x00\x00\xb5\x1c\x0c\x02\x00\x00\x00\x0bIDATx\xdacd`\x00\x00\x00\x06\x00\x020\x81\xd0/\x00\x00\x00\x00IEND\xaeB`\x82"
     image.filepath_raw = ""
     image.use_fake_user = addon.prefs.use_fake_users
-    image.pack(data=_empty_png, data_len=_empty_png_len)
+    image.pack(data=contents, data_len=len(contents))
 
 
 _update_image_args = None
