@@ -23,12 +23,11 @@ Auxiliary functions
 """
 
 import bpy
-import os
 import re
 from typing import Collection
+from contextlib import contextmanager
 
 from .addon import addon
-
 
 def unique_name(name:str, collection:Collection[str]) -> str:
     """Imitate blender behavior for ID names. Returns the name, possibly with a numeric suffix (e.g .001), so that it doesn't match any other strings in the collection"""
@@ -105,3 +104,16 @@ class SB_OT_report(bpy.types.Operator, ModalExecuteMixin):
     def modal_execute(self, context):
         self.report({self.message_type}, self.message)
         return {'FINISHED'}
+
+
+@contextmanager
+def pause_depsgraph_updates():
+    """disable depsgraph listener in the context"""
+    from . import sb_on_depsgraph_update_post
+    assert sb_on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post
+
+    bpy.app.handlers.depsgraph_update_post.remove(sb_on_depsgraph_update_post)
+    try:
+        yield None
+    finally:
+        bpy.app.handlers.depsgraph_update_post.append(sb_on_depsgraph_update_post)

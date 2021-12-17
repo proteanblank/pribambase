@@ -25,9 +25,7 @@ from glob import glob
 thirdparty = path.join(path.dirname(__file__), "thirdparty", "*.whl")
 sys.path += glob(thirdparty)
 
-
 from bpy.app.handlers import persistent
-from contextlib import contextmanager
 
 from .async_loop import *
 from .props import *
@@ -264,15 +262,3 @@ def sb_on_depsgraph_update_post(scene):
             if addon.server_up:
                 lst = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images]
                 addon.server.send(encode.texture_list(addon.state.identifier, lst))
-
-
-@contextmanager
-def pause_depsgraph_updates():
-    """disable depsgraph listener in the context"""
-    assert sb_on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post
-
-    bpy.app.handlers.depsgraph_update_post.remove(sb_on_depsgraph_update_post)
-    try:
-        yield None
-    finally:
-        bpy.app.handlers.depsgraph_update_post.append(sb_on_depsgraph_update_post)

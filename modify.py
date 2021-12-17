@@ -26,7 +26,8 @@ import bpy
 import numpy as np
 from typing import Collection, Tuple
 
-from .util import ModalExecuteMixin, pack_empty_png, refresh
+from . import util
+from .util import ModalExecuteMixin
 from .addon import addon
 
 
@@ -94,7 +95,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
             if name == img.sb_props.sync_name:
                 if not img.has_data:
                     # load *some* data so that the image can be updated
-                    pack_empty_png(img)
+                    util.pack_empty_png(img)
 
                 if img.size != (w, h):
                     img.scale(w, h)
@@ -119,7 +120,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 # [#12] for some users viewports do not update from update() alone
                 img.update_tag()
 
-        refresh()
+        util.refresh()
 
         self.args = None
         global _update_image_args
@@ -320,11 +321,10 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                     tex_name = sheet.name
                 except AttributeError:
                     tex_name = img.name + " *Sheet*"
-                    from . import pause_depsgraph_updates
-                    with pause_depsgraph_updates():
+                    with util.pause_depsgraph_updates():
                         if tex_name not in bpy.data.images:
                             tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
-                            pack_empty_png(tex)
+                            util.pack_empty_png(tex)
                     sheet = img.sb_props.sheet = bpy.data.images[tex_name]
 
                 sheet.sb_props.is_sheet = True
@@ -457,10 +457,9 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
         if self.path:
             bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=False)
         else:
-            from . import pause_depsgraph_updates
-            with pause_depsgraph_updates():
+            with util.pause_depsgraph_updates():
                 img = bpy.data.images.new(self.name, 1, 1, alpha=True)
-                pack_empty_png(img)
+                util.pack_empty_png(img)
                 img.sb_props.source=self.name
             bpy.ops.pribambase.send_texture_list()
 
