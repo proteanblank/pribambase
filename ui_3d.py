@@ -45,16 +45,18 @@ def prescale(image:bpy.types.Image):
     scale = image.sb_props.prescale
     presize = image.sb_props.prescale_size
     desample = max(w // presize[0], 1)
-    px = np.array(image.pixels, dtype=np.float32)
-    px.shape = (h, w, 4)
 
     if desample != h // presize[1]:
         raise ValueError("The image is unevenly scaled")
-
+    
     if desample == scale:
         # already scaled as we want it to
         return
-    elif desample > 1:
+
+    px = np.array(image.pixels, dtype=np.float32)
+    px.shape = (h, w, 4)
+    
+    if desample > 1:
         px = px[::desample,::desample,:]
     px = px.repeat(scale, 1).repeat(scale, 0)
 
