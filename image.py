@@ -149,7 +149,7 @@ class SB_OT_send_uv(bpy.types.Operator):
         source = ""
 
         if self.destination == 'texture':
-            source = util.image_name(context.area.spaces.active.image)
+            source = context.area.spaces.active.image.sb_props.sync_name
 
         aa = addon.prefs.uv_aa
         weight = self.weight
@@ -365,7 +365,7 @@ class SB_OT_edit_sprite(bpy.types.Operator):
         img = context.edit_image
         if img.sb_props.is_sheet:
             img = next((i for i in bpy.data.images if i.sb_props.sheet == img), img)
-        edit_name = util.image_name(img)
+        edit_name = img.sb_props.sync_name
         msg = None
 
         if path.exists(edit_name):
@@ -573,7 +573,7 @@ class SB_OT_make_animated(bpy.types.Operator):
     def execute(self, context):
         img = context.edit_image
         img.sb_props.sync_flags = {'SHEET', *img.sb_props.sync_flags}
-        msg = encode.sprite_open(util.image_name(img), img.sb_props.sync_flags)
+        msg = encode.sprite_open(img.sb_props.sync_name, img.sb_props.sync_flags)
         addon.server.send(msg)
         return {'FINISHED'}
 

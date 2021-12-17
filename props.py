@@ -18,6 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""
+Addon-related data structures and type properties
+"""
+
 import bpy
 import secrets
 import os.path
@@ -173,8 +177,7 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         items=_enum_tag_actions,
         get=lambda self : next((it[4] for it in _enum_tag_action_items if self.id_data.animation_data and self.id_data.animation_data.action 
                 and self.id_data.animation_data.action.name == it[0]), 0),
-        set=_set_animation_tag
-    )
+        set=_set_animation_tag)
 
 
     def animations_new(self, name:str) -> SB_SheetAnimation:
@@ -187,7 +190,6 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         idx = self.animations.find(item.name)
         assert idx > -1, "Item not in the collection"
         self.animations.remove(idx)
-
 
 
 class SB_ImageProperties(bpy.types.PropertyGroup):
@@ -268,6 +270,20 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
             self.source = bpy.path.relpath(source)
         else:
             self.source = os.path.normpath(source)
+
+    @property
+    def sync_name(self):
+        img = self.id_data
+        fp = img.filepath
+        name = img.name
+
+        if img.sb_props.source:
+            name = os.path.normpath(img.sb_props.source_abs)
+
+        elif not img.packed_file and fp:
+            name = os.path.normpath(bpy.path.abspath(fp) if fp.startswith("//") else fp)
+
+        return name
 
 
 class SB_ActionProperties(bpy.types.PropertyGroup):

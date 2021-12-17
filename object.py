@@ -18,56 +18,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import math
+"""
+Working with objects (mesh, material, sprites, ...)
+"""
+
 import bpy
 from bpy.app.translations import pgettext
-import numpy as np
-from math import pi
-from mathutils import Matrix
 from bpy_extras import object_utils
 import os.path
 
-
 from .messaging import encode
 from .addon import addon
-from .ui_2d import SB_OT_open_sprite
+from .image import SB_OT_open_sprite
 from . import util
+from . import modify
 from . import ase
-
-
-def prescale(image:bpy.types.Image):
-    """Scale image in-place without filtering"""
-
-    if image.sb_props.prescale_size[0] < 1:
-        image.sb_props.prescale_size = image.size
-
-    w, h = image.size
-    scale = image.sb_props.prescale
-    presize = image.sb_props.prescale_size
-    desample = max(w // presize[0], 1)
-
-    if desample != h // presize[1]:
-        raise ValueError("The image is unevenly scaled")
-    
-    if desample == scale:
-        # already scaled as we want it to
-        return
-
-    px = np.array(image.pixels, dtype=np.float32)
-    px.shape = (h, w, 4)
-    
-    if desample > 1:
-        px = px[::desample,::desample,:]
-    px = px.repeat(scale, 1).repeat(scale, 0)
-
-    image.scale((w // desample) * scale, (h // desample) * scale)
-    try:
-        # version >= 2.83
-        image.pixels.foreach_set(px.ravel())
-    except AttributeError:
-        # version < 2.83
-        image.pixels[:] = px.ravel()
-    image.update()
 
 
 # Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
@@ -374,223 +339,6 @@ class SB_OT_sprite_add(bpy.types.Operator):
             return context.window_manager.invoke_props_dialog(self)
 
 
-class SB_OT_reference_add(bpy.types.Operator):
-    bl_idname = "pribambase.reference_add"
-    bl_label = "Add Reference"
-    bl_description = "Add reference image with pixels aligned to the view grid"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    facing: bpy.props.EnumProperty(
-        name="Facing",
-        description="Image orientation, follows the opposite naming to camera shortcuts, so e.g. picking Top means the image will be facing Top camera view",
-        items=(
-            ('YNEG', "Front", "Negative Y axis"),
-            ('YPOS', "Back", "Positive Y axis"),
-            ('XNEG', "Left", "Negative X axis"),
-            ('XPOS', "Right", "Positive X axis"),
-            ('ZPOS', "Top", "Positive Z axis"),
-            ('ZNEG', "Bottom", "Negative Z axis")),
-        default='YNEG')
-
-    scale: bpy.props.IntProperty(
-        name="Pre-scale",
-        description="Pre-scale the image",
-        default=10,
-        min=1,
-        max=50)
-
-    opacity: bpy.props.FloatProperty(
-        name="Opacity",
-        description="Image's viewport opacity",
-        default=0.33,
-        min=0.0,
-        max=1.0,
-        subtype='FACTOR')
-
-    selectable: bpy.props.BoolProperty(
-        name="Selectable",
-        description="If checked, the image can be selected in the viewport, otherwise only in the outliner",
-        default=True)
-
-    # dialog
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-    filter_glob: bpy.props.StringProperty(default="*.bmp;*.png", options={'HIDDEN'})
-    use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
-
-
-    @classmethod
-    def poll(self, context):
-        return not context.active_object or context.active_object.mode == 'OBJECT'
-
-
-    def invoke(self, context, event):
-        self.invoke_context = context
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
-    def execute(self, context):
-        image = bpy.data.images.load(self.filepath)
-        w, h = image.size
-        image.sb_props.prescale = self.scale
-        prescale(image)
-
-        bpy.ops.object.add(align='WORLD', rotation=(pi/2, 0, 0), location = (0, 0, 0))
-        ref = context.active_object
-        ref.data = image
-        ref.empty_display_type = 'IMAGE'
-        ref.use_empty_image_alpha = True
-        ref.color[3] = self.opacity
-        ref.empty_display_size = max(w, h) * context.space_data.overlay.grid_scale
-        if not self.selectable:
-            ref.hide_select = True
-            self.report({'INFO'}, "The reference won't be selectable. Use the outliner to reload or delete it")
-        
-        if self.facing == 'YPOS':
-            ref.matrix_basis @=  Matrix.Rotation(math.pi, 4, (0,1,0))
-        elif self.facing == 'XNEG':
-            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (0,-1,0))
-        elif self.facing == 'XPOS':
-            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (0,1,0))
-        elif self.facing == 'ZPOS':
-            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (-1,0,0))
-        elif self.facing == 'ZNEG':
-            ref.matrix_basis @=  Matrix.Rotation(math.pi/2, 4, (1,0,0))
-
-        return {'FINISHED'}
-
-
-class SB_OT_reference_reload(bpy.types.Operator):
-    bl_idname = "pribambase.reference_reload"
-    bl_label = "Reload Reference"
-    bl_description = "Reload reference while keeping it prescaled"
-    bl_options = {'UNDO'}
-
-
-    @classmethod
-    def poll(self, context):
-        return context.active_object and context.active_object.type == 'EMPTY' \
-                and context.active_object.empty_display_type == 'IMAGE'
-
-
-    def execute(self, context):
-        image = context.active_object.data
-        image.reload()
-        image.sb_props.prescale_size = (-1, -1)
-        prescale(image)
-
-        return {'FINISHED'}
-
-
-class SB_OT_reference_rescale(bpy.types.Operator):
-    bl_idname = "pribambase.reference_rescale"
-    bl_label = "Refresh Scale"
-    bl_description = "Refresh reference scaling without reloading the image"
-    bl_options = {'UNDO'}
-
-
-    @classmethod
-    def poll(self, context):
-        return context.active_object and context.active_object.type == 'EMPTY' \
-                and context.active_object.empty_display_type == 'IMAGE'
-
-
-    def execute(self, context):
-        ref = context.active_object
-        prescale(ref.data)
-        return {'FINISHED'}
-
-
-class SB_OT_reference_replace(bpy.types.Operator):
-    bl_idname = "pribambase.reference_replace"
-    bl_label = "Replace Reference"
-    bl_description = "Replace reference image, keep it aligned to pixel grid"
-    bl_options = {'UNDO'}
-
-    scale: bpy.props.IntProperty(
-        name="Pre-scale",
-        description="Pre-scale the image",
-        default=10,
-        min=1,
-        max=50)
-
-    opacity: bpy.props.FloatProperty(
-        name="Opacity",
-        description="Image's viewport opacity",
-        default=0.33,
-        min=0.0,
-        max=1.0,
-        subtype='FACTOR')
-
-    # dialog
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-    filter_glob: bpy.props.StringProperty(default="*.bmp;*.png", options={'HIDDEN'})
-    use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
-
-
-    @classmethod
-    def poll(self, context):
-        return context.active_object and context.active_object.type == 'EMPTY' \
-            and context.active_object.empty_display_type == 'IMAGE'
-
-
-    def invoke(self, context, event):
-        self.invoke_context = context
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
-    def execute(self, context):
-        image = bpy.data.images.load(self.filepath)
-        w, h = image.size
-        image.sb_props.prescale = self.scale
-        image.sb_props.prescale_size = (-1, -1)
-        prescale(image)
-
-        ref = context.active_object
-        ref.data = image
-        ref.use_empty_image_alpha = self.opacity < 1.0
-        ref.color[3] = self.opacity
-        ref.empty_display_size = max(w, h) * context.space_data.overlay.grid_scale
-
-        return {'FINISHED'}
-
-
-class SB_OT_reference_reload_all(bpy.types.Operator):
-    bl_idname = "pribambase.reference_reload_all"
-    bl_label = "Reload References"
-    bl_description = "Reload all references (including non-pribamabase's), while keeping them prescaled"
-    bl_options = {'UNDO'}
-
-    def execute(self, context):
-        for obj in bpy.data.objects:
-            if obj.type == 'EMPTY' and obj.empty_display_type == 'IMAGE':
-                image = obj.data
-                image.reload()
-                image.sb_props.prescale_size = (-1, -1)
-                prescale(image)
-
-        return {'FINISHED'}
-
-
-class SB_OT_reference_freeze_all(bpy.types.Operator):
-    bl_idname = "pribambase.reference_freeze_all"
-    bl_label = "Lock All References"
-    bl_description = "Make all references unselectabe (including non-pribamabase's)"
-    bl_options = {'UNDO'}
-
-    invert: bpy.props.BoolProperty(
-        name="Invert",
-        description="Make all references selectable instead")
-
-    def execute(self, context):
-        for obj in bpy.data.objects:
-            if obj.type == 'EMPTY' and obj.empty_display_type == 'IMAGE':
-                obj.hide_select = not self.invert
-
-        return {'FINISHED'}
-
-
 class SB_OT_sprite_reload_all(bpy.types.Operator):
     bl_idname = "pribambase.sprite_reload_all"
     bl_label = "Reload All Sprites"
@@ -607,7 +355,7 @@ class SB_OT_sprite_reload_all(bpy.types.Operator):
         for img in bpy.data.images:
             if img.sb_props.source:
                 if os.path.exists(img.sb_props.source_abs):
-                    images.append((util.image_name(img), img.sb_props.sync_flags))
+                    images.append((img.sb_props.sync_name, img.sb_props.sync_flags))
                 else:
                     self.report({'INFO'}, f"Image {img.name} skipped: file '{img.sb_props.source_abs}' does not exist")
 
@@ -702,7 +450,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         uvwarp.uv_layer = "" if self.uv_map == "__none__" else self.uv_map
         uvwarp.center = (0.0, 1.0)
         
-        util.update_sheet_animation(anim)
+        modify.sheet_animation(anim)
 
         # revive the curves if needed
         if obj.animation_data and obj.animation_data.action:
@@ -737,7 +485,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             return {'CANCELLED'}
         
         return context.window_manager.invoke_props_dialog(self)
-
 
 
 class SB_OT_spritesheet_unrig(bpy.types.Operator):
@@ -785,272 +532,6 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
 
         return {'FINISHED'}
 
-
-action = ""
-msgbus_anim_data_callback_owner = object()
-def sb_msgbus_anim_data_callback():
-    global action
-    scene = bpy.context.scene
-    obj = addon.state.action_preview
-
-    if not scene.use_preview_range or not obj:
-        bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner)
-        return
-
-    if obj.animation_data.action != action:
-        action = obj.animation_data.action.name
-        scene.frame_preview_start, scene.frame_preview_end = addon.state.action_preview.animation_data.action.frame_range
-        # try to revive the curves
-        for fcurve in obj.animation_data.action.fcurves:
-            fcurve.data_path += ""
-
-
-class SB_OT_set_action_preview(bpy.types.Operator):
-    bl_idname = "pribambase.set_action_preview"
-    bl_label = "Tag Preview"
-    bl_description = "Lock timeline preview range to selected tag action"
-    
-    @classmethod
-    def poll(cls, context):
-        return context.active_object and context.active_object.type == 'MESH' and \
-            context.active_object.animation_data and context.active_object.animation_data.action and \
-            not context.active_object == addon.state.action_preview
-    
-    def execute(self, context):
-        # NOTE when using self here, note that this method is directly invoked during scene initialization
-        scene = context.scene
-        obj = context.active_object
-        addon.state.action_preview = obj
-        addon.state.action_preview_enabled = True
-        scene.use_preview_range = True
-        scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
-
-        bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner) # try to unsub in case we're changing the object
-        bpy.msgbus.subscribe_rna(
-            key=bpy.context.active_object.animation_data,
-            owner=msgbus_anim_data_callback_owner,
-            args=tuple(),
-            notify=sb_msgbus_anim_data_callback,
-            options={'PERSISTENT'})
-
-        return {'FINISHED'}
-
-
-
-class SB_OT_clear_action_preview(bpy.types.Operator):
-    bl_idname = "pribambase.clear_action_preview"
-    bl_label = "Cancel Action Preview"
-    bl_description = "Stop locking timeline preview range to action length"
-    
-    @classmethod
-    def poll(cls, context):
-        scene = context.scene
-        return addon.state.action_preview_enabled and scene.use_preview_range
-    
-    def execute(self, context):
-        scene = context.scene
-        addon.state.action_preview = None
-        addon.state.action_preview_enabled = False
-        scene.use_preview_range = False
-        bpy.msgbus.clear_by_owner(msgbus_anim_data_callback_owner)
-        return {'FINISHED'}
-
-
-class SB_OT_set_grid(bpy.types.Operator):
-    bl_idname = "pribambase.set_grid"
-    bl_label = "Set Pixel Grid"
-    bl_description = "Set grid step in every viewport"
-    
-
-    step: bpy.props.FloatProperty(
-        name="Density (px/m)",
-        description="Grid step in pixels. It's inverse of what viewport uses",
-        default=10)
-    
-
-    def execute(self, context):
-        if not context or not context.window_manager:
-            return {'CANCELLED'}
-
-        context.scene.unit_settings.system = 'NONE'
-        # looong looong
-        for wsp in bpy.data.workspaces:
-            for screen in wsp.screens:
-                for area in screen.areas:
-                    if area.type == 'VIEW_3D':
-                        for space in area.spaces:
-                            if space.type == 'VIEW_3D':
-                                space.overlay.grid_subdivisions = 1
-                                space.overlay.grid_scale = 1/self.step
-
-        return {'FINISHED'}
-    
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-
-
-
-class SB_UL_animations(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(item, "name", text="", emboss=False, icon = 'BLANK1' if item.is_intact() else 'ERROR')
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label(text="", icon='DECORATE_LINKED')
-
-
-class SB_PT_panel_animation(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_animation"
-    bl_label = "Sprite"
-    bl_category = "Item"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_order = 476
-
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object and context.active_object.type == 'MESH'
-
-
-    def draw(self, context):        
-        if context.active_object and context.active_object.type == 'MESH':
-            layout = self.layout
-            obj = context.active_object
-            
-            if not obj.active_material:
-                layout.row().operator("pribambase.material_add", icon='ADD')
-
-            layout.row().label(text="Animation:")
-
-            # Info
-            row = layout.row()
-            row.alignment = 'CENTER'
-            if next((False for img in bpy.data.images if img.sb_props.sheet), True):
-                row.label(text="No synced sprites have animations", icon='INFO')
-            elif not obj.sb_props.animations:
-                row.label(text="Press \"+\" to set up 2D animation", icon='INFO')
-            row = layout.row()
-            row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
-
-            col = row.column(align=True)
-            col.operator("pribambase.spritesheet_rig", icon='ADD', text="")
-            col.operator("pribambase.spritesheet_unrig", icon='REMOVE', text="")
-
-            try:
-                anim = obj.sb_props.animations[obj.sb_props.animation_index]
-                prop_name = anim.prop_name
-
-                if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
-                    layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
-                elif prop_name not in obj.modifiers:
-                    layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
-                elif prop_name not in obj:
-                    layout.row().label(text="Object property was removed or renamed", icon='ERROR')
-                else:
-                    layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
-
-            except IndexError:
-                pass # no selected animation
-
-            row = layout.row(align=True)
-            row.enabled = bool(obj.animation_data)
-
-            sub = row.column()
-            sub.enabled = bool(obj.sb_props.animations and obj.sb_props.animation_index > -1)
-            sub.prop(obj.sb_props, "animation_tag_setter", text="Tag", text_ctxt="ase")
-            
-            if addon.state.action_preview_enabled:
-                active_picked = (context.active_object == addon.state.action_preview)
-                row.operator("pribambase.set_action_preview", icon='EYEDROPPER', text="", depress=active_picked)
-                row.operator("pribambase.clear_action_preview", icon='PREVIEW_RANGE', text="", depress=True)
-            else:
-                row.operator("pribambase.set_action_preview", icon='PREVIEW_RANGE', text="")
-
-
-class SB_PT_panel_reference(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_reference"
-    bl_label = "Reference"
-    bl_category = "Item"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object and context.active_object.type == 'EMPTY' and context.active_object.empty_display_type == 'IMAGE'
-
-
-    def draw(self, context):
-        layout = self.layout
-        obj = context.active_object
-        img = obj.data
-        layout.row().template_ID(obj, "data", unlink="object.unlink_data", open="pribambase.reference_replace")
-        row = layout.row(align=True)
-        row.operator("pribambase.reference_rescale", icon='FULLSCREEN_ENTER', text="Rescale")
-        row.operator("pribambase.reference_reload", icon='FILE_REFRESH', text="Reload")
-        if img:
-            layout.row().prop(img.sb_props, "prescale")
-        layout.row().prop(obj, "color", text="Opacity", index=3, slider=True)
-        layout.row().prop(obj, "hide_select", toggle=False)
-
-
-
-class SB_PT_panel_link(bpy.types.Panel):
-    bl_idname = "SB_PT_panel_link_3d"
-    bl_label = "Sync"
-    bl_category = "Tool"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-
-
-    def draw(self, context):
-        layout = self.layout
-
-        row = layout.row()
-        status = "Off"
-        icon = 'UNLINKED'
-        if addon.connected:
-            status = "Connected"
-            icon = 'CHECKMARK'
-        elif addon.server_up:
-            status = "Waiting..."
-            icon = 'SORTTIME'
-
-        if bpy.app.version < (2, 81):
-            icon = 'NONE' # :\
-
-        row.label(text=status, icon=icon)
-
-        row = row.row(align=True)
-        row.alignment = 'RIGHT'
-        if addon.server_up:
-            row.operator("pribambase.stop_server", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
-        else:
-            row.operator("pribambase.start_server", text="Connect", icon="DECORATE_LINKED")
-        row.menu("SB_MT_global", icon='DOWNARROW_HLT', text="")
-
-
-class SB_MT_global(bpy.types.Menu):
-    bl_label = "Pribambase"
-    bl_idname = "SB_MT_global"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.operator("pribambase.set_grid")
-        layout.separator()
-        layout.operator("pribambase.sprite_reload_all")
-        layout.separator()
-        layout.operator("pribambase.reference_reload_all")
-        layout.operator("pribambase.reference_freeze_all").invert = False
-        layout.operator("pribambase.reference_freeze_all", text="Unlock All References").invert = True
-        layout.separator()
-        layout.operator("pribambase.preferences", icon='PREFERENCES')
-
-
-def menu_reference_add(self, context):
-    self.layout.operator("pribambase.reference_add", text="Pixel Reference", icon='ALIASED')
 
 def menu_mesh_add(self, context):
     self.layout.operator("pribambase.sprite_add", text="Sprite", icon='ALIASED')

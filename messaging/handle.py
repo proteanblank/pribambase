@@ -26,7 +26,7 @@ from typing import List, Tuple, Iterable
 from . import Handler
 import numpy as np
 # TODO move into local methods
-from .. import util
+from .. import modify
 
 
 class Batch(Handler):
@@ -56,12 +56,12 @@ class Image(Handler):
         try:
             # TODO separate cases for named and anonymous sprites
             if not bpy.context.window_manager.is_interface_locked:
-                util.update_image(size[0], size[1], name, frame, data)
+                modify.image(size[0], size[1], name, frame, data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
-            util.update_image(size[0], size[1], name, frame, data)
+            modify.image(size[0], size[1], name, frame, data)
 
 
 class Spritesheet(Handler):
@@ -120,12 +120,12 @@ class Spritesheet(Handler):
 
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                util.update_spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
+                modify.spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # version 2.80... caveat emptor
-            util.update_spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
+            modify.spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
 
 
 class Frame(Handler):
@@ -143,12 +143,12 @@ class Frame(Handler):
     async def execute(self, frame:int, name:str, start:int, frames:List[Tuple[int, int]]):
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                util.update_frame(name, frame, start, frames)
+                modify.frame(name, frame, start, frames)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, frame flip skipped")
         except AttributeError:
             # version 2.80... caveat emptor
-            util.update_frame(name, frame, start, frames)
+            modify.frame(name, frame, start, frames)
 
 
 class ChangeName(Handler):

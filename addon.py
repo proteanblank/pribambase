@@ -24,7 +24,7 @@ from .messaging import Handlers
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .sync import Server
-    from .settings import SB_Preferences, SB_State
+    from .props import SB_Preferences, SB_State
 
 
 class Addon:

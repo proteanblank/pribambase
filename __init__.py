@@ -30,13 +30,16 @@ from bpy.app.handlers import persistent
 from contextlib import contextmanager
 
 from .async_loop import *
-from .settings import *
+from .props import *
 from .sync import *
-from .ui_2d import *
-from .ui_3d import *
+from .image import *
+from .ui import *
+from .object import *
+from .animation import *
+from .reference import *
+from .modify import *
 from .util import *
 from .addon import addon
-from .translations import translation
 
 
 bl_info = {
@@ -103,10 +106,32 @@ classes = (
 )
 
 
+def parse_translations():
+    translation = {}
+    for csv in glob(os.path.join("translations", "*.csv")):
+        with open(csv) as f:
+            locale,_ = os.path.splitext(os.path.split(csv)[1])
+            strings = translation[locale] = {}
+            line_number = 0
+
+            for line in f:
+                line_number += 1
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                try:
+                    ctx, en, tr, *_ = line.split(";")
+                    strings[ctx.rstrip(), en.strip()] = tr.strip()
+                except ValueError:
+                    print(f"Pribambase translation '{locale}' format error at line {line_number}:\n\t{line}")
+    return translation
+
+
 def register():
     async_loop.setup_asyncio_executor()
 
-    bpy.app.translations.register(__name__, translation)
+    bpy.app.translations.register(__name__, parse_translations())
 
     from bpy.utils import register_class
     for cls in classes:
@@ -195,10 +220,10 @@ def start():
 
 @persistent
 def sb_on_load_post(scene):
-    settings.migrate()
+    props.migrate()
 
     global _images_hv
-    _images_hv = hash(frozenset(util.image_name(img) for img in bpy.data.images))
+    _images_hv = hash(frozenset(img.sb_props.sync_name for img in bpy.data.images))
 
     bpy.ops.pribambase.reference_reload_all()
 
@@ -231,13 +256,13 @@ def sb_on_depsgraph_update_post(scene):
     dg = bpy.context.evaluated_depsgraph_get()
 
     if dg.id_type_updated('IMAGE'):
-        imgs = frozenset(util.image_name(img) for img in bpy.data.images)
+        imgs = frozenset(img.sb_props.sync_name for img in bpy.data.images)
         hv = hash(imgs)
 
         if _images_hv != hv:
             _images_hv = hv
             if addon.server_up:
-                lst = [(util.image_name(img), img.sb_props.sync_flags) for img in bpy.data.images]
+                lst = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images]
                 addon.server.send(encode.texture_list(addon.state.identifier, lst))
 
 
