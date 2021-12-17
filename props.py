@@ -356,11 +356,6 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Relative Paths",
         description="Changes how the file paths are stored. The addon stays consistent with Blender behavior, which can be changed in \"Preferences > Save & Load\"",
         get=lambda self: bpy.context.preferences.filepaths.use_relative_paths)
-
-    skip_modal: bpy.props.BoolProperty(
-        name="No modal timers",
-        description="Change the way the changes are applied to blender data. Degrades the experience but might fix some crashes",
-        default=False)
     
     whole_frames: bpy.props.BoolProperty(
         name="Round Fractional Frames",
@@ -411,7 +406,6 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box.row().prop(self, "use_fake_users")
         box.row().prop(self, "use_relative_path")
         box.row().prop(self, "whole_frames")
-        box.row().prop(self, "skip_modal")
 
 
 class SB_OT_preferences(bpy.types.Operator):
