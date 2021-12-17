@@ -562,7 +562,6 @@ else
 
 
     local function handleTextureList(msg)
-        local _id = string.unpack("<BH", msg)
         local ml = #msg
         local synced = spr and syncList[spr.filename]
         local bflen = string.unpack("<I4", msg, 2)
