@@ -36,6 +36,7 @@ from .object import *
 from .animation import *
 from .reference import *
 from .modify import *
+from .draw import *
 from .util import *
 from .addon import addon
 
@@ -91,6 +92,7 @@ classes = (
     SB_OT_spritesheet_unrig,
     SB_OT_preferences,
     SB_OT_report,
+    SB_OT_pencil,
     # Lists
     SB_UL_animations,
     # Panels
