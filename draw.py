@@ -53,6 +53,9 @@ class SB_OT_pencil(bpy.types.Operator):
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
             return {'PASS_THROUGH'}
+        
+        elif event.type == 'LEFTMOUSE':
+            self.is_drawing = event.value == 'PRESS'
 
         elif event.type == 'MOUSEMOVE':
             hit, location, face_index = self.cast_ray(context, event)
@@ -77,6 +80,15 @@ class SB_OT_pencil(bpy.types.Operator):
                                 px]
                             self.brush = [barycentric_transform(p, *uvs, *verts) for p in strip]
 
+                            pixel = (int(px[0] / self.grid[0]), int(px[1] / self.grid[1]))
+                            if self.is_drawing and pixel != self.last_px:
+                                self.last_px = pixel
+                                addr = (pixel[1] * 128 + pixel[0]) * 4
+                                img = bpy.data.images['checker128.png']
+                                img.pixels[addr:addr + 4] = [0.0, 0.0, 0.0, 1.0]
+                                img.update()
+                                img.update_tag()
+
                             context.area.tag_redraw()
             else:
                 self.brush = None
@@ -94,6 +106,8 @@ class SB_OT_pencil(bpy.types.Operator):
         self.obj.data.calc_loop_triangles()
         self.grid = (1/128, 1/128, 0)
         self.brush = None
+        self.last_px = (-1, -1)
+        self.is_drawing = False
 
         # draw handler
         args = (self, context)
