@@ -104,6 +104,9 @@ classes = (
 )
 
 
+addon_keymaps = []
+
+
 def parse_translations():
     translation = {}
     for csv in glob(os.path.join("translations", "*.csv")):
@@ -127,19 +130,24 @@ def parse_translations():
 
 
 def register():
+    # async thread
     async_loop.setup_asyncio_executor()
 
+    # translation
     bpy.app.translations.register(__name__, parse_translations())
 
+    # types
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)
 
+    # custom data
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)
     bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
     bpy.types.Action.sb_props = bpy.props.PointerProperty(type=SB_ActionProperties)
     bpy.types.Object.sb_props = bpy.props.PointerProperty(type=SB_ObjectProperties)
 
+    # add menu items
     try:
         editor_menus = bpy.types.IMAGE_MT_editor_menus
     except AttributeError:
@@ -149,6 +157,49 @@ def register():
     bpy.types.VIEW3D_MT_image_add.append(menu_reference_add)
     bpy.types.VIEW3D_MT_mesh_add.append(menu_mesh_add)
 
+    # hotkeys
+    try:
+        kcfg = bpy.context.window_manager.keyconfigs.addon
+        # register empty item
+        key = lambda km,idname: addon_keymaps.append((km, km.keymap_items.new(idname=idname, type='NONE', value='PRESS')))
+
+        km_screen = kcfg.keymaps.new(name="Window", space_type='EMPTY')
+        key(km_screen, "pribambase.server_start")
+        key(km_screen, "pribambase.server_stop")
+        key(km_screen, "pribambase.grid_set")
+        key(km_screen, "pribambase.action_preview_set")
+        key(km_screen, "pribambase.action_preview_clear")
+        key(km_screen, "pribambase.sprite_reload_all")
+        key(km_screen, "pribambase.reference_reload_all")
+        key(km_screen, "pribambase.reference_freeze_all")
+        kmi = km_screen.keymap_items.new(idname="pribambase.reference_freeze_all", type='NONE', value='PRESS') # register again but now inverted
+        kmi.properties["invert"] = True
+        addon_keymaps.append((km_screen, kmi))
+
+        km_v3d = kcfg.keymaps.new(name="3D View", space_type='VIEW_3D')
+        key(km_v3d, "pribambase.reference_add")
+        key(km_v3d, "pribambase.reference_reload")
+        key(km_v3d, "pribambase.reference_rescale")
+        key(km_v3d, "pribambase.reference_replace")
+        key(km_v3d, "pribambase.plane_add")
+        key(km_v3d, "pribambase.material_add")
+        key(km_v3d, "pribambase.spritesheet_rig")
+
+        km_img = kcfg.keymaps.new(name="Image", space_type='IMAGE_EDITOR')
+        key(km_img, "pribambase.uv_send")
+        key(km_img, "pribambase.sprite_open")
+        key(km_img, "pribambase.sprite_new")
+        key(km_img, "pribambase.sprite_edit")
+        key(km_img, "pribambase.sprite_edit_copy")
+        key(km_img, "pribambase.sprite_purge")
+        key(km_img, "pribambase.sprite_replace")
+        key(km_img, "pribambase.sprite_make_animated")
+    except Exception as e:
+        # not sure when it fails (headless launch?) but keymaps don't affect functionality, let's ignore and continue
+        bpy.ops.pribambase.report(message_type='WARNING', message=f"Failed to register addon keymap: {str(e)}")
+
+
+    # execute async loop
     # delay is just in case something else happens at startup
     # `persistent` protects the timer if the user loads a file before it fires
     bpy.app.timers.register(start, first_interval=0.5, persistent=True)
@@ -181,6 +232,11 @@ def unregister():
 
     bpy.types.VIEW3D_MT_image_add.remove(menu_reference_add)
     bpy.types.VIEW3D_MT_mesh_add.remove(menu_mesh_add)
+
+    global addon_keymaps
+    for km,item in addon_keymaps:
+        km.keymap_items.remove(item)
+    addon_keymaps = []
 
     del bpy.types.Scene.sb_state
     del bpy.types.Image.sb_props
