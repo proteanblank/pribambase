@@ -1,6 +1,6 @@
 # edit in your favourite spreadsheet software;;;
-#IMPORTANT: DO NOT USE SEMICOLON IN THE TRANSLATED STRINGS.
-#IMPORTANT: PLEASE PLEASE USE TYPOGRAPHIC QUOTES “”, OR THE LANGUAGE-APPROPRIATE ALTERNATIVE
+#IMPORTANT: DO NOT USE SEMICOLON IN THE TRANSLATED STRINGS.;;;
+#IMPORTANT: PLEASE PLEASE USE TYPOGRAPHIC QUOTES “”, OR THE LANGUAGE-APPROPRIATE ALTERNATIVE;;;
 Context Pribambase is used for when blender provided translation is wrong;;;
 #CONTEXT;ORIGINAL;TRANSLATED;NOTES
 ## addon info ##;;;
@@ -11,6 +11,9 @@ Context Pribambase is used for when blender provided translation is wrong;;;
 *;*Loop*;*Секция*;
 *;*View*;*Видимое*;
 *;Sprite;Спрайт;
+Operator;Sprite;Спрайт;
+Operator;Pixel Reference;Пиксельный Референс;
+Operator;Sprite (File);Спрайт (Файл);
 Operator;Connect;Соединить;
 Operator;Stop;Остановить;
 *;UV Map:;UV:;
@@ -68,7 +71,7 @@ Operator;Send UV;Отправить UV;
 *;Thickness of the UV map lines at its original resolution;Толщина линий слоя UV при начальном разрешении;
 *;UVMap drawing skipped: can't access mesh data;Не удалось нарисовать UV: нет доступа к данным меша;
 *;Set up a texture from a file using Aseprite;Создать текстуру из файла с помощью Aseprite;
-*;If checked, entire animation will be synced to blender; if not, only the current frame will. Same as 'Animation' switch in Aseprite's sync popup;Когда выбрано, вся анимация будет синхронизована с Blender. В другом случае синхронизуется только текущий кадр. То же что “Анимация” в окне плагина в Aseprite;
+*;"If checked, entire animation will be synced to blender, if not, only the current frame will. Same as 'Animation' switch in Aseprite's sync popup""";Когда выбрано, вся анимация будет синхронизована с Blender. В другом случае синхронизуется только текущий кадр. То же что “Анимация” в окне плагина в Aseprite;
 *;Set up a new texture using Aseprite;Создать новую текстуру с помощью Aseprite;
 *;Name of the texture. It will also be displayed on the tab in Aseprite until you save the file;Имя текстуры. Оно же будет отображаться на вкладке в Aseprite пока файл не сохранён;
 *;Size of the created canvas;Размер создаваемого холста;
@@ -108,7 +111,7 @@ Operator;Create Pixel Material;Создать пиксельный матери�
 *;Additive;Сложение;
 *;Multply;Умножение;
 *;No image selected;Изображение не выбрано;
-*;Add Sprite;Добавить Спрайт;
+Operator;Add Sprite;Добавить Спрайт;
 *;All-in-one 2D sprite setup;Создание 2Д спрайта всё-в-одном;
 *;Texture Density;Плотность Текстуры;
 *;In pixels per unit. Defaults to 1 pixel per 1 world grid step;В пикселях на единицу. По умолчанию 1 пиксель на 1 шаг сетки;
@@ -130,7 +133,7 @@ Operator;Create Pixel Material;Создать пиксельный матери�
 *;Lit;Освещенный;
 *;Basic material that receives lighting;Простой материал который реагирует на освещение;
 *;Emission material that works without any lighting in the scene;Излучающий материал, работает без освещения в сцене;
-*;Add Reference;Добавить референс;
+Operator;Add Reference;Добавить референс;
 *;Add reference image with pixels aligned to the view grid;Добавить референс с пикселями выровненными по сетке;
 *;Image orientation, follows the opposite naming to camera shortcuts, so e.g. picking Top means the image will be facing Top camera view;Ориентация изображения. Названия выбраны встречно камере, то есть например при варианте Сверху референс будет смотреть на камеру находящуюся Сверху;
 *;Pre-scale the image;Увеличить изображение с этим масштабом;
@@ -138,11 +141,11 @@ Operator;Create Pixel Material;Создать пиксельный матери�
 *;Image's viewport opacity;Прозрачность изображения во вьюпорте;
 *;If checked, the image can be selected in the viewport, otherwise only in the outliner;Если отмечено, изображение может быть выбрано во вьюпорте. Иначе, только в аутлайнере;
 *;The reference won't be selectable. Use the outliner to reload or delete it;Референс не будет выделяться. Используйте аутлайнер чтобы перезагрузить или удалить его;
-*;Reload Reference;Перезагрузить Референс;
+Operator;Reload Reference;Перезагрузить Референс;
 *;Reload reference while keeping it prescaled;Перезагрузить референс с сохранением предраскукоженность;
-*;Refresh Scale;Обновить масштаб;
+Operator;Refresh Scale;Обновить масштаб;
 *;Refresh reference scaling without reloading the image;Обновить масштаб референса без перезагрузки изображения;
-*;Replace Reference;Заменить референс;
+Operator;Replace Reference;Заменить референс;
 *;Replace reference image, keep it aligned to pixel grid;Заменить референс, сохраняя пропорциональность сетке;
 Operator;Reload References;Перезагрузить референсы;
 *;Reload all references (including non-pribamabase's), while keeping them prescaled;Перезагрузить все референсы (не только из плагина), сохраняя их предраскукоженность;
@@ -178,30 +181,29 @@ Operator;Set Pixel Grid;Настроить Пиксельную Сетку;
 *;Driver(s) were removed or renamed;Драйвер(ы) удалены или переименованы;
 *;UVWarp modifier was removed or renamed;Модификатор Деформация UV удалён или переименован;
 *;Object property was removed or renamed;Свойство объекта удалено или переименовано;
-*;Rescale;Обновить масштаб;
+Operator;Rescale;Обновить масштаб;
 *;Sync;Синхронизация;
-*;Off;Выкл;
-*;Connected;Соединено;
-*;Waiting...;Ожидает…;
+*;Off;Выкл;status
+*;Connected;Соединено;status
+*;Waiting...;Ожидает…;status
 *;Stop;Стоп;
 *;Connect;Подключить;
 Operator;Unlock All References;Разблокировать все референсы;
-*;Pixel Reference;Пиксельный референс;
 ;;;
 ## ASEPRITE;;;
 ase;Cancel;Отмена;
 ase;OK;ОК;
-ase;Pribambase: Error;Pribambase: Ошибка;
-ase;This version of Aseprite is not supported;Эта версия Aseprite не поддерживается;
-ase;Current;Текущие;
-ase;Version;Версия;
-ase;API version;Версия API;
-ase;Required;Необходимо;
-ase;Version: 1.2.30 or 1.3-beta7 or newer;Версия 1.2.30 или 1.3-beta7, или новее;
-ase;API version: 15 or newer;Версия API: 15 или новее;
-ase;Websocket functionality is disabled in Aseprite.;Функциональность вебсокетов отключена в Aseprite.;
-ase;If you're compiling it yourself, add;Если вы компилируете его самостоятельно, добавьте;
-ase;to CMake options.;к опциям Cmake.;
+ase;Pribambase: Error;Pribambase: Ошибка;message
+ase;This version of Aseprite is not supported;Эта версия Aseprite не поддерживается;parts
+ase;Current;Текущие;^
+ase;Version;Версия;^
+ase;API version;Версия API;^
+ase;Required;Необходимо;^
+ase;Version: 1.2.30 or 1.3-beta7 or newer;Версия 1.2.30 или 1.3-beta7, или новее;^
+ase;API version: 15 or newer;Версия API: 15 или новее;^
+ase;Websocket functionality is disabled in Aseprite.;Функциональность вебсокетов отключена в Aseprite.;^
+ase;If you're compiling it yourself, add;Если вы компилируете его самостоятельно, добавьте;^
+ase;to CMake options.;к опциям Cmake.;^
 ase;Choose Texture Name;Выберите имя текстуры;
 ase;ON:;ВКЛ:;
 ase;Sync ON;Синх ВКЛ;
@@ -214,7 +216,7 @@ ase;Reconnect;Пересоединить;
 ase;Add to Blendfile;Добавить в blend;
 ase;Stop;Стоп;
 ase;Hide;Свернуть;
-ase;Defaults;Сброс;
+ase;Defaults;Сброс;Reset settings
 ase;Connection;Соединение;
 ase;Server;Сервер;
 ase;Port;Порт;
