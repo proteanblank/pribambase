@@ -123,7 +123,7 @@ def parse_translations():
 
                 try:
                     ctx, en, tr, *_ = line.split(";")
-                    strings[ctx.rstrip(), en.strip()] = tr.strip()
+                    strings[ctx.rstrip(), en.strip()] = tr.strip().strip("'\"")
                 except ValueError:
                     print(f"Pribambase translation '{locale}' format error at line {line_number}:\n\t{line}")
     return translation

@@ -1,5 +1,6 @@
 # edit in your favourite spreadsheet software;;;
-#IMPORTANT: DO NOT USE SEMICOLON IN THE TRANSLATED STRINGS. this is semicolon
+#IMPORTANT: DO NOT USE SEMICOLON IN THE TRANSLATED STRINGS.
+#IMPORTANT: PLEASE PLEASE USE TYPOGRAPHIC QUOTES “”, OR THE LANGUAGE-APPROPRIATE ALTERNATIVE
 Context Pribambase is used for when blender provided translation is wrong;;;
 #CONTEXT;ORIGINAL;TRANSLATED;NOTES
 ## addon info ##;;;
