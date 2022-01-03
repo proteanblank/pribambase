@@ -610,19 +610,20 @@ class SB_MT_sprite(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        connected = addon.connected
 
-        if not addon.connected:
+        if not connected:
             layout.operator("pribambase.server_start", icon="ERROR")
             layout.separator()
 
-        layout.operator("pribambase.sprite_new", icon='FILE_NEW')
-        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER')
-        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL')
-        layout.operator("pribambase.sprite_edit_copy")
-        layout.operator("pribambase.sprite_replace")
+        layout.operator("pribambase.sprite_new", icon='FILE_NEW' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit_copy", icon='NONE' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_replace", icon='NONE' if connected else 'UNLINKED')
         layout.separator()
         layout.operator("pribambase.sprite_make_animated")
-        layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL')
+        layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
 
 
     def header_draw(self, context):
