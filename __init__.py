@@ -105,7 +105,6 @@ classes = (
     SB_MT_global
 )
 
-
 def parse_translations():
     translation = {}
     for csv in glob(os.path.join("translations", "*.csv")):
@@ -133,9 +132,11 @@ def register():
 
     bpy.app.translations.register(__name__, parse_translations())
 
-    from bpy.utils import register_class
+    from bpy.utils import register_class, register_tool
     for cls in classes:
         register_class(cls)
+
+    register_tool(SB_WT_Pencil, separator=True)
 
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)
     bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
@@ -189,9 +190,11 @@ def unregister():
     del bpy.types.Action.sb_props
     del bpy.types.Object.sb_props
 
-    from bpy.utils import unregister_class
+    from bpy.utils import unregister_class, unregister_tool
     for cls in reversed(classes):
         unregister_class(cls)
+
+    unregister_tool(SB_WT_Pencil)
     
     bpy.app.translations.unregister(__name__)
 
