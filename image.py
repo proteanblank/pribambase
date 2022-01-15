@@ -32,6 +32,7 @@ from .messaging import encode
 from . import util
 from .addon import addon
 
+from typing import Tuple, Generator
 
 COLOR_MODES = [
     ('rgba', "RGBA", "32-bit color with transparency. If not sure, pick this one"),
@@ -42,6 +43,43 @@ UV_DEST = [
     ('texture', "Texture Source", "Show UV map in the file of the image editor's texture"),
     ('active', "Active Sprite", "Show UV map in the currently open document")
 ]
+
+def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
+    """Iterate over line segments of the UV map. End points are sorted, so overlaps always have same point order."""
+    
+    bm_created = False # bmesh MUST be freed in object mode, and NEVER in editmode.
+    try:
+        bm = bmesh.from_edit_mesh(mesh)
+    except:
+        bm = bmesh.new()
+        bm_created = True
+        try:
+            bm.from_mesh(mesh)
+        except:
+            bm.free()
+            return
+
+    uv = bm.loops.layers.uv.active
+
+    # get all edges
+    for face in bm.faces:
+        if not face.select:
+            # not shown in the UV editor, skipping
+            continue
+
+        for i in range(0, len(face.loops)):
+            a = face.loops[i - 1][uv].uv.to_tuple()
+            b = face.loops[i][uv].uv.to_tuple()
+
+            # sorting helps catching overlapping lines for differently directed loops
+            # order doesn't really matter - just that there is one
+            if a > b:
+                yield (b, a)
+            else:
+                yield (a, b)
+
+    if bm_created:
+        bm.free()
 
 
 class SB_OT_uv_send(bpy.types.Operator):
@@ -87,53 +125,6 @@ class SB_OT_uv_send(bpy.types.Operator):
         return addon.connected and context.edit_object is not None or context.image_paint_object is not None
 
 
-    def list_uv(self):
-        ctx = bpy.context
-        active = ctx.object
-        lines = set()
-
-        objects = [obj for obj in ctx.selected_objects if obj.type == 'MESH']
-        if (active is not None) and (active not in objects) and (active.type == 'MESH'):
-            objects.append(ctx.object)
-
-        for obj in objects:
-
-            try:
-                bm = bmesh.from_edit_mesh(obj.data)
-                bm_created = False # freeing an editmode bmesh crashes blender
-            except: # if there's `elif`, why isn't there `exceptry`?
-                try:
-                    bm = bmesh.new()
-                    bm_created = True
-                    bm.from_mesh(obj.data)
-                except:
-                    self.report('WARNING', "UVMap drawing skipped: can't access mesh data")
-                    continue
-
-            uv = bm.loops.layers.uv.active
-
-            # get all edges
-            for face in bm.faces:
-                if not face.select:
-                    continue
-
-                for i in range(0, len(face.loops)):
-                    a = face.loops[i - 1][uv].uv.to_tuple()
-                    b = face.loops[i][uv].uv.to_tuple()
-
-                    # sorting prevents the edge from being added twice for differently directed loops
-                    # order doesn't really matter, just that there is one
-                    if a > b:
-                        a, b = b, a
-
-                    lines.add((a, b))
-
-            if bm_created:
-                bm.free()
-
-        return lines
-
-
     def uvmap_size(self):
         scale = addon.prefs.uv_scale
         size = [128, 128]
@@ -158,7 +149,12 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         offscreen = gpu.types.GPUOffScreen(w, h)
 
-        coords = [c for pt in self.list_uv() for c in pt]
+        objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
+        if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
+            objects.append(context.object)
+
+        lines = set(line for obj in objects for line in uv_lines(obj.data))
+        coords = [c for pt in lines for c in pt]
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         batch = batch_for_shader(shader, 'LINES', {"pos": coords})
 
