@@ -518,5 +518,5 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
 
 
 def menu_mesh_add(self, context):
-    self.layout.operator("pribambase.plane_add", text="Sprite", icon='ALIASED')
+    self.layout.operator("pribambase.plane_add", text="Sprite", icon='ALIASED').from_file = False
     self.layout.operator("pribambase.plane_add", text="Sprite (File)", icon='ALIASED').from_file=True
