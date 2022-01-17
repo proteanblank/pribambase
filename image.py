@@ -32,7 +32,7 @@ from .messaging import encode
 from . import util
 from .addon import addon
 
-from typing import Tuple, Generator
+from typing import Iterable, Tuple, Generator
 
 COLOR_MODES = [
     ('rgba', "RGBA", "32-bit color with transparency. If not sure, pick this one"),
@@ -153,8 +153,8 @@ class SB_OT_uv_send(bpy.types.Operator):
         if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
             objects.append(context.object)
 
-        lines = set(line for obj in objects for line in uv_lines(obj.data))
-        coords = [c for pt in lines for c in pt]
+        edges = set(line for obj in objects for line in uv_lines(obj.data))
+        coords = [c for pt in edges for c in pt]
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         batch = batch_for_shader(shader, 'LINES', {"pos": coords})
 
@@ -214,6 +214,54 @@ class SB_OT_uv_send(bpy.types.Operator):
             self.weight = addon.prefs.uv_weight
 
         return context.window_manager.invoke_props_dialog(self)
+
+    
+
+class SB_OT_uv_watch(bpy.types.Operator):
+    bl_idname = "pribambase.uv_watch"
+    bl_label = "Check UV"
+    bl_description = "..."
+
+    last_uv_hash = None
+
+
+    def execute(self, context:bpy.types.Context):
+        # changed = self.update_uv_hash()
+        # self.report({'INFO'}, f"CHANGE={changed} HASH={self.__class__.last_uv_hash}")
+
+        objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
+        if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
+            objects.append(context.object)
+        self.start_timer(meshes=[obj.data for obj in objects], sprite="")
+
+        return {'FINISHED'}    
+        
+
+    def update_uv_hash(self) -> bool:
+        """Compare and update uv hash"""
+        # only uses .report so we're fine passing self
+        new_hash = hash(frozenset(SB_OT_uv_send.list_uv(self)))
+        changed = (new_hash != self.__class__.last_uv_hash)
+        self.__class__.last_uv_hash = new_hash
+        return changed
+
+
+    def start_timer(self, meshes:Iterable[bpy.types.Mesh], sprite:str):
+        i = 0
+
+        def tick():
+            nonlocal meshes, sprite, i
+
+            print("tick")
+            i += 1
+            if i < 5:
+                return 0.5
+            else:
+                print("over")
+                return None 
+
+        bpy.app.timers.register(tick)
+        
 
 
 
@@ -620,6 +668,7 @@ class SB_MT_sprite(bpy.types.Menu):
         layout.separator()
         layout.operator("pribambase.sprite_make_animated")
         layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
+        layout.operator("pribambase.uv_watch")
 
 
     def header_draw(self, context):
