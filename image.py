@@ -23,6 +23,7 @@ from bpy.app.translations import pgettext
 import bmesh
 import gpu
 import bgl
+import blf
 from mathutils import Matrix
 from gpu_extras.batch import batch_for_shader
 import numpy as np
@@ -41,20 +42,25 @@ COLOR_MODES = [
 
 UV_DEST = [
     ('texture', "Texture Source", "Show UV map in the file of the image editor's texture"),
-    ('active', "Active Sprite", "Show UV map in the currently open document")
-]
+    ('active', "Active Sprite", "Show UV map in the currently open document")]
+
 
 def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
     """Iterate over line segments of the UV map. End points are sorted, so overlaps always have same point order."""
+
+    # TODO try mesh API
+    # need to make a copy, otherwise uv watch will interrupt the user editing the uv map or mesh itself
+    # not needed for oneshot send but if we can do it on timer, migh as well always
+    mc = mesh.copy()
     
     bm_created = False # bmesh MUST be freed in object mode, and NEVER in editmode.
     try:
-        bm = bmesh.from_edit_mesh(mesh)
+        bm = bmesh.from_edit_mesh(mc)
     except:
         bm = bmesh.new()
         bm_created = True
         try:
-            bm.from_mesh(mesh)
+            bm.from_mesh(mc)
         except:
             bm.free()
             return
@@ -80,6 +86,49 @@ def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[
 
     if bm_created:
         bm.free()
+    bpy.data.meshes.remove(mc)
+
+
+def uvmap_size(image):
+    scale = addon.prefs.uv_scale
+    size = [128, 128]
+
+    if image is not None:
+        size = image.size
+
+    return [int(size[0] * scale), int(size[1] * scale)]
+
+# watch and send have the same props and logic
+_uv_common_props = {
+    "destination": bpy.props.EnumProperty(
+        name="Show In",
+        description="Which document's UV map will be shown in aseprite",
+        items=UV_DEST,
+        default='texture'),
+
+    "size": bpy.props.IntVectorProperty(
+        name="Resolution",
+        description="The size for the created UVMap. The image is scaled to the size of the sprite",
+        size=2,
+        min=1,
+        max=65535,
+        default=(1, 1)),
+
+    "color": bpy.props.FloatVectorProperty(
+        name="Color",
+        description="Color to draw the UVs with",
+        size=4,
+        min=0.0,
+        max=1.0,
+        default=(0.0, 0.0, 0.0, 0.0),
+        subtype='COLOR'),
+
+    "weight": bpy.props.FloatProperty(
+        name="Thickness",
+        description="Thickness of the UV map lines at its original resolution",
+        min=0,
+        max=65535,
+        default=0)}
 
 
 class SB_OT_uv_send(bpy.types.Operator):
@@ -87,52 +136,14 @@ class SB_OT_uv_send(bpy.types.Operator):
     bl_label = "Send UV"
     bl_description = "Show UV in Aseprite"
 
-
-    destination: bpy.props.EnumProperty(
-        name="Show In",
-        description="Which document's UV map will be shown in aseprite",
-        items=UV_DEST,
-        default='texture')
-
-
-    size: bpy.props.IntVectorProperty(
-        name="Resolution",
-        description="The size for the created UVMap. The image is scaled to the size of the sprite",
-        size=2,
-        min=1,
-        max=65535,
-        default=(1, 1))
-
-    color: bpy.props.FloatVectorProperty(
-        name="Color",
-        description="Color to draw the UVs with",
-        size=4,
-        min=0.0,
-        max=1.0,
-        default=(0.0, 0.0, 0.0, 0.0),
-        subtype='COLOR')
-
-    weight: bpy.props.FloatProperty(
-        name="Thickness",
-        description="Thickness of the UV map lines at its original resolution",
-        min=0,
-        max=65535,
-        default=0)
-
+    destination: _uv_common_props["destination"]
+    size: _uv_common_props["size"]
+    color: _uv_common_props["color"]
+    weight: _uv_common_props["weight"]
 
     @classmethod
     def poll(self, context):
         return addon.connected and context.edit_object is not None or context.image_paint_object is not None
-
-
-    def uvmap_size(self):
-        scale = addon.prefs.uv_scale
-        size = [128, 128]
-
-        if bpy.context.edit_image is not None:
-            size = bpy.context.edit_image.size
-
-        return [int(size[0] * scale), int(size[1] * scale)]
 
 
     def execute(self, context):
@@ -205,7 +216,7 @@ class SB_OT_uv_send(bpy.types.Operator):
 
     def invoke(self, context, event):
         if tuple(self.size) == (1, 1):
-            self.size = self.uvmap_size()
+            self.size = uvmap_size(bpy.context.edit_image)
 
         if tuple(self.color) == (0.0, 0.0, 0.0, 0.0):
             self.color = addon.prefs.uv_color
@@ -214,7 +225,6 @@ class SB_OT_uv_send(bpy.types.Operator):
             self.weight = addon.prefs.uv_weight
 
         return context.window_manager.invoke_props_dialog(self)
-
     
 
 class SB_OT_uv_watch(bpy.types.Operator):
@@ -222,47 +232,67 @@ class SB_OT_uv_watch(bpy.types.Operator):
     bl_label = "Check UV"
     bl_description = "..."
 
-    last_uv_hash = None
+    destination: _uv_common_props["destination"]
+    size: _uv_common_props["size"]
+    color: _uv_common_props["color"]
+    weight: _uv_common_props["weight"]
 
+    last_uv_hash = None
+    rect = (10, 10, 170, 90) # x1 y1 x2 y2 for two corners
 
     def execute(self, context:bpy.types.Context):
-        # changed = self.update_uv_hash()
-        # self.report({'INFO'}, f"CHANGE={changed} HASH={self.__class__.last_uv_hash}")
-
         objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
         if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
             objects.append(context.object)
-        self.start_timer(meshes=[obj.data for obj in objects], sprite="")
 
-        return {'FINISHED'}    
-        
+        self.start_watch(meshes=[obj.data for obj in objects], sprite="")
 
-    def update_uv_hash(self) -> bool:
-        """Compare and update uv hash"""
-        # only uses .report so we're fine passing self
-        new_hash = hash(frozenset(SB_OT_uv_send.list_uv(self)))
-        changed = (new_hash != self.__class__.last_uv_hash)
-        self.__class__.last_uv_hash = new_hash
-        return changed
+        return {'FINISHED'}
 
 
-    def start_timer(self, meshes:Iterable[bpy.types.Mesh], sprite:str):
-        i = 0
+    def invoke(self, context:bpy.types.Context, event:bpy.types.Event):
+        return SB_OT_uv_send.invoke(self, context, event)
+
+
+    def start_watch(self, meshes:Iterable[bpy.types.Mesh], sprite:str):
+        r = self.rect
+        bdrop = ((r[0], r[1]), (r[2], r[1]), (r[0], r[3]), (r[2], r[3]))
+        bdrop_i = ((0, 1, 2), (2, 1, 3))
+        shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        batch = batch_for_shader(shader, 'TRIS', {"pos": bdrop}, indices=bdrop_i)
+
+        last_uv_hash = 0
+
+        def update_uv_hash() -> bool:
+            nonlocal last_uv_hash
+            new_hash = hash(frozenset(line for mesh in meshes for line in uv_lines(mesh)))
+            changed = (new_hash != last_uv_hash)
+            last_uv_hash = new_hash
+            return changed
+
+        def draw():
+            shader.bind()
+            shader.uniform_float("color", (0.8, 0.8, 0.8, 1.0))
+            batch.draw(shader)
+
+            blf.color(0, 1, 0, 0, 1)
+            blf.position(0, 10, 80, 0)
+            blf.size(0, 32, 72)
+            blf.draw(0, "OK")
 
         def tick():
-            nonlocal meshes, sprite, i
+            changed = update_uv_hash()
+            print(bpy.context.window_manager.is_interface_locked)
 
-            print("tick")
-            i += 1
-            if i < 5:
-                return 0.5
-            else:
-                print("over")
-                return None 
+            if changed:
+                bpy.ops.pribambase.uv_send("EXEC_DEFAULT", destination=self.destination, size=self.size,
+                    color=self.color, weight=self.weight)
+                # print(f"HASH={last_uv_hash}")
+                # util.refresh() # redraw the UI
+            return 1.0
 
-        bpy.app.timers.register(tick)
-        
-
+        # self.draw_handler = bpy.types.SpaceImageEditor.draw_handler_add(draw, tuple(), 'WINDOW', 'POST_PIXEL')
+        bpy.app.timers.register(tick, first_interval=0.0)
 
 
 class SB_OT_sprite_open(bpy.types.Operator):
