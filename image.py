@@ -142,6 +142,8 @@ class SB_OT_uv_send(bpy.types.Operator):
     color: _uv_common_props["color"]
     weight: _uv_common_props["weight"]
 
+    sync_name: bpy.props.StringProperty(options={'HIDDEN'}) # a prop because it's not easy to retrieve in a timer
+
     @classmethod
     def poll(self, context):
         return addon.connected
@@ -152,7 +154,7 @@ class SB_OT_uv_send(bpy.types.Operator):
         source = ""
 
         if self.destination == 'texture':
-            source = context.area.spaces.active.image.sb_props.sync_name
+            source = self.sync_name
 
         aa = addon.prefs.uv_aa
         weight = self.weight
@@ -224,6 +226,8 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         if self.weight == 0.0:
             self.weight = addon.prefs.uv_weight
+        
+        self.sync_name = context.area.spaces.active.image.sb_props.sync_name
 
         return context.window_manager.invoke_props_dialog(self)
     
@@ -231,8 +235,9 @@ class SB_OT_uv_send(bpy.types.Operator):
 class UVWatch:
     running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
 
-    def __init__(self, image:str, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
+    def __init__(self, image:str, sync_name:str, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
         self.image = image
+        self.sync_name = sync_name
         self.is_running = False
 
         # uv send properties
@@ -291,7 +296,8 @@ class UVWatch:
         if changed:
             print("changed", self.last_hash)
             if self.last_hash: # have some data
-                bpy.ops.pribambase.uv_send(bpy.context.copy(), destination=self.destination, size=self.size, color=self.color, weight=self.weight)
+                bpy.ops.pribambase.uv_send(bpy.context.copy(), destination=self.destination, 
+                    sync_name=self.sync_name, size=self.size, color=self.color, weight=self.weight)
             else:
                 print("watch done!")
                 return None
@@ -331,6 +337,7 @@ class SB_OT_uv_watch_start(bpy.types.Operator):
     def execute(self, context:bpy.types.Context):
         watch = UVWatch(
             image = "", # TODO
+            sync_name = context.area.spaces.active.image.sb_props.sync_name,
             destination = self.destination,
             size = self.size,
             color = self.color,
