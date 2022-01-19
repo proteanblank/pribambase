@@ -28,12 +28,13 @@ from mathutils import Matrix
 from gpu_extras.batch import batch_for_shader
 import numpy as np
 from os import path
+from itertools import chain
 
 from .messaging import encode
 from . import util
 from .addon import addon
 
-from typing import Iterable, Tuple, Generator
+from typing import Collection, Iterable, Tuple, Generator
 
 COLOR_MODES = [
     ('rgba', "RGBA", "32-bit color with transparency. If not sure, pick this one"),
@@ -143,7 +144,7 @@ class SB_OT_uv_send(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected and context.edit_object is not None or context.image_paint_object is not None
+        return addon.connected
 
 
     def execute(self, context):
@@ -227,9 +228,95 @@ class SB_OT_uv_send(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
     
 
-class SB_OT_uv_watch(bpy.types.Operator):
-    bl_idname = "pribambase.uv_watch"
-    bl_label = "Check UV"
+class UVWatch:
+    running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
+
+    def __init__(self, image:str, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
+        self.image = image
+        self.is_running = False
+
+        # uv send properties
+        self.destination = destination
+        self.size = (*size,) # gotta copy here bc vectors are mutable lists and seem to reset to default value later
+        self.color = (*color,)
+        self.weight = weight
+
+        # drawing
+        r = (25, 70, 270, 110)
+        bdrop = ((r[0], r[1]), (r[2], r[1]), (r[0], r[3]), (r[2], r[3]))
+        bdrop_i = ((0, 1, 2), (2, 1, 3))
+        self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        self.batch = batch_for_shader(self.shader, 'TRIS', {"pos": bdrop}, indices=bdrop_i)
+    
+
+    def start(self):
+        assert not self.__class__.running
+        self.last_hash = 0
+        self.__class__.running = self
+        bpy.app.timers.register(self.timer_callback)
+        self.timer_callback()
+        print("watch start")
+        self.draw_handler = bpy.types.SpaceImageEditor.draw_handler_add(self.draw_callback, tuple(), 'WINDOW', 'POST_PIXEL')
+    
+
+    def stop(self):
+        assert self == self.__class__.running
+        self.__class__.running = None
+        print("watch stop")
+        bpy.types.SpaceImageEditor.draw_handler_remove(self.draw_handler, 'WINDOW')
+        util.refresh()
+    
+
+    def draw_callback(self):
+        self.shader.bind()
+        self.shader.uniform_float("color", (0.8, 0.8, 0.8, 1.0))
+        self.batch.draw(self.shader)
+
+        blf.color(0, 1, 0, 0, 1)
+        blf.position(0, 45, 80, 0)
+        blf.size(0, 32, 72)
+        blf.draw(0, "UV SYNC WIP")
+
+
+    def timer_callback(self):
+        if self != self.__class__.running:
+            return None
+
+        if not addon.connected:
+            self.stop()
+            return None
+
+        changed = self.update_hash()
+
+        if changed:
+            print("changed", self.last_hash)
+            if self.last_hash: # have some data
+                bpy.ops.pribambase.uv_send(bpy.context.copy(), destination=self.destination, size=self.size, color=self.color, weight=self.weight)
+            else:
+                print("watch done!")
+                return None
+            # print(f"HASH={last_uv_hash}")
+            # util.refresh() # redraw the UI
+        return 1.0
+
+
+    def update_hash(self) -> bool:
+        context = bpy.context
+
+        meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
+        if context.object and context.object.type == 'MESH': 
+            meshes = chain(meshes, [context.object])
+
+        lines = frozenset(line for mesh in meshes for line in uv_lines(mesh))
+        new_hash = hash(lines) if lines else 0
+        changed = (new_hash != self.last_hash)
+        self.last_hash = new_hash
+        return changed
+
+
+class SB_OT_uv_watch_start(bpy.types.Operator):
+    bl_idname = "pribambase.uv_watch_start"
+    bl_label = "Start UV Sync"
     bl_description = "..."
 
     destination: _uv_common_props["destination"]
@@ -237,16 +324,18 @@ class SB_OT_uv_watch(bpy.types.Operator):
     color: _uv_common_props["color"]
     weight: _uv_common_props["weight"]
 
-    last_uv_hash = None
-    rect = (10, 10, 170, 90) # x1 y1 x2 y2 for two corners
+    @classmethod
+    def poll(cls, context):
+        return not UVWatch.running and addon.connected
 
     def execute(self, context:bpy.types.Context):
-        objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
-        if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
-            objects.append(context.object)
-
-        self.start_watch(meshes=[obj.data for obj in objects], sprite="")
-
+        watch = UVWatch(
+            image = "", # TODO
+            destination = self.destination,
+            size = self.size,
+            color = self.color,
+            weight = self.weight)
+        watch.start()
         return {'FINISHED'}
 
 
@@ -254,45 +343,18 @@ class SB_OT_uv_watch(bpy.types.Operator):
         return SB_OT_uv_send.invoke(self, context, event)
 
 
-    def start_watch(self, meshes:Iterable[bpy.types.Mesh], sprite:str):
-        r = self.rect
-        bdrop = ((r[0], r[1]), (r[2], r[1]), (r[0], r[3]), (r[2], r[3]))
-        bdrop_i = ((0, 1, 2), (2, 1, 3))
-        shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-        batch = batch_for_shader(shader, 'TRIS', {"pos": bdrop}, indices=bdrop_i)
+class SB_OT_uv_watch_stop(bpy.types.Operator):
+    bl_idname = "pribambase.uv_watch_stop"
+    bl_label = "Cancel UV Sync"
+    bl_description = "..."
 
-        last_uv_hash = 0
+    @classmethod
+    def poll(cls, context):
+        return UVWatch.running is not None
 
-        def update_uv_hash() -> bool:
-            nonlocal last_uv_hash
-            new_hash = hash(frozenset(line for mesh in meshes for line in uv_lines(mesh)))
-            changed = (new_hash != last_uv_hash)
-            last_uv_hash = new_hash
-            return changed
-
-        def draw():
-            shader.bind()
-            shader.uniform_float("color", (0.8, 0.8, 0.8, 1.0))
-            batch.draw(shader)
-
-            blf.color(0, 1, 0, 0, 1)
-            blf.position(0, 10, 80, 0)
-            blf.size(0, 32, 72)
-            blf.draw(0, "OK")
-
-        def tick():
-            changed = update_uv_hash()
-            print(bpy.context.window_manager.is_interface_locked)
-
-            if changed:
-                bpy.ops.pribambase.uv_send("EXEC_DEFAULT", destination=self.destination, size=self.size,
-                    color=self.color, weight=self.weight)
-                # print(f"HASH={last_uv_hash}")
-                # util.refresh() # redraw the UI
-            return 1.0
-
-        # self.draw_handler = bpy.types.SpaceImageEditor.draw_handler_add(draw, tuple(), 'WINDOW', 'POST_PIXEL')
-        bpy.app.timers.register(tick, first_interval=0.0)
+    def execute(self, context:bpy.types.Context):
+        UVWatch.running.stop()
+        return {'FINISHED'}
 
 
 class SB_OT_sprite_open(bpy.types.Operator):
@@ -698,7 +760,8 @@ class SB_MT_sprite(bpy.types.Menu):
         layout.separator()
         layout.operator("pribambase.sprite_make_animated")
         layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
-        layout.operator("pribambase.uv_watch")
+        layout.operator("pribambase.uv_watch_start")
+        layout.operator("pribambase.uv_watch_stop")
 
 
     def header_draw(self, context):
