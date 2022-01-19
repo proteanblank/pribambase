@@ -65,6 +65,7 @@ else
     local frame = -1
     -- used to pause the app from processing updates
     local pause_app_change = false
+    local pause_spr_change = false
     local pause_dlg_close = false
 
 
@@ -405,7 +406,7 @@ else
 
 
     local function syncSprite()
-        if spr == nil then return end
+        if spr == nil or pause_spr_change then return end
 
         checkFilename()
 
@@ -555,9 +556,11 @@ else
             return
         end
 
+        pause_spr_change = true
         app.transaction(function()
             show_uv(w, h, opacity, layer, pixels)
         end)
+        pause_spr_change = false
     end
 
 
