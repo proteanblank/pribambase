@@ -34,7 +34,7 @@ from .messaging import encode
 from . import util
 from .addon import addon
 
-from typing import Collection, Iterable, Tuple, Generator
+from typing import Tuple, Generator
 
 COLOR_MODES = [
     ('rgba', "RGBA", "32-bit color with transparency. If not sure, pick this one"),
@@ -235,6 +235,8 @@ class SB_OT_uv_send(bpy.types.Operator):
 class UVWatch:
     running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
 
+    PERIOD = 0.05 # seconds between timer updates
+
     def __init__(self, image:str, sync_name:str, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
         self.image = image
         self.sync_name = sync_name
@@ -257,6 +259,8 @@ class UVWatch:
     def start(self):
         assert not self.__class__.running
         self.last_hash = 0
+        self.idle_t = 0
+        self.send_pending = True
         self.__class__.running = self
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
@@ -291,19 +295,28 @@ class UVWatch:
             self.stop()
             return None
 
-        changed = self.update_hash()
+        self.idle_t += self.PERIOD
+
+        changed = not self.send_pending and self.update_hash() # skip checks when waiting to send
 
         if changed:
             print("changed", self.last_hash)
             if self.last_hash: # have some data
-                bpy.ops.pribambase.uv_send(bpy.context.copy(), destination=self.destination, 
-                    sync_name=self.sync_name, size=self.size, color=self.color, weight=self.weight)
+                self.send_pending = True
             else:
                 print("watch done!")
                 return None
-            # print(f"HASH={last_uv_hash}")
-            # util.refresh() # redraw the UI
-        return 1.0
+        
+        if self.send_pending: # not elif!!
+            if self.idle_t >= addon.prefs.debounce:
+                bpy.ops.pribambase.uv_send(bpy.context.copy(), destination=self.destination, 
+                    sync_name=self.sync_name, size=self.size, color=self.color, weight=self.weight)
+                self.send_pending = False
+                self.idle_t = 0
+            else:
+                print("wait", self.idle_t, self.send_pending)
+
+        return self.PERIOD
 
 
     def update_hash(self) -> bool:

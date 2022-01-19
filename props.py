@@ -315,6 +315,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Only Local Connections",
         description="Only accept connections from localhost (127.0.0.1)",
         default=True)
+    
+    debounce: bpy.props.FloatProperty(
+        name="Debounce",
+        description="Minimum time before sending an update to Aseprite after the previous one. Lower values make changes apply faster, but may cause unstable behavior.",
+        default=0.5)
 
     autostart: bpy.props.BoolProperty(
         name="Start Automatically",
@@ -395,6 +400,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
         row.enabled = not addon.server_up
         row.prop(self, "localhost")
         row.prop(self, "port")
+        box.row().prop(self, "debounce")
 
         if addon.server_up:
             box.row().operator("pribambase.server_stop")
