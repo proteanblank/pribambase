@@ -235,7 +235,8 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
     sync_flags: bpy.props.EnumProperty(
         name="Sync Flags",
         description="Sync related flags passed to Aseprite with texture list",
-        items=(("SHEET", "All Frames", "Send all frames via spritesheet"),),
+        items=(('SHEET', "All Frames", "Send all frames via spritesheet"),
+            ('SHOW_UV', "Show UV", "Sync UV changes to sprite"),),
         options={'ENUM_FLAG'})
 
     # Spritesheet-specific props

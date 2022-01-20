@@ -84,6 +84,15 @@ class Handler:
         cel = self.take_uint(2)
         duration = self.take_uint(2)
         return (cel,duration)
+    
+    def take_sync_flags(self):
+        bf = self.take_uint(2)
+        flags = set()
+        if bf & (1 << 0):
+            flags.add('SHEET')
+        if bf & (1 << 1):
+            flags.add('SHOW_UV')
+        return flags
 
 
     def _parse(self, data:memoryview, args:MessageArgs):
@@ -167,4 +176,5 @@ def add_string(ba:bytearray, s:str, encoding='utf-8'):
 def add_sync_flags(ba:bytearray, flags:Set[str]):
     bits = 0
     bits |= ('SHEET' in flags) << 0
+    bits |= ('SHOW_UV' in flags) << 1
     add_uint(ba, bits, 2)

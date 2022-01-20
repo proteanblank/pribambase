@@ -22,11 +22,12 @@ import bpy
 import asyncio
 import re
 import math
-from typing import List, Tuple, Iterable
+from typing import Set, Union, List, Tuple, Iterable
 from . import Handler
 import numpy as np
 # TODO move into local methods
 from .. import modify
+from ..addon import addon
 
 
 class Batch(Handler):
@@ -49,19 +50,20 @@ class Image(Handler):
     def parse(self, args):
         args.size = self.take_uint(2), self.take_uint(2)
         args.frame = self.take_uint(2)
+        args.flags = self.take_sync_flags()
         args.name = self.take_str()
         args.data = np.frombuffer(self.take_data(), dtype=np.ubyte)
 
-    async def execute(self, *, size:Tuple[int, int], frame:int, name:str, data:np.array):
+    async def execute(self, *, size:Tuple[int, int], frame:int, flags:Set[str], name:str, data:np.array):
         try:
             # TODO separate cases for named and anonymous sprites
             if not bpy.context.window_manager.is_interface_locked:
-                modify.image(size[0], size[1], name, frame, data)
+                modify.image(size[0], size[1], name, frame, flags, data)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
-            modify.image(size[0], size[1], name, frame, data)
+            modify.image(size[0], size[1], name, frame, flags, data)
 
 
 class Spritesheet(Handler):

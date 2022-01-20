@@ -42,6 +42,8 @@ else
     --[[ global ]] pribambase_docs = pribambase_docs or {} -- used as shadow table for docList, not directly
 
     local BIT_SYNC_SHEET = 1
+    local BIT_SYNC_SHOWUV = 1 << 1
+    -- next 1 << 2
 
     local settings = pribambase_settings
     local ws
@@ -173,6 +175,7 @@ else
     local function messageImage(opts)
         local sprite = opts.sprite
         local name = opts.name or ""
+        local flags = opts.flags
         local id = string.byte('I')
 
         if buf.width ~= sprite.width or buf.height ~= sprite.height then
@@ -182,7 +185,7 @@ else
         buf:clear()
         buf:drawSprite(sprite, opts.frame)
 
-        return string.pack("<BHHHs4I4", id, buf.width, buf.height, opts.frame.frameNumber - 1, name, buf.rowStride * buf.height), buf.bytes
+        return string.pack("<BHHHHs4I4", id, buf.width, buf.height, opts.frame.frameNumber - 1, flags, name, buf.rowStride * buf.height), buf.bytes
     end
 
     local _frames, _infos = {}, {}
@@ -265,7 +268,8 @@ else
 
     local function sendImage(name)
         if connected and spr ~= nil then
-            ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame})
+            local flags = syncList[name] or 0
+            ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame, flags=flags})
         end
     end
 
@@ -421,7 +425,6 @@ else
     end
 
 
-    -- close connection and ui if the sprite is closed
     local function onAppChange()
         if pause_app_change then return end
 
@@ -466,11 +469,16 @@ else
             if spr ~= nil then
                 local sf = spr.filename
                 if (docList[spr] == nil or isSprite(sf)) and syncList[sf] ~= nil then
-                    docList[spr] = { blend=blendfile, animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0) }
+                    docList[spr] = { 
+                        blend=blendfile, 
+                        animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0),
+                        showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0)}
                 end
             end
 
+
             dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+            dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
             dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
@@ -585,7 +593,9 @@ else
         for _,s in ipairs(app.sprites) do
             local sf = s.filename
             if syncList[sf] ~= nil and (docList[s] == nil or isSprite(sf)) then
-                docList[s] = { blend=blendfile, animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0) }
+                docList[s] = { blend=blendfile, 
+                    animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0),
+                    showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0)}
             end
         end
 
@@ -594,6 +604,7 @@ else
         end
         
         dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+        dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
         dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         if not synced then
@@ -618,7 +629,7 @@ else
                 sprfile = name
 
                 syncList[name] = flags
-                docList[create] = { blend=blendfile, animated=false }
+                docList[create] = { blend=blendfile, animated=false, showUV=false }
             end)
     end
 
@@ -640,7 +651,10 @@ else
         syncList[path] = flags
 
         if opened then
-            docList[opened] = { blend=blendfile, animated=(flags & BIT_SYNC_SHEET ~= 0) }
+            docList[opened] = {
+                blend=blendfile,
+                animated=(flags & BIT_SYNC_SHEET ~= 0),
+                showUV=(flags & BIT_SYNC_SHOWUV ~= 0)}
 
             if app.activeSprite ~= opened then
                 app.activeSprite = opened
@@ -650,7 +664,9 @@ else
         elseif isSprite(path) then -- check if absolute path; message can't contain rel path, so getting one mean it's a datablock name, and we don't need to open it if it isn't
             batchAppChanges(function()
                     s = Sprite{ fromFile=path }
-                    docList[s] = { blend=blendfile, animated=(flags & BIT_SYNC_SHEET ~= 0) }
+                    docList[s] = { blend=blendfile, 
+                        animated=(flags & BIT_SYNC_SHEET ~= 0),
+                        showUV=(flags & BIT_SYNC_SHOWUV ~= 0)}
                 end)
         end
     end
@@ -733,6 +749,7 @@ else
             dlg:modify{ id="status", text=tr("Reconnecting...") }
             dlg:modify{ id="reconnect", visible=true }
             dlg:modify{ id="animated", visible=false }
+            dlg:modify{ id="showuv", visible=false }
             dlg:modify{ id="sendopen", visible=false }
             if spr ~= nil then
                 spr.events:off(syncSprite)
@@ -745,13 +762,33 @@ else
 
     local function changeAnimated()
         local val = dlg.data.animated
-        if syncList[spr] then
-            syncList[spr] = (val and (syncList[spr] | BIT_SYNC_SHEET) or (syncList[spr] & ~BIT_SYNC_SHEET))
+        local sf = spr.filename
+        if syncList[sf] ~= nil then
+            syncList[sf] = (val and (syncList[sf] | BIT_SYNC_SHEET) or (syncList[sf] & ~BIT_SYNC_SHEET))
         end
-        if docList[spr] then
+        if docList[spr] ~= nil then
             docList[spr].animated = val
         end
         syncSprite()
+    end
+
+
+    local function changeShowUV()
+        local val = dlg.data.showuv
+        local sf = spr.filename
+        if syncList[sf] ~= nil then
+            syncList[sf] = (val and (syncList[sf] | BIT_SYNC_SHOWUV) or (syncList[sf] & ~BIT_SYNC_SHOWUV))
+            print(val, syncList[sf])
+        end
+        if docList[spr] ~= nil then
+            docList[spr].showUV = val
+        end
+        
+        -- instead of syncSprite, always sync the non-spritesheet image here
+        local s = spr.filename
+        if syncList[s] ~= nil and docList[spr] and docList[spr].blend == blendfile then
+            sendImage(s)
+        end
     end
 
 
@@ -787,6 +824,9 @@ else
 
     dlg:check{ id="animated", text=tr("Animation"), onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
     dlg:modify{ id="animated", visible=false }
+
+    dlg:check{ id="showuv", text=tr("Show UV"), onclick=changeShowUV, selected=(spr and docList[spr] and docList[spr].showUV) }
+    dlg:modify{ id="showuv", visible=false }
     
     dlg:button{ id="sendopen", text=tr("Add to Blendfile"), onclick=sendNewTexture }
     dlg:modify{ id="sendopen", visible=false }
