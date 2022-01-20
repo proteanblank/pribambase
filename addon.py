@@ -31,6 +31,7 @@ class Addon:
     def __init__(self):
         self.handlers = Handlers()
         self._server = None
+        self.active_sprite = None
 
 
     @property
@@ -88,3 +89,4 @@ handlers.add(handle.Spritesheet)
 handlers.add(handle.Frame)
 handlers.add(handle.ChangeName)
 handlers.add(handle.NewTexture)
+handlers.add(handle.ActiveSprite)

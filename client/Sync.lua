@@ -172,6 +172,12 @@ else
         May have multiple returns, WebSocket:send() concatenates its arguments
     ]]
 
+    local function messageActiveSprite(opts)
+        local id = string.byte('A')
+        local name = opts.name
+        return string.pack("<Bs4", id, name)
+    end
+
     local function messageImage(opts)
         local sprite = opts.sprite
         local name = opts.name or ""
@@ -283,6 +289,12 @@ else
         end
     end
 
+    local function sendActiveSprite(name)
+        if connected and spr ~= nil then
+            ws:sendBinary(messageActiveSprite{ name=name })
+        end
+    end
+
     local function sendNewTexture()
         if spr == nil then
             return
@@ -290,7 +302,7 @@ else
         if isSprite(spr.filename) then
             ws:sendBinary(messageNewTexture{ name="", path=spr.filename })
         else
-            docList[spr] = { blend=blendfile, animated=false }
+            docList[spr] = { blend=blendfile, animated=false, showUV=false }
 
             local popup = Dialog{ title=tr("Choose Texture Name") }
             popup:entry{ id="name", text=unique_name(spr.filename or tr("Sprite")), focus=true }
@@ -474,6 +486,9 @@ else
                         animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0),
                         showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0)}
                 end
+                sendActiveSprite(sf)
+            else
+                sendActiveSprite("")
             end
 
 
@@ -742,7 +757,9 @@ else
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
+                sendActiveSprite(spr.filename)
             end
+
 
         elseif t == WebSocketMessageType.CLOSE and dlg ~= nil then
             connected = false

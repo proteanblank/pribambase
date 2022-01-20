@@ -201,3 +201,15 @@ class NewTexture(Handler):
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
             bpy.ops.pribambase.new_texture(name=name, path=path)
+
+
+class ActiveSprite(Handler):
+    """Aseprite's workspace state"""
+    id = "A"
+
+    def parse(self, args):
+        name = self.take_str()
+        args.name = name and name or None
+
+    async def execute(self, name:Union[str, None]):
+        addon.active_sprite = name

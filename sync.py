@@ -91,6 +91,7 @@ class Server():
             await self._site.stop()
             await self._site._runner.cleanup()
             await self._server.shutdown()
+            addon.active_sprite = None
 
         asyncio.ensure_future(_stop_a())
         async_loop.erase_async_loop()
