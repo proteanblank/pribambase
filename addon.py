@@ -21,7 +21,7 @@
 import bpy
 from .messaging import Handlers
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from .sync import Server
     from .props import SB_Preferences, SB_State
@@ -77,6 +77,11 @@ class Addon:
     @property
     def connected(self) -> bool:
         return self._server and self._server.connected
+    
+
+    @property
+    def active_sprite_image(self) -> Union[bpy.types.Image, None]:
+        return next((img for img in bpy.data.images if img.sb_props.sync_name == self.active_sprite), None)
 
 
 addon = Addon()

@@ -236,6 +236,7 @@ class UVWatch:
     running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
 
     PERIOD = 0.05 # seconds between timer updates
+    SLEEP = 0.5 # period when timer is skipping the checks (outside of edit/texpaint mode)
 
     def __init__(self, image:str, sync_name:str, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
         self.image = image
@@ -270,25 +271,28 @@ class UVWatch:
         if self != self.__class__.running:
             return None
 
-        if not addon.connected:
-            self.stop()
-            return None
-
         self.idle_t += self.PERIOD
 
-        changed = not self.send_pending and self.update_hash() # skip checks when waiting to send
+        context = bpy.context
+        watched = addon.state.uv_watch
+
+        # go sleep in several cases that do not imply sending the UVs
+        if watched == 'NEVER' \
+                or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
+                or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
+                or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
+            return self.SLEEP
+
+        changed = not self.send_pending and self.update_hash(context) # skip checks when waiting to send
 
         if changed:
             print("changed", self.last_hash)
             if self.last_hash: # have some data
                 self.send_pending = True
-            else:
-                print("watch done!")
-                return None
         
         if self.send_pending: # not elif!!
             if self.idle_t >= addon.prefs.debounce:
-                bpy.ops.pribambase.uv_send(bpy.context.copy(), destination=self.destination, 
+                bpy.ops.pribambase.uv_send(context.copy(), destination=self.destination, 
                     sync_name=self.sync_name, size=self.size, color=self.color, weight=self.weight)
                 self.send_pending = False
                 self.idle_t = 0
@@ -298,9 +302,7 @@ class UVWatch:
         return self.PERIOD
 
 
-    def update_hash(self) -> bool:
-        context = bpy.context
-
+    def update_hash(self, context) -> bool:
         meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
         if context.object and context.object.type == 'MESH': 
             meshes = chain(meshes, [context.object])
@@ -310,6 +312,19 @@ class UVWatch:
         changed = (new_hash != self.last_hash)
         self.last_hash = new_hash
         return changed
+    
+
+    def active_sprite_open(self, context) -> bool:
+        active = addon.active_sprite
+
+        areas = (a for window in context.window_manager.windows for a in window.screen.areas if a.type=='IMAGE_EDITOR')
+
+        for area in areas:
+            image = area.spaces[0].image
+            if image and image.sb_props.sync_name == active:
+                return True
+
+        return False
 
 
 class SB_OT_uv_watch_start(bpy.types.Operator):

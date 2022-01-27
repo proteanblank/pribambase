@@ -31,7 +31,7 @@ from . import util
 from . import modify
 
 
-def get_identifier(self):
+def _get_identifier(self):
     if bpy.data.filepath:
         return bpy.data.filepath
 
@@ -70,7 +70,7 @@ class SB_State(bpy.types.PropertyGroup):
     identifier: bpy.props.StringProperty(
         name="Identifier",
         description="Unique but not permanent id for the current file. Prevents accidentally syncing textures from another file",
-        get=get_identifier)
+        get=_get_identifier)
     
     action_preview: bpy.props.PointerProperty(
         name="Action Preview",
@@ -81,6 +81,13 @@ class SB_State(bpy.types.PropertyGroup):
     action_preview_enabled: bpy.props.BoolProperty(
         name="Action Preview",
         description="Lock timeline preview range to action length")
+
+    uv_watch: bpy.props.EnumProperty(
+        name="UV Sync",
+        description="Change when UV map updates in Aseprite",
+        items=(('ALWAYS', "Always", "Update displayed UVs when enabled in the currently open document in Aseprite"), 
+            ('SHOWN', "Image Editor", "Only update UVs when currently open document in Aseprite is also open in the Blender's image editor"),
+            ('NEVER', "Off", "Do not sync UV when they change in Blender. UVs can be sent to Aseprite manually from image editor menu")))
 
     op_props: bpy.props.PointerProperty(type=SB_OpProps, options={'HIDDEN', 'SKIP_SAVE'})
 

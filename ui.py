@@ -95,6 +95,8 @@ class SB_PT_link(bpy.types.Panel):
             row.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
         row.menu("SB_MT_global", icon='DOWNARROW_HLT', text="")
 
+        layout.row().prop(addon.state, "uv_watch")
+
 
 class SB_MT_global(bpy.types.Menu):
     bl_label = "Pribambase"
