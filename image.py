@@ -247,13 +247,6 @@ class UVWatch:
         self.size = (*size,) # gotta copy here bc vectors are mutable lists and seem to reset to default value later
         self.color = (*color,)
         self.weight = weight
-
-        # drawing
-        r = (25, 70, 270, 110)
-        bdrop = ((r[0], r[1]), (r[2], r[1]), (r[0], r[3]), (r[2], r[3]))
-        bdrop_i = ((0, 1, 2), (2, 1, 3))
-        self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-        self.batch = batch_for_shader(self.shader, 'TRIS', {"pos": bdrop}, indices=bdrop_i)
     
 
     def start(self):
@@ -265,26 +258,12 @@ class UVWatch:
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
         print("watch start")
-        self.draw_handler = bpy.types.SpaceImageEditor.draw_handler_add(self.draw_callback, tuple(), 'WINDOW', 'POST_PIXEL')
     
 
     def stop(self):
         assert self == self.__class__.running
         self.__class__.running = None
         print("watch stop")
-        bpy.types.SpaceImageEditor.draw_handler_remove(self.draw_handler, 'WINDOW')
-        util.refresh()
-    
-
-    def draw_callback(self):
-        self.shader.bind()
-        self.shader.uniform_float("color", (0.8, 0.8, 0.8, 1.0))
-        self.batch.draw(self.shader)
-
-        blf.color(0, 1, 0, 0, 1)
-        blf.position(0, 45, 80, 0)
-        blf.size(0, 32, 72)
-        blf.draw(0, "UV SYNC WIP")
 
 
     def timer_callback(self):
