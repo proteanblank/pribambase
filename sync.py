@@ -141,8 +141,8 @@ class Server():
 class UVWatch:
     running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
 
-    PERIOD = 0.05 # seconds between timer updates
-    SLEEP = 0.5 # period when timer is skipping the checks (outside of edit/texpaint mode)
+    PERIOD = 0.2 # seconds between timer updates
+    SLEEP = 1.0 # period when timer is skipping the checks (outside of edit/texpaint mode)
 
     def __init__(self):
         self.is_running = False
