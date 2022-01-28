@@ -186,7 +186,16 @@ class UVWatch:
         
         if self.send_pending: # not elif!!
             if self.idle_t >= addon.prefs.debounce:
-                bpy.ops.pribambase.uv_send(context.copy(), size=self.size, color=self.color, weight=self.weight)
+                size = addon.state.uv_size
+                if addon.state.uv_is_relative:
+                    img = addon.active_sprite_image
+                    if img:
+                        size = (int(img.size[0] * addon.state.uv_scale), int(img.size[1] * addon.state.uv_scale))
+
+                bpy.ops.pribambase.uv_send(context.copy(), 
+                    size=size,
+                    color=addon.state.uv_color, 
+                    weight=addon.state.uv_weight)
                 self.send_pending = False
                 self.idle_t = 0
             else:

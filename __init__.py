@@ -98,6 +98,7 @@ classes = (
     SB_PT_animation,
     SB_PT_sprite,
     SB_PT_reference,
+    SB_PT_uv_draw,
     # Menus
     SB_MT_sprite,
     SB_MT_global

@@ -84,16 +84,6 @@ def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[
     bpy.data.meshes.remove(mc)
 
 
-def uvmap_size(image):
-    scale = addon.prefs.uv_scale
-    size = [128, 128]
-
-    if image is not None:
-        size = image.size
-
-    return [int(size[0] * scale), int(size[1] * scale)]
-
-
 class SB_OT_uv_send(bpy.types.Operator):
     bl_idname = "pribambase.uv_send"
     bl_label = "Send UV"
@@ -183,7 +173,7 @@ class SB_OT_uv_send(bpy.types.Operator):
             size=(w, h),
             pixels=nbuf.tobytes(),
             layer=addon.prefs.uv_layer,
-            opacity=int(addon.prefs.uv_color[3] * 255))
+            opacity=int(self.color[3] * 255))
 
         addon.server.send(msg)
 
@@ -191,15 +181,6 @@ class SB_OT_uv_send(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        if tuple(self.size) == (1, 1):
-            self.size = uvmap_size(bpy.context.edit_image)
-
-        if tuple(self.color) == (0.0, 0.0, 0.0, 0.0):
-            self.color = addon.prefs.uv_color
-
-        if self.weight == 0.0:
-            self.weight = addon.prefs.uv_weight
-
         return context.window_manager.invoke_props_dialog(self)
 
 
