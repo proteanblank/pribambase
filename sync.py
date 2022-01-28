@@ -169,20 +169,22 @@ class UVWatch:
         context = bpy.context
         watched = addon.state.uv_watch
 
-        # go sleep in several cases that do not imply sending the UVs
-        if watched == 'NEVER' \
-                or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
-                or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
-                or addon.active_sprite_image is None \
-                or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
-            return self.SLEEP
+        if not self.send_pending:
+            # go sleep in several cases that do not imply sending the UVs
+            if watched == 'NEVER' \
+                    or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
+                    or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
+                    or addon.active_sprite_image is None \
+                    or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
+                return self.SLEEP
 
-        changed = not self.send_pending and self.update_hash(context) # skip checks when waiting to send
-        # self.send_pending = self.send_pending or changed and self.last_hash
-        if changed:
-            print("changed", self.last_hash)
-            if self.last_hash: # have some data
-                self.send_pending = True
+            changed = self.update_hash(context) # skip checks when waiting to send
+            ## TODO when removing print, use this:
+            # self.send_pending = self.send_pending or changed and self.last_hash
+            if changed:
+                print("changed", self.last_hash)
+                if self.last_hash: # have some data
+                    self.send_pending = True
         
         if self.send_pending: # not elif!!
             if self.idle_t >= addon.prefs.debounce:
