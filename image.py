@@ -587,8 +587,6 @@ class SB_MT_sprite(bpy.types.Menu):
         layout.separator()
         layout.operator("pribambase.sprite_make_animated")
         layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
-        layout.operator("pribambase.uv_watch_start")
-        layout.operator("pribambase.uv_watch_stop")
 
 
     def header_draw(self, context):
