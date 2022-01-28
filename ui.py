@@ -60,6 +60,7 @@ class SB_OT_grid_set(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
 
+
 class SB_PT_uv_draw(bpy.types.Panel):
     bl_idname = "SB_PT_uv_draw"
     bl_label = "UV Properties"
@@ -70,7 +71,9 @@ class SB_PT_uv_draw(bpy.types.Panel):
     def draw(self, ctx):
         layout = self.layout
 
-        layout.prop(addon.state, "uv_watch")
+        watch_row = layout.row()
+        watch_row.enabled = addon.prefs.uv_sync_auto
+        watch_row.prop(addon.state, "uv_watch")
         size_row = layout.row(align=True)
         if addon.state.uv_is_relative:
             size_row.prop(addon.state, "uv_scale")

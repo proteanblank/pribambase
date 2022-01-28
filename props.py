@@ -87,7 +87,7 @@ class SB_State(bpy.types.PropertyGroup):
         description="Change when UV map updates in Aseprite",
         items=(('ALWAYS', "Always", "Update displayed UVs when enabled in the currently open document in Aseprite"), 
             ('SHOWN', "Image Editor", "Only update UVs when currently open document in Aseprite is also open in the Blender's image editor"),
-            ('NEVER', "Off", "Do not sync UV when they change in Blender. UVs can be sent to Aseprite manually from image editor menu")))
+            ('NEVER', "Manual", "Do not sync UV when they change in Blender. UVs can be sent to Aseprite from image editor menu")))
     
     uv_is_relative: bpy.props.BoolProperty(
         name="Relative Size",
@@ -377,6 +377,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Anti-aliased",
         description="Apply anti-aliasing to the UV map",
         default=True)
+    
+    uv_sync_auto: bpy.props.BoolProperty(
+        name="Sync Automatically",
+        description="Automatically update UV map in Aseprite, when enabled in the sprite",
+        default=True)
 
     use_relative_path: bpy.props.BoolProperty(
         name="Relative Paths",
@@ -406,7 +411,8 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box = self.template_box(layout, label="UV Map:")
 
         box.row().prop(self, "uv_layer")
-        box.row().prop(self, "uv_aa",)
+        box.row().prop(self, "uv_aa")
+        box.row().prop(self, "uv_sync_auto")
 
         box = self.template_box(layout, label="Connection:")
 

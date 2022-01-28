@@ -113,8 +113,9 @@ class Server():
         await self._ws.send_bytes(encode.texture_list(bf, lst), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
 
-        addon.watch = UVWatch()
-        addon.watch.start()
+        if addon.prefs.uv_sync_auto:
+            addon.watch = UVWatch()
+            addon.watch.start()
 
         util.refresh()
 
@@ -127,8 +128,9 @@ class Server():
 
         # client disconnected
         
-        addon.watch.stop()
-        addon.watch = None
+        if addon.watch:
+            addon.watch.stop()
+            addon.watch = None
 
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite disconnected")
         util.refresh()
