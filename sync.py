@@ -148,6 +148,7 @@ class UVWatch:
         self.last_hash = 0
         self.idle_t = 0
         self.send_pending = True
+        self.sprite = None
         self.__class__.running = self
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
@@ -178,7 +179,7 @@ class UVWatch:
                     or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
                 return self.SLEEP
 
-            changed = self.update_hash(context) # skip checks when waiting to send
+            changed = self.update_hash(context) or self.update_sprite() # skip checks when waiting to send
             ## TODO when removing print, use this:
             # self.send_pending = self.send_pending or changed and self.last_hash
             if changed:
@@ -215,6 +216,12 @@ class UVWatch:
         new_hash = hash(lines) if lines else 0
         changed = (new_hash != self.last_hash)
         self.last_hash = new_hash
+        return changed
+
+    
+    def update_sprite(self) -> bool:
+        changed = self.sprite != addon.active_sprite
+        self.sprite = addon.active_sprite
         return changed
     
 
