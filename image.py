@@ -42,23 +42,15 @@ COLOR_MODES = [
 
 def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
     """Iterate over line segments of the UV map. End points are sorted, so overlaps always have same point order."""
-
-    # TODO try mesh API
     # need to make a copy, otherwise uv watch will interrupt the user editing the uv map or mesh itself
     # not needed for oneshot send but if we can do it on timer, migh as well always
     mc = mesh.copy()
-    
-    bm_created = False # bmesh MUST be freed in object mode, and NEVER in editmode.
+    bm = bmesh.new()
     try:
-        bm = bmesh.from_edit_mesh(mc)
+        bm.from_mesh(mc)
     except:
-        bm = bmesh.new()
-        bm_created = True
-        try:
-            bm.from_mesh(mc)
-        except:
-            bm.free()
-            return
+        bm.free()
+        return
 
     uv = bm.loops.layers.uv.active
 
@@ -79,8 +71,7 @@ def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[
             else:
                 yield (a, b)
 
-    if bm_created:
-        bm.free()
+    bm.free()
     bpy.data.meshes.remove(mc)
 
 
@@ -95,7 +86,7 @@ class SB_OT_uv_send(bpy.types.Operator):
         size=2,
         min=1,
         max=65535,
-        default=(1, 1))
+        default=(128, 128))
 
     color: bpy.props.FloatVectorProperty(
         name="Color",
@@ -103,7 +94,7 @@ class SB_OT_uv_send(bpy.types.Operator):
         size=4,
         min=0.0,
         max=1.0,
-        default=(0.0, 0.0, 0.0, 0.0),
+        default=(0.0, 0.0, 0.0, 1.0),
         subtype='COLOR')
 
     weight: bpy.props.FloatProperty(
@@ -111,7 +102,7 @@ class SB_OT_uv_send(bpy.types.Operator):
         description="Thickness of the UV map lines at its original resolution",
         min=0,
         max=65535,
-        default=0)
+        default=1)
 
 
     @classmethod
