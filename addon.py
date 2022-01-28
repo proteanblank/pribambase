@@ -60,11 +60,7 @@ class Addon:
         self._server.start()
 
         
-        self._watch = UVWatch(
-            destination = 'texture',
-            size = (128, 128),
-            color = (0.0, 0.0, 0.0, 1.0),
-            weight = 1.0)
+        self._watch = UVWatch(size=(128, 128), color=(0.0, 0.0, 0.0, 1.0), weight=1.0)
         self._watch.start()
 
 

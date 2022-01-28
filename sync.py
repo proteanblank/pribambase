@@ -134,11 +134,10 @@ class UVWatch:
     PERIOD = 0.05 # seconds between timer updates
     SLEEP = 0.5 # period when timer is skipping the checks (outside of edit/texpaint mode)
 
-    def __init__(self, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
+    def __init__(self, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
         self.is_running = False
 
         # uv send properties
-        self.destination = destination
         self.size = (*size,) # gotta copy here bc vectors are mutable lists and seem to reset to default value later
         self.color = (*color,)
         self.weight = weight
@@ -174,6 +173,7 @@ class UVWatch:
         if watched == 'NEVER' \
                 or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
                 or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
+                or addon.active_sprite_image is None \
                 or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
             return self.SLEEP
 
@@ -186,8 +186,7 @@ class UVWatch:
         
         if self.send_pending: # not elif!!
             if self.idle_t >= addon.prefs.debounce:
-                bpy.ops.pribambase.uv_send(context.copy(), destination=self.destination, 
-                    sync_name="", size=self.size, color=self.color, weight=self.weight)
+                bpy.ops.pribambase.uv_send(context.copy(), size=self.size, color=self.color, weight=self.weight)
                 self.send_pending = False
                 self.idle_t = 0
             else:

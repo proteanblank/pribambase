@@ -566,16 +566,9 @@ else
 
 
     local function handleUVMap(msg)
-        local _id, opacity, w, h, layer, sprite, pixels = string.unpack("<BBHHs4s4s4", msg)
+        local _id, opacity, w, h, layer, pixels = string.unpack("<BBHHs4s4", msg)
 
-        if sprite ~= "" then
-            local s = findOpenDoc(sprite, blendfile)
-            if s then
-                app.activeSprite = s
-            else
-                return
-            end
-        elseif spr == nil then
+        if spr == nil then
             return
         end
 
@@ -795,7 +788,6 @@ else
         local sf = spr.filename
         if syncList[sf] ~= nil then
             syncList[sf] = (val and (syncList[sf] | BIT_SYNC_SHOWUV) or (syncList[sf] & ~BIT_SYNC_SHOWUV))
-            print(val, syncList[sf])
         end
         if docList[spr] ~= nil then
             docList[spr].showUV = val

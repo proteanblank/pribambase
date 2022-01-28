@@ -39,10 +39,6 @@ COLOR_MODES = [
     ('indexed', "Indexed", "Palettized image with arbitrary palette"),
     ('gray', "Grayscale", "Palettized with 256 levels of gray")]
 
-UV_DEST = [
-    ('texture', "Texture Source", "Show UV map in the file of the image editor's texture"),
-    ('active', "Active Sprite", "Show UV map in the currently open document")]
-
 
 def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
     """Iterate over line segments of the UV map. End points are sorted, so overlaps always have same point order."""
@@ -97,50 +93,36 @@ def uvmap_size(image):
 
     return [int(size[0] * scale), int(size[1] * scale)]
 
-# watch and send have the same props and logic
-_uv_common_props = {
-    "destination": bpy.props.EnumProperty(
-        name="Show In",
-        description="Which document's UV map will be shown in aseprite",
-        items=UV_DEST,
-        default='texture'),
-
-    "size": bpy.props.IntVectorProperty(
-        name="Resolution",
-        description="The size for the created UVMap. The image is scaled to the size of the sprite",
-        size=2,
-        min=1,
-        max=65535,
-        default=(1, 1)),
-
-    "color": bpy.props.FloatVectorProperty(
-        name="Color",
-        description="Color to draw the UVs with",
-        size=4,
-        min=0.0,
-        max=1.0,
-        default=(0.0, 0.0, 0.0, 0.0),
-        subtype='COLOR'),
-
-    "weight": bpy.props.FloatProperty(
-        name="Thickness",
-        description="Thickness of the UV map lines at its original resolution",
-        min=0,
-        max=65535,
-        default=0)}
-
 
 class SB_OT_uv_send(bpy.types.Operator):
     bl_idname = "pribambase.uv_send"
     bl_label = "Send UV"
     bl_description = "Show UV in Aseprite"
 
-    destination: _uv_common_props["destination"]
-    size: _uv_common_props["size"]
-    color: _uv_common_props["color"]
-    weight: _uv_common_props["weight"]
+    size: bpy.props.IntVectorProperty(
+        name="Resolution",
+        description="The size for the created UVMap. The image is scaled to the size of the sprite",
+        size=2,
+        min=1,
+        max=65535,
+        default=(1, 1))
 
-    sync_name: bpy.props.StringProperty(options={'HIDDEN'}) # a prop because it's not easy to retrieve in a timer
+    color: bpy.props.FloatVectorProperty(
+        name="Color",
+        description="Color to draw the UVs with",
+        size=4,
+        min=0.0,
+        max=1.0,
+        default=(0.0, 0.0, 0.0, 0.0),
+        subtype='COLOR')
+
+    weight: bpy.props.FloatProperty(
+        name="Thickness",
+        description="Thickness of the UV map lines at its original resolution",
+        min=0,
+        max=65535,
+        default=0)
+
 
     @classmethod
     def poll(self, context):
@@ -149,10 +131,6 @@ class SB_OT_uv_send(bpy.types.Operator):
 
     def execute(self, context):
         w, h = self.size
-        source = ""
-
-        if self.destination == 'texture':
-            source = self.sync_name
 
         aa = addon.prefs.uv_aa
         weight = self.weight
@@ -202,13 +180,10 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         # send data
         msg = encode.uv_map(
-                size=(w, h),
-                sprite=source,
-                pixels=nbuf.tobytes(),
-                layer=addon.prefs.uv_layer,
-                opacity=int(addon.prefs.uv_color[3] * 255))
-        if source:
-            msg = encode.batch((encode.sprite_focus(source), msg))
+            size=(w, h),
+            pixels=nbuf.tobytes(),
+            layer=addon.prefs.uv_layer,
+            opacity=int(addon.prefs.uv_color[3] * 255))
 
         addon.server.send(msg)
 
@@ -224,8 +199,6 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         if self.weight == 0.0:
             self.weight = addon.prefs.uv_weight
-        
-        self.sync_name = context.area.spaces.active.image.sb_props.sync_name
 
         return context.window_manager.invoke_props_dialog(self)
 
