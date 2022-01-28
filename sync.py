@@ -112,6 +112,10 @@ class Server():
         bf = addon.state.identifier
         await self._ws.send_bytes(encode.texture_list(bf, lst), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
+
+        addon.watch = UVWatch()
+        addon.watch.start()
+
         util.refresh()
 
         async for msg in self._ws:
@@ -122,6 +126,10 @@ class Server():
                 bpy.ops.pribambase.report(message_type='ERROR', message=f"{pgettext('Aseprite connection closed with exception')} {self._ws.exception()}")
 
         # client disconnected
+        
+        addon.watch.stop()
+        addon.watch = None
+
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite disconnected")
         util.refresh()
 
@@ -134,13 +142,8 @@ class UVWatch:
     PERIOD = 0.05 # seconds between timer updates
     SLEEP = 0.5 # period when timer is skipping the checks (outside of edit/texpaint mode)
 
-    def __init__(self, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
+    def __init__(self):
         self.is_running = False
-
-        # uv send properties
-        self.size = (*size,) # gotta copy here bc vectors are mutable lists and seem to reset to default value later
-        self.color = (*color,)
-        self.weight = weight
     
 
     def start(self):
