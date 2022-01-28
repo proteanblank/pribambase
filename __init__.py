@@ -63,8 +63,6 @@ classes = (
     SB_OT_server_start,
     SB_OT_server_stop,
     SB_OT_uv_send,
-    SB_OT_uv_watch_start,
-    SB_OT_uv_watch_stop,
     SB_OT_send_texture_list,
     SB_OT_sprite_open,
     SB_OT_sprite_new,

@@ -26,12 +26,16 @@ import asyncio
 import aiohttp
 from aiohttp import web
 from time import time
+from itertools import chain
 from bpy.app.translations import pgettext
 
 from . import async_loop
 from . import util
+from .image import SB_OT_uv_send, uv_lines
 from .messaging import encode
 from .addon import addon
+
+from typing import Tuple
 
 
 class Server():
@@ -122,6 +126,99 @@ class Server():
         util.refresh()
 
         return self._ws
+
+
+class UVWatch:
+    running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
+
+    PERIOD = 0.05 # seconds between timer updates
+    SLEEP = 0.5 # period when timer is skipping the checks (outside of edit/texpaint mode)
+
+    def __init__(self, destination:str, size:Tuple[int, int], color:Tuple[float,float,float,float], weight:float):
+        self.is_running = False
+
+        # uv send properties
+        self.destination = destination
+        self.size = (*size,) # gotta copy here bc vectors are mutable lists and seem to reset to default value later
+        self.color = (*color,)
+        self.weight = weight
+    
+
+    def start(self):
+        assert not self.__class__.running
+        self.last_hash = 0
+        self.idle_t = 0
+        self.send_pending = True
+        self.__class__.running = self
+        bpy.app.timers.register(self.timer_callback)
+        self.timer_callback()
+        print("watch start")
+    
+
+    def stop(self):
+        assert self == self.__class__.running
+        self.__class__.running = None
+        print("watch stop")
+
+
+    def timer_callback(self):
+        if self != self.__class__.running:
+            return None
+
+        self.idle_t += self.PERIOD
+
+        context = bpy.context
+        watched = addon.state.uv_watch
+
+        # go sleep in several cases that do not imply sending the UVs
+        if watched == 'NEVER' \
+                or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
+                or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
+                or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
+            return self.SLEEP
+
+        changed = not self.send_pending and self.update_hash(context) # skip checks when waiting to send
+        # self.send_pending = self.send_pending or changed and self.last_hash
+        if changed:
+            print("changed", self.last_hash)
+            if self.last_hash: # have some data
+                self.send_pending = True
+        
+        if self.send_pending: # not elif!!
+            if self.idle_t >= addon.prefs.debounce:
+                bpy.ops.pribambase.uv_send(context.copy(), destination=self.destination, 
+                    sync_name="", size=self.size, color=self.color, weight=self.weight)
+                self.send_pending = False
+                self.idle_t = 0
+            else:
+                print("wait", self.idle_t, self.send_pending)
+
+        return self.PERIOD
+
+
+    def update_hash(self, context) -> bool:
+        meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
+        if context.object and context.object.type == 'MESH': 
+            meshes = chain(meshes, [context.object])
+
+        lines = frozenset(line for mesh in meshes for line in uv_lines(mesh))
+        new_hash = hash(lines) if lines else 0
+        changed = (new_hash != self.last_hash)
+        self.last_hash = new_hash
+        return changed
+    
+
+    def active_sprite_open(self, context) -> bool:
+        active = addon.active_sprite
+
+        image_editors = (a for window in context.window_manager.windows for a in window.screen.areas if a.type=='IMAGE_EDITOR')
+
+        for area in image_editors:
+            image = area.spaces[0].image
+            if image and image.sb_props.sync_name == active:
+                return True
+
+        return False
 
 
 class SB_OT_server_start(bpy.types.Operator):

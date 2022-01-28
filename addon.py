@@ -19,11 +19,12 @@
 # SOFTWARE.
 
 import bpy
+
 from .messaging import Handlers
 
 from typing import TYPE_CHECKING, Union
 if TYPE_CHECKING:
-    from .sync import Server
+    from .sync import Server, UVWatch
     from .props import SB_Preferences, SB_State
 
 
@@ -31,6 +32,7 @@ class Addon:
     def __init__(self):
         self.handlers = Handlers()
         self._server = None
+        self._watch = None
         self.active_sprite = None
 
 
@@ -53,15 +55,26 @@ class Addon:
 
         host = "localhost" if self.prefs.localhost else "0.0.0.0"
 
-        from .sync import Server
+        from .sync import Server, UVWatch
         self._server = Server(host, addon.prefs.port)
         self._server.start()
+
+        
+        self._watch = UVWatch(
+            destination = 'texture',
+            size = (128, 128),
+            color = (0.0, 0.0, 0.0, 1.0),
+            weight = 1.0)
+        self._watch.start()
 
 
     def stop_server(self):
         """Stop server instance"""
         self._server.stop()
         self._server = None
+
+        self._watch.stop()
+        self._watch = None
 
 
     @property
