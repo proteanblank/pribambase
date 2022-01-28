@@ -157,13 +157,11 @@ class UVWatch:
         self.__class__.running = self
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
-        print("watch start")
     
 
     def stop(self):
         assert self == self.__class__.running
         self.__class__.running = None
-        print("watch stop")
 
 
     def timer_callback(self):
@@ -185,12 +183,7 @@ class UVWatch:
                 return self.SLEEP
 
             changed = self.update_hash(context) or self.update_sprite() # skip checks when waiting to send
-            ## TODO when removing print, use this:
-            # self.send_pending = self.send_pending or changed and self.last_hash
-            if changed:
-                print("changed", self.last_hash)
-                if self.last_hash: # have some data
-                    self.send_pending = True
+            self.send_pending = self.send_pending or changed and self.last_hash
         
         if self.send_pending: # not elif!!
             if self.idle_t >= addon.prefs.debounce:
@@ -206,8 +199,6 @@ class UVWatch:
                     weight=addon.state.uv_weight)
                 self.send_pending = False
                 self.idle_t = 0
-            else:
-                print("wait", self.idle_t, self.send_pending)
 
         return self.PERIOD
 
