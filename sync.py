@@ -151,9 +151,9 @@ class UVWatch:
     def start(self):
         assert not self.__class__.running
         self.last_hash = 0
+        self.scene_hash = 0
         self.idle_t = 0
         self.send_pending = True
-        self.sprite = None
         self.__class__.running = self
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
@@ -182,7 +182,7 @@ class UVWatch:
                     or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
                 return self.SLEEP
 
-            changed = self.update_hash(context) or self.update_sprite() # skip checks when waiting to send
+            changed = self.update_lines(context) or self.update_scene() # skip checks when waiting to send
             self.send_pending = self.send_pending or changed and self.last_hash
         
         if self.send_pending: # not elif!!
@@ -203,7 +203,7 @@ class UVWatch:
         return self.PERIOD
 
 
-    def update_hash(self, context) -> bool:
+    def update_lines(self, context) -> bool:
         meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
         if context.object and context.object.type == 'MESH': 
             meshes = chain(meshes, [context.object])
@@ -215,9 +215,11 @@ class UVWatch:
         return changed
 
     
-    def update_sprite(self) -> bool:
-        changed = self.sprite != addon.active_sprite
-        self.sprite = addon.active_sprite
+    def update_scene(self) -> bool:
+        new_hash = hash((addon.active_sprite, *addon.state.uv_color, addon.state.uv_is_relative, addon.state.uv_scale,
+            *addon.state.uv_size, addon.state.uv_weight))
+        changed = self.scene_hash != new_hash
+        self.scene_hash = new_hash
         return changed
     
 
