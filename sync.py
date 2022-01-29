@@ -203,11 +203,13 @@ class UVWatch:
 
 
     def update_lines(self, context) -> bool:
+        # if context.scene.tool_settings.use_uv_select_sync:
+
         meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
         if context.object and context.object.type == 'MESH': 
             meshes = chain(meshes, [context.object])
 
-        lines = frozenset(line for mesh in meshes for line in uv_lines(mesh))
+        lines = frozenset(line for mesh in meshes for line in uv_lines(mesh, only_selected=not context.scene.tool_settings.use_uv_select_sync))
         new_hash = hash(lines) if lines else 0
         changed = (new_hash != self.last_hash)
         self.last_hash = new_hash

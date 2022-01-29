@@ -40,7 +40,7 @@ COLOR_MODES = [
     ('gray', "Grayscale", "Palettized with 256 levels of gray")]
 
 
-def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
+def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
     """Iterate over line segments of the UV map. End points are sorted, so overlaps always have same point order."""
     # need to make a copy, otherwise uv watch will interrupt the user editing the uv map or mesh itself
     # not needed for oneshot send but if we can do it on timer, migh as well always
@@ -56,7 +56,7 @@ def uv_lines(mesh:bpy.types.Mesh) -> Generator[Tuple[Tuple[float, float], Tuple[
 
     # get all edges
     for face in bm.faces:
-        if not face.select:
+        if only_selected and not face.select:
             # not shown in the UV editor, skipping
             continue
 
@@ -124,7 +124,7 @@ class SB_OT_uv_send(bpy.types.Operator):
         if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
             objects.append(context.object)
 
-        edges = set(line for obj in objects for line in uv_lines(obj.data))
+        edges = set(line for obj in objects for line in uv_lines(obj.data, only_selected=not context.scene.tool_settings.use_uv_select_sync))
         coords = [c for pt in edges for c in pt]
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         batch = batch_for_shader(shader, 'LINES', {"pos": coords})
