@@ -142,8 +142,7 @@ class UVWatch:
     running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
 
     PERIOD = 0.2 # seconds between timer updates
-    SLEEP = 1.0 # period when timer is skipping the checks (outside of edit/texpaint mode)
-
+    
     def __init__(self):
         self.is_running = False
     
@@ -180,7 +179,7 @@ class UVWatch:
                     or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
                     or addon.active_sprite_image is None \
                     or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
-                return self.SLEEP
+                return self.PERIOD
 
             changed = self.update_lines(context) or self.update_scene() # skip checks when waiting to send
             self.send_pending = self.send_pending or changed and self.last_hash
