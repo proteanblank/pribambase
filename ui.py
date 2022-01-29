@@ -61,6 +61,31 @@ class SB_OT_grid_set(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 
+class SB_PT_uv_draw(bpy.types.Panel):
+    bl_idname = "SB_PT_uv_draw"
+    bl_label = "UV Properties"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_option = {'INSTANCED'}
+
+    def draw(self, ctx):
+        layout = self.layout
+
+        watch_row = layout.row()
+        watch_row.enabled = addon.prefs.uv_sync_auto
+        watch_row.prop(addon.state, "uv_watch")
+        size_row = layout.row(align=True)
+        if addon.state.uv_is_relative:
+            size_row.prop(addon.state, "uv_scale")
+            size_row.prop(addon.state, "uv_is_relative", icon='LINKED', text="")
+        else:
+            size_row.prop(addon.state, "uv_size")
+            size_row.prop(addon.state, "uv_is_relative", icon='UNLINKED', text="")
+        layout.prop(addon.state, "uv_color")
+        layout.prop(addon.state, "uv_weight")
+
+
+
 class SB_PT_link(bpy.types.Panel):
     bl_idname = "SB_PT_link"
     bl_label = "Sync"
@@ -94,6 +119,8 @@ class SB_PT_link(bpy.types.Panel):
         else:
             row.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
         row.menu("SB_MT_global", icon='DOWNARROW_HLT', text="")
+
+        layout.popover("SB_PT_uv_draw")
 
 
 class SB_MT_global(bpy.types.Menu):

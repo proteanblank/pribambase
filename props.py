@@ -31,7 +31,7 @@ from . import util
 from . import modify
 
 
-def get_identifier(self):
+def _get_identifier(self):
     if bpy.data.filepath:
         return bpy.data.filepath
 
@@ -70,7 +70,7 @@ class SB_State(bpy.types.PropertyGroup):
     identifier: bpy.props.StringProperty(
         name="Identifier",
         description="Unique but not permanent id for the current file. Prevents accidentally syncing textures from another file",
-        get=get_identifier)
+        get=_get_identifier)
     
     action_preview: bpy.props.PointerProperty(
         name="Action Preview",
@@ -81,6 +81,47 @@ class SB_State(bpy.types.PropertyGroup):
     action_preview_enabled: bpy.props.BoolProperty(
         name="Action Preview",
         description="Lock timeline preview range to action length")
+
+    uv_watch: bpy.props.EnumProperty(
+        name="Update",
+        description="Change when UV map updates in Aseprite",
+        items=(('ALWAYS', "Always", "Update displayed UVs when enabled in the currently open document in Aseprite"), 
+            ('SHOWN', "Image Editor", "Only update UVs when currently open document in Aseprite is also open in the Blender's image editor"),
+            ('NEVER', "Manual", "Do not sync UV when they change in Blender. UVs can be sent to Aseprite from image editor menu")))
+    
+    uv_is_relative: bpy.props.BoolProperty(
+        name="Relative Size",
+        description="Make UVMap size proportional to the size of the image",
+        default=True)
+    
+    uv_scale:bpy.props.FloatProperty(
+        name="Scale",
+        description="Resolution of the UV layer relative to that of the sprite",
+        default=2.0,
+        min=0.0,
+        max=10.0,
+        subtype='FACTOR')
+    
+    uv_size:bpy.props.IntVectorProperty(
+        name="Size",
+        description="Resolution of the UV layer in pixels",
+        size=2,
+        default=(128, 128),
+        min=0)
+
+    uv_color: bpy.props.FloatVectorProperty(
+        name="Color",
+        description="Default color to draw the UVs with",
+        size=4,
+        default=(0.0, 0.0, 0.0, 0.45),
+        min=0.0,
+        max=1.0,
+        subtype='COLOR')
+
+    uv_weight: bpy.props.FloatProperty(
+        name="Thickness",
+        description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
+        default=1.0)
 
     op_props: bpy.props.PointerProperty(type=SB_OpProps, options={'HIDDEN', 'SKIP_SAVE'})
 
@@ -235,7 +276,8 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
     sync_flags: bpy.props.EnumProperty(
         name="Sync Flags",
         description="Sync related flags passed to Aseprite with texture list",
-        items=(("SHEET", "All Frames", "Send all frames via spritesheet"),),
+        items=(('SHEET', "All Frames", "Send all frames via spritesheet"),
+            ('SHOW_UV', "Show UV", "Sync UV changes to sprite"),),
         options={'ENUM_FLAG'})
 
     # Spritesheet-specific props
@@ -315,6 +357,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Only Local Connections",
         description="Only accept connections from localhost (127.0.0.1)",
         default=True)
+    
+    debounce: bpy.props.FloatProperty(
+        name="Debounce",
+        description="Minimum time before sending an update to Aseprite after the previous one. Lower values make changes apply faster, but may cause unstable behavior.",
+        default=0.5)
 
     autostart: bpy.props.BoolProperty(
         name="Start Automatically",
@@ -326,31 +373,15 @@ class SB_Preferences(bpy.types.AddonPreferences):
         description="Name of the reference layer that will be created to display the UVs in Aseprite",
         default="UVMap")
 
-    uv_scale:bpy.props.FloatProperty(
-        name="Scale",
-        description="Default resolution of the UV layer relative to the texture size",
-        default=2.0,
-        min=0.0,
-        max=50.0)
-
-    uv_color: bpy.props.FloatVectorProperty(
-        name="Color",
-        description="Default color to draw the UVs with",
-        size=4,
-        default=(0.0, 0.0, 0.0, 0.45),
-        min=0.0,
-        max=1.0,
-        subtype='COLOR')
-
     uv_aa: bpy.props.BoolProperty(
         name="Anti-aliased",
         description="Apply anti-aliasing to the UV map",
         default=True)
-
-    uv_weight: bpy.props.FloatProperty(
-        name="Thickness",
-        description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
-        default=1.0)
+    
+    uv_sync_auto: bpy.props.BoolProperty(
+        name="Sync Automatically",
+        description="Automatically update UV map in Aseprite, when enabled in the sprite",
+        default=True)
 
     use_relative_path: bpy.props.BoolProperty(
         name="Relative Paths",
@@ -380,12 +411,8 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box = self.template_box(layout, label="UV Map:")
 
         box.row().prop(self, "uv_layer")
-        box.row().prop(self, "uv_color")
-
-        row = box.row()
-        row.prop(self, "uv_scale")
-        row.prop(self, "uv_weight")
-        row.prop(self, "uv_aa",)
+        box.row().prop(self, "uv_aa")
+        box.row().prop(self, "uv_sync_auto")
 
         box = self.template_box(layout, label="Connection:")
 
@@ -395,6 +422,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
         row.enabled = not addon.server_up
         row.prop(self, "localhost")
         row.prop(self, "port")
+        box.row().prop(self, "debounce")
 
         if addon.server_up:
             box.row().operator("pribambase.server_stop")

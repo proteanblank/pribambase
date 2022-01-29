@@ -32,16 +32,47 @@ from .messaging import encode
 from . import util
 from .addon import addon
 
+from typing import Tuple, Generator
 
 COLOR_MODES = [
     ('rgba', "RGBA", "32-bit color with transparency. If not sure, pick this one"),
     ('indexed', "Indexed", "Palettized image with arbitrary palette"),
     ('gray', "Grayscale", "Palettized with 256 levels of gray")]
 
-UV_DEST = [
-    ('texture', "Texture Source", "Show UV map in the file of the image editor's texture"),
-    ('active', "Active Sprite", "Show UV map in the currently open document")
-]
+
+def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[float, float], Tuple[float, float]], None, None]:
+    """Iterate over line segments of the UV map. End points are sorted, so overlaps always have same point order."""
+    # need to make a copy, otherwise uv watch will interrupt the user editing the uv map or mesh itself
+    # not needed for oneshot send but if we can do it on timer, migh as well always
+    mc = mesh.copy()
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(mc)
+    except:
+        bm.free()
+        return
+
+    uv = bm.loops.layers.uv.active
+
+    # get all edges
+    for face in bm.faces:
+        if only_selected and not face.select:
+            # not shown in the UV editor, skipping
+            continue
+
+        for i in range(0, len(face.loops)):
+            a = face.loops[i - 1][uv].uv.to_tuple()
+            b = face.loops[i][uv].uv.to_tuple()
+
+            # sorting helps catching overlapping lines for differently directed loops
+            # order doesn't really matter - just that there is one
+            if a > b:
+                yield (b, a)
+            else:
+                yield (a, b)
+
+    bm.free()
+    bpy.data.meshes.remove(mc)
 
 
 class SB_OT_uv_send(bpy.types.Operator):
@@ -49,21 +80,13 @@ class SB_OT_uv_send(bpy.types.Operator):
     bl_label = "Send UV"
     bl_description = "Show UV in Aseprite"
 
-
-    destination: bpy.props.EnumProperty(
-        name="Show In",
-        description="Which document's UV map will be shown in aseprite",
-        items=UV_DEST,
-        default='texture')
-
-
     size: bpy.props.IntVectorProperty(
         name="Resolution",
         description="The size for the created UVMap. The image is scaled to the size of the sprite",
         size=2,
         min=1,
         max=65535,
-        default=(1, 1))
+        default=(128, 128))
 
     color: bpy.props.FloatVectorProperty(
         name="Color",
@@ -71,7 +94,7 @@ class SB_OT_uv_send(bpy.types.Operator):
         size=4,
         min=0.0,
         max=1.0,
-        default=(0.0, 0.0, 0.0, 0.0),
+        default=(0.0, 0.0, 0.0, 1.0),
         subtype='COLOR')
 
     weight: bpy.props.FloatProperty(
@@ -79,77 +102,16 @@ class SB_OT_uv_send(bpy.types.Operator):
         description="Thickness of the UV map lines at its original resolution",
         min=0,
         max=65535,
-        default=0)
+        default=1)
 
 
     @classmethod
     def poll(self, context):
-        return addon.connected and context.edit_object is not None or context.image_paint_object is not None
-
-
-    def list_uv(self):
-        ctx = bpy.context
-        active = ctx.object
-        lines = set()
-
-        objects = [obj for obj in ctx.selected_objects if obj.type == 'MESH']
-        if (active is not None) and (active not in objects) and (active.type == 'MESH'):
-            objects.append(ctx.object)
-
-        for obj in objects:
-
-            try:
-                bm = bmesh.from_edit_mesh(obj.data)
-                bm_created = False # freeing an editmode bmesh crashes blender
-            except: # if there's `elif`, why isn't there `exceptry`?
-                try:
-                    bm = bmesh.new()
-                    bm_created = True
-                    bm.from_mesh(obj.data)
-                except:
-                    self.report('WARNING', "UVMap drawing skipped: can't access mesh data")
-                    continue
-
-            uv = bm.loops.layers.uv.active
-
-            # get all edges
-            for face in bm.faces:
-                if not face.select:
-                    continue
-
-                for i in range(0, len(face.loops)):
-                    a = face.loops[i - 1][uv].uv.to_tuple()
-                    b = face.loops[i][uv].uv.to_tuple()
-
-                    # sorting prevents the edge from being added twice for differently directed loops
-                    # order doesn't really matter, just that there is one
-                    if a > b:
-                        a, b = b, a
-
-                    lines.add((a, b))
-
-            if bm_created:
-                bm.free()
-
-        return lines
-
-
-    def uvmap_size(self):
-        scale = addon.prefs.uv_scale
-        size = [128, 128]
-
-        if bpy.context.edit_image is not None:
-            size = bpy.context.edit_image.size
-
-        return [int(size[0] * scale), int(size[1] * scale)]
+        return addon.connected
 
 
     def execute(self, context):
         w, h = self.size
-        source = ""
-
-        if self.destination == 'texture':
-            source = context.area.spaces.active.image.sb_props.sync_name
 
         aa = addon.prefs.uv_aa
         weight = self.weight
@@ -158,7 +120,12 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         offscreen = gpu.types.GPUOffScreen(w, h)
 
-        coords = [c for pt in self.list_uv() for c in pt]
+        objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
+        if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
+            objects.append(context.object)
+
+        edges = set(line for obj in objects for line in uv_lines(obj.data, only_selected=not context.scene.tool_settings.use_uv_select_sync))
+        coords = [c for pt in edges for c in pt]
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         batch = batch_for_shader(shader, 'LINES', {"pos": coords})
 
@@ -194,13 +161,10 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         # send data
         msg = encode.uv_map(
-                size=(w, h),
-                sprite=source,
-                pixels=nbuf.tobytes(),
-                layer=addon.prefs.uv_layer,
-                opacity=int(addon.prefs.uv_color[3] * 255))
-        if source:
-            msg = encode.batch((encode.sprite_focus(source), msg))
+            size=(w, h),
+            pixels=nbuf.tobytes(),
+            layer=addon.prefs.uv_layer,
+            opacity=int(self.color[3] * 255))
 
         addon.server.send(msg)
 
@@ -208,17 +172,7 @@ class SB_OT_uv_send(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        if tuple(self.size) == (1, 1):
-            self.size = self.uvmap_size()
-
-        if tuple(self.color) == (0.0, 0.0, 0.0, 0.0):
-            self.color = addon.prefs.uv_color
-
-        if self.weight == 0.0:
-            self.weight = addon.prefs.uv_weight
-
         return context.window_manager.invoke_props_dialog(self)
-
 
 
 class SB_OT_sprite_open(bpy.types.Operator):

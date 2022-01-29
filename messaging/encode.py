@@ -45,14 +45,13 @@ def texture_list(blendfile:str, images:Iterable[Tuple[str, Set[str]]]) -> bytear
     return data
 
 
-def uv_map(size:Tuple[int, int], sprite:str, pixels:bytes, opacity:int, layer:str) -> bytearray:
+def uv_map(size:Tuple[int, int], pixels:bytes, opacity:int, layer:str) -> bytearray:
     data = bytearray()
     add_id(data, 'M')
     add_uint(data, opacity, 1)
     add_uint(data, size[0], 2)
     add_uint(data, size[1], 2)
     add_string(data, layer)
-    add_string(data, sprite)
     add_data(data, pixels)
     return data
 

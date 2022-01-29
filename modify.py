@@ -67,10 +67,10 @@ def prescale(image:bpy.types.Image):
 
 
 _update_image_args = None
-def image(w, h, name, frame, pixels):
+def image(w, h, name, frame, flags, pixels):
     # NOTE this operator removes animation flag from image
     global _update_image_args
-    _update_image_args = w, h, name, frame, pixels
+    _update_image_args = w, h, name, frame, flags, pixels
     bpy.ops.pribambase.update_image()
 
 class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
@@ -83,7 +83,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
     def modal_execute(self, context):
         """Replace the image with pixel data"""
         img = None
-        w, h, name, frame, pixels = self.args
+        w, h, name, frame, flags, pixels = self.args
 
         # convert data to blender accepted floats
         pixels = np.float32(pixels) / 255.0
@@ -105,10 +105,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 if frame != -1:
                     img.sb_props.frame = frame
 
-                flags = img.sb_props.sync_flags
-                if 'SHEET' in flags:
-                    flags.remove('SHEET')
-                    img.sb_props.sync_flags = flags
+                img.sb_props.sync_flags = flags
 
                 img_pixels = pixels
                 if prescale > 1:
@@ -343,19 +340,16 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
                 self.update_actions(context, img, start, frames, current_frame, tags, current_tag)
 
-                self.args = tex_w, tex_h, tex_name, -1, pixels
+                self.args = tex_w, tex_h, tex_name, -1, set(), pixels
                 SB_OT_update_image.modal_execute(self, context) # clears self.args
 
                 # cut out the current frame and copy to view image
+                flags = set((*img.sb_props.sync_flags, 'SHEET'))
                 frame_x = current_frame % count[0]
                 frame_y = current_frame // count[0]
                 frame_pixels = np.ravel(pixels[frame_y * (size[1] + 2) + 1 : (frame_y + 1) * (size[1] + 2) - 1, frame_x * (size[0] + 2) * 4 + 4 : (frame_x + 1) * (size[0] + 2) * 4 - 4])
-                self.args = *size, name, current_frame, frame_pixels
+                self.args = *size, name, current_frame, flags, frame_pixels
                 SB_OT_update_image.modal_execute(self, context) # clears self.args and animation flag
-
-                flags = img.sb_props.sync_flags
-                flags.add('SHEET')
-                img.sb_props.sync_flags = flags
 
                 # update rig
                 for obj in bpy.data.objects:

@@ -19,9 +19,10 @@
 # SOFTWARE.
 
 import bpy
+
 from .messaging import Handlers
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from .sync import Server
     from .props import SB_Preferences, SB_State
@@ -31,6 +32,8 @@ class Addon:
     def __init__(self):
         self.handlers = Handlers()
         self._server = None
+        self.watch = None
+        self.active_sprite = None
 
 
     @property
@@ -76,6 +79,11 @@ class Addon:
     @property
     def connected(self) -> bool:
         return self._server and self._server.connected
+    
+
+    @property
+    def active_sprite_image(self) -> Union[bpy.types.Image, None]:
+        return next((img for img in bpy.data.images if img.sb_props.sync_name == self.active_sprite), None)
 
 
 addon = Addon()
@@ -88,3 +96,4 @@ handlers.add(handle.Spritesheet)
 handlers.add(handle.Frame)
 handlers.add(handle.ChangeName)
 handlers.add(handle.NewTexture)
+handlers.add(handle.ActiveSprite)

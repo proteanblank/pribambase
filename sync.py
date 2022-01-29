@@ -26,12 +26,16 @@ import asyncio
 import aiohttp
 from aiohttp import web
 from time import time
+from itertools import chain
 from bpy.app.translations import pgettext
 
 from . import async_loop
 from . import util
+from .image import SB_OT_uv_send, uv_lines
 from .messaging import encode
 from .addon import addon
+
+from typing import Tuple
 
 
 class Server():
@@ -91,6 +95,7 @@ class Server():
             await self._site.stop()
             await self._site._runner.cleanup()
             await self._server.shutdown()
+            addon.active_sprite = None
 
         asyncio.ensure_future(_stop_a())
         async_loop.erase_async_loop()
@@ -107,6 +112,11 @@ class Server():
         bf = addon.state.identifier
         await self._ws.send_bytes(encode.texture_list(bf, lst), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
+
+        if addon.prefs.uv_sync_auto:
+            addon.watch = UVWatch()
+            addon.watch.start()
+
         util.refresh()
 
         async for msg in self._ws:
@@ -117,10 +127,114 @@ class Server():
                 bpy.ops.pribambase.report(message_type='ERROR', message=f"{pgettext('Aseprite connection closed with exception')} {self._ws.exception()}")
 
         # client disconnected
+        
+        if addon.watch:
+            addon.watch.stop()
+            addon.watch = None
+
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite disconnected")
         util.refresh()
 
         return self._ws
+
+
+class UVWatch:
+    running = None # only allow one running watch to avoid the confusion, and keep performance acceptable
+
+    PERIOD = 0.2 # seconds between timer updates
+    
+    def __init__(self):
+        self.is_running = False
+    
+
+    def start(self):
+        assert not self.__class__.running
+        self.last_hash = 0
+        self.scene_hash = 0
+        self.idle_t = 0
+        self.send_pending = True
+        self.__class__.running = self
+        bpy.app.timers.register(self.timer_callback)
+        self.timer_callback()
+    
+
+    def stop(self):
+        assert self == self.__class__.running
+        self.__class__.running = None
+
+
+    def timer_callback(self):
+        if self != self.__class__.running:
+            return None
+
+        self.idle_t += self.PERIOD
+
+        context = bpy.context
+        watched = addon.state.uv_watch
+
+        if not self.send_pending:
+            # go sleep in several cases that do not imply sending the UVs
+            if watched == 'NEVER' \
+                    or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
+                    or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
+                    or addon.active_sprite_image is None \
+                    or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
+                return self.PERIOD
+
+            changed = self.update_lines(context) or self.update_scene() # skip checks when waiting to send
+            self.send_pending = self.send_pending or changed and self.last_hash
+        
+        if self.send_pending: # not elif!!
+            if self.idle_t >= addon.prefs.debounce:
+                size = addon.state.uv_size
+                if addon.state.uv_is_relative:
+                    img = addon.active_sprite_image
+                    if img:
+                        size = (int(img.size[0] * addon.state.uv_scale), int(img.size[1] * addon.state.uv_scale))
+
+                bpy.ops.pribambase.uv_send(context.copy(), 
+                    size=size,
+                    color=addon.state.uv_color, 
+                    weight=addon.state.uv_weight)
+                self.send_pending = False
+                self.idle_t = 0
+
+        return self.PERIOD
+
+
+    def update_lines(self, context) -> bool:
+        # if context.scene.tool_settings.use_uv_select_sync:
+
+        meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
+        if context.object and context.object.type == 'MESH': 
+            meshes = chain(meshes, [context.object])
+
+        lines = frozenset(line for mesh in meshes for line in uv_lines(mesh, only_selected=not context.scene.tool_settings.use_uv_select_sync))
+        new_hash = hash(lines) if lines else 0
+        changed = (new_hash != self.last_hash)
+        self.last_hash = new_hash
+        return changed
+
+    
+    def update_scene(self) -> bool:
+        new_hash = hash((addon.active_sprite, *addon.state.uv_color, addon.state.uv_is_relative, addon.state.uv_scale,
+            *addon.state.uv_size, addon.state.uv_weight))
+        changed = self.scene_hash != new_hash
+        self.scene_hash = new_hash
+        return changed
+    
+
+    def active_sprite_open(self, context) -> bool:
+        active = addon.active_sprite
+
+        image_editors = (a for window in context.window_manager.windows for a in window.screen.areas if a.type=='IMAGE_EDITOR')
+
+        for area in image_editors:
+            image = area.spaces[0].image
+            if image and image.sb_props.sync_name == active:
+                return True
+
+        return False
 
 
 class SB_OT_server_start(bpy.types.Operator):
