@@ -120,9 +120,10 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         offscreen = gpu.types.GPUOffScreen(w, h)
 
-        objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
-        if (context.object is not None) and (context.object not in objects) and (context.object.type == 'MESH'):
-            objects.append(context.object)
+        objects = [obj for obj in context.view_layer.objects if obj.select_get() and obj.type == 'MESH']
+        active_obj = context.view_layer.objects.active
+        if active_obj and active_obj.type == 'MESH':
+            objects.append(active_obj)
 
         edges = set(line for obj in objects for line in uv_lines(obj.data, only_selected=not context.scene.tool_settings.use_uv_select_sync))
         coords = [c for pt in edges for c in pt]

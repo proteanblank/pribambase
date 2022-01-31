@@ -31,11 +31,9 @@ from bpy.app.translations import pgettext
 
 from . import async_loop
 from . import util
-from .image import SB_OT_uv_send, uv_lines
+from .image import uv_lines
 from .messaging import encode
 from .addon import addon
-
-from typing import Tuple
 
 
 class Server():
@@ -173,9 +171,14 @@ class UVWatch:
         watched = addon.state.uv_watch
 
         if not self.send_pending:
+            # shim older blender unconditionally returning `context.mode -> 'OBJECT'`
+            ctx_mode = 'APIBUG' # /rly wanted to put a bad word here/
+            if (context and context.view_layer.objects.active):
+                ctx_mode = context.view_layer.objects.active.mode
+
             # go sleep in several cases that do not imply sending the UVs
             if watched == 'NEVER' \
-                    or context.mode not in ('EDIT_MESH', 'PAINT_TEXTURE') \
+                    or ctx_mode not in ('EDIT', 'TEXTURE_PAINT') \
                     or (watched == 'SHOWN' and not self.active_sprite_open(context)) \
                     or addon.active_sprite_image is None \
                     or ('SHOW_UV' not in addon.active_sprite_image.sb_props.sync_flags):
@@ -202,12 +205,12 @@ class UVWatch:
         return self.PERIOD
 
 
-    def update_lines(self, context) -> bool:
-        # if context.scene.tool_settings.use_uv_select_sync:
-
-        meshes = (obj.data for obj in context.selected_objects if obj.type == 'MESH' and obj.data)
-        if context.object and context.object.type == 'MESH': 
-            meshes = chain(meshes, [context.object])
+    def update_lines(self, context:bpy.types.Context) -> bool:
+        # older versions have some mess for bpy.context here, and does not have selected/active object fields, hence view_layer
+        meshes = (obj.data for obj in context.view_layer.objects if obj.select_get() and obj.type == 'MESH' and obj.data)
+        active_obj = context.view_layer.objects.active
+        if active_obj and active_obj.type == 'MESH':
+            meshes = chain(meshes, [active_obj])
 
         lines = frozenset(line for mesh in meshes for line in uv_lines(mesh, only_selected=not context.scene.tool_settings.use_uv_select_sync))
         new_hash = hash(lines) if lines else 0
