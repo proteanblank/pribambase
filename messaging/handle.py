@@ -178,9 +178,9 @@ class ChangeName(Handler):
                 img.sb_props.source_set(new_name)
 
                 if re.search(r"\.(?:png|jpg|jpeg|bmp|tga)$", new_name):
-                    img.filepath = new_name
+                    img.filepath_raw = new_name
                 else:
-                    img.filepath = ""
+                    img.filepath_raw = ""
 
         bpy.ops.pribambase.send_texture_list()
 

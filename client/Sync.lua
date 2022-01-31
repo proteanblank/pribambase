@@ -446,6 +446,7 @@ else
             -- stop watching the hidden sprite
             if spr then
                 spr.events:off(syncSprite)
+                spr.events:off(checkFilename)
 
                 -- remove closed docs from docList
                 local found = false
@@ -471,6 +472,7 @@ else
                 sprfile = app.activeSprite.filename
                 frame = app.activeFrame.frameNumber
                 spr.events:on("change", syncSprite)
+                spr.events:on("filenamechange", checkFilename)
                 syncSprite()
             end
 
@@ -535,7 +537,10 @@ else
             d:close()
         end
         pribambase_dlg = nil
-        if spr~=nil then spr.events:off(syncSprite) end
+        if spr~=nil then 
+            spr.events:off(syncSprite)
+            spr.events:off(checkFilename)
+        end
         app.events:off(onAppChange)
     end
 
@@ -750,6 +755,7 @@ else
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
+                spr.events:on("filenamechange", checkFilename)
                 sendActiveSprite(spr.filename)
             end
 
@@ -763,6 +769,7 @@ else
             dlg:modify{ id="sendopen", visible=false }
             if spr ~= nil then
                 spr.events:off(syncSprite)
+                spr.events:off(checkFilename)
             end
         end
 
