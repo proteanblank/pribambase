@@ -150,7 +150,8 @@ class UVWatch:
         self.last_hash = 0
         self.scene_hash = 0
         self.idle_t = 0
-        self.send_pending = True
+        active_sprite = addon.active_sprite_image
+        self.send_pending = active_sprite and (active_sprite.sb_props.sync_flags)
         self.__class__.running = self
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
