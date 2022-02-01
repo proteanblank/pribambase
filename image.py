@@ -137,6 +137,10 @@ class SB_OT_uv_send(bpy.types.Operator):
                 projection_matrix = Matrix.Translation((-1.0 + 1.0 / w, 1.0 + 1.0 / h, 0.0)) @ projection_matrix.to_4x4()
                 gpu.matrix.load_projection_matrix(projection_matrix)
 
+                # might not be needed later on. linux driver bug or something; see #21
+                bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
+                bgl.glClear(bgl.GL_COLOR_BUFFER_BIT)
+
                 bgl.glEnable(bgl.GL_BLEND)
                 bgl.glBlendFunc(bgl.GL_SRC_ALPHA, bgl.GL_ONE_MINUS_SRC_ALPHA)
                 bgl.glLineWidth(weight)
