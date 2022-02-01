@@ -213,3 +213,5 @@ class ActiveSprite(Handler):
 
     async def execute(self, name:Union[str, None]):
         addon.active_sprite = name
+        if addon.watch:
+            addon.watch.resend()

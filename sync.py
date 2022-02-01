@@ -150,8 +150,8 @@ class UVWatch:
         self.last_hash = 0
         self.scene_hash = 0
         self.idle_t = 0
-        active_sprite = addon.active_sprite_image
-        self.send_pending = active_sprite and (active_sprite.sb_props.sync_flags)
+        self.send_pending = False
+        self.resend()
         self.__class__.running = self
         bpy.app.timers.register(self.timer_callback)
         self.timer_callback()
@@ -160,6 +160,22 @@ class UVWatch:
     def stop(self):
         assert self == self.__class__.running
         self.__class__.running = None
+    
+
+    def resend(self):
+        """Schedule uv send, even if there's no change in the uv map. Not a forced send - it respects sync mode."""
+        watched = addon.state.uv_watch
+
+        if watched == 'NEVER':
+            return
+        else:
+            active_sprite = addon.active_sprite_image
+            send = bool(active_sprite) and ('SHOW_UV' in active_sprite.sb_props.sync_flags)
+
+            if watched == 'SHOWN':
+                send = send and self.active_sprite_open(bpy.context)
+
+            self.send_pending = self.send_pending or send
 
 
     def timer_callback(self):

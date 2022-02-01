@@ -105,7 +105,12 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 if frame != -1:
                     img.sb_props.frame = frame
 
+                resend_uv = ('SHOW_UV' not in img.sb_props.sync_flags and 'SHOW_UV' in flags) and addon.watch
+                    
                 img.sb_props.sync_flags = flags
+
+                if resend_uv:
+                    addon.watch.resend() # call after changing the flags
 
                 img_pixels = pixels
                 if prescale > 1:
