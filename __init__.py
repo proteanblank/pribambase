@@ -82,6 +82,7 @@ classes = (
     SB_OT_reference_freeze_all,
     SB_OT_grid_set,
     SB_OT_update_image,
+    SB_OT_update_image_layers,
     SB_OT_update_spritesheet,
     SB_OT_update_frame,
     SB_OT_new_texture,

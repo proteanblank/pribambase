@@ -92,6 +92,7 @@ from .messaging import handle
 handlers = addon.handlers
 handlers.add(handle.Batch)
 handlers.add(handle.Image)
+handlers.add(handle.ImageLayers)
 handlers.add(handle.Spritesheet)
 handlers.add(handle.Frame)
 handlers.add(handle.ChangeName)

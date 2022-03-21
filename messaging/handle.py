@@ -153,6 +153,50 @@ class Frame(Handler):
             modify.frame(name, frame, start, frames)
 
 
+class ImageLayers(Handler):
+    """static image with separate layers"""
+    id = "L"
+
+    def take_group(self):
+        name = self.take_str()
+        return (name,)
+    
+
+    def take_layer(self):
+        idx = self.take_uint(2)
+        blend = self.take_uint(2) # TODO enum
+        opacity = self.take_uint(2)
+        group = self.take_uint(2)
+        x = self.take_sint(2)
+        y = self.take_sint(2)
+        w = self.take_uint(2)
+        h = self.take_uint(2)
+        name = self.take_str()
+        pixels = self.take_data()
+        return (idx, blend, opacity, group, x, y, w, h, name, pixels)
+
+
+    def parse(self, args):
+        args.width = self.take_uint(2)
+        args.height = self.take_uint(2)
+        args.name = self.take_str()
+        ngroups = self.take_uint(4)
+        nlayers = self.take_uint(4)
+        args.groups = [self.take_group() for _ in range(ngroups)]
+        args.layers = [self.take_layer() for _ in range(nlayers)]
+    
+
+    async def execute(self, width:int, height:int, name:str, groups:List[Tuple], layers:List[Tuple]):
+        try:
+            if not bpy.context.window_manager.is_interface_locked:
+                modify.image_layers(width, height, name, groups, layers)
+            else:
+                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+        except AttributeError:
+            # version 2.80... caveat emptor
+            modify.image_layers(width, height, name, groups, layers)
+
+
 class ChangeName(Handler):
     """Change textures' sources when aseprite saves the file under a new name"""
     id = "C"

@@ -144,6 +144,40 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
         return ModalExecuteMixin.execute(self, context)
 
 
+_update_layers_args = None
+def image_layers(width, height, name, groups, layers):
+    # NOTE this operator removes animation flag from image
+    global _update_layers_args
+    _update_layers_args = width, height, name, groups, layers
+    bpy.ops.pribambase.update_image_layers()
+
+class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
+    bl_idname = "pribambase.update_image_layers"
+    bl_label = "Update Image (Layers)"
+    bl_description = ""
+    bl_options = {'UNDO_GROUPED', 'INTERNAL'}
+    bl_undo_group = "pribambase.update_image_layers"
+
+    def modal_execute(self, context):
+        """Replace the image with pixel data"""
+        width, height, name, groups, layers = self.args
+
+        print(width, height, name, groups, layers)
+
+        util.refresh()
+
+        self.args = None
+        global _update_layers_args
+        _update_layers_args = None
+
+        return {'FINISHED'}
+
+
+    def execute(self, context):
+        self.args = _update_layers_args
+        return ModalExecuteMixin.execute(self, context)
+
+
 def sheet_animation(anim):
     obj = anim.id_data
     prop_name = anim.prop_name

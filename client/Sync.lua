@@ -86,7 +86,7 @@ else
     -- note: always false for deleted docobjs. even if they were created from the same one - at this point that information is lost
     local function docobjEquals(a, b)
         -- if internal docobj is deleted, _eq raises an error
-        ok, eq = pcall(_eq, a, b)
+        local ok, eq = pcall(_eq, a, b)
         return ok and eq
     end
     
@@ -165,6 +165,27 @@ else
             name = string.gsub(name, "%d%d%d$", _repl_next)
         end
         return name
+    end
+
+    local function _co_ilayers(layers, i)
+        for _,layer in ipairs(layers) do
+            if layer.isGroup then
+                i = _co_ilayers(layer.layers, i)
+            elseif not layer.isReference then
+                coroutine.yield(i, layer)
+                i = i + 1
+            end
+        end
+        return i
+    end
+    
+    -- iterate over all image layers
+    local function ilayers(group)
+        local co = coroutine.create(function () _co_ilayers(group.layers, 1) end)
+        return function ()
+          local _ok, i, layer = coroutine.resume(co)
+          return i, layer
+        end
     end
 
     --[[
@@ -250,6 +271,53 @@ else
         return string.pack("<BI4s4HI4", string.byte('F'), opts.frame, sprite.filename, start, #_infos), table.unpack(_infos)
     end
 
+    local function messageImageLayers(opts)
+        local sprite = opts.sprite
+        local name = opts.name or ""
+        local frame = opts.frame
+        local id = string.byte('L')
+
+        local nlayers = 1
+        local group = 0 -- only top level group count. flag increments each time one is encountered, so all layers with the same flag belong to the same top-level group
+
+        for i,layer in ilayers(sprite) do
+            local groupVal = 0
+            if not docobjEquals(layer.parent, sprite) then
+                if docobjEquals(layer.parent.parent, sprite) and layer.stackIndex == 1 then
+                    group = group + 1
+                    _frames[group] = string.pack("<s4", layer.parent.name)
+                end
+                groupVal = group
+            end
+            
+            local opacity = layer.isVisible and layer.opacity or 0
+            local cel = layer:cel(frame)
+            local x, y, w, h, img, dataLen = 0, 0, 0, 0, "", 0
+
+            if cel ~= nil then
+                local b = cel.bounds
+                x, y, w, h = b.x, b.y, b.width, b.height
+                img = cel.image.bytes
+                dataLen = cel.image.rowStride * cel.image.height
+                opacity = math.tointeger(opacity * cel.opacity / 255)
+            end
+
+            _infos[2 * i - 1] = string.pack("<HHHHhhHHs4I4", i, layer.blendMode, opacity, groupVal, x, y, w, h, layer.name, dataLen)
+            _infos[2 * i] = img
+            nlayers = i
+        end
+
+        for i=2*nlayers+1,#_infos do
+            _infos[i] = nil
+        end
+
+        for i=group+1,#_frames do
+            _frames[i] = nil
+        end
+
+        return string.pack("<BHHs4I4I4", id, sprite.width, sprite.height, name, group, nlayers), table.concat(_frames, ""), table.unpack(_infos)
+    end
+
     local function messageChangeName(opts)
         return string.pack("<Bs4s4", string.byte('C'), opts.from, opts.to)
     end
@@ -276,6 +344,12 @@ else
         if connected and spr ~= nil then
             local flags = syncList[name] or 0
             ws:sendBinary(messageImage{ sprite=spr, name=name, frame=app.activeFrame, flags=flags})
+        end
+    end
+
+    local function sendImageLayers(name)
+        if connected and spr ~= nil then
+            ws:sendBinary(messageImageLayers{ sprite=spr, name=name, frame=app.activeFrame })
         end
     end
 
@@ -850,6 +924,10 @@ else
     dlg:newrow()
     dlg:button{ text="X " .. tr("Stop"), onclick=dlgClose }
     dlg:button{ text="_ " .. tr("Hide"), onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
+
+    dlg:button{ text="AAAAA", onclick=function ()
+        sendImageLayers()
+    end}
 
     -- GO
 
