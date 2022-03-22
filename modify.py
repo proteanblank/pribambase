@@ -25,10 +25,10 @@ Operators used internally to modify blender data during sync.
 import bpy
 import numpy as np
 from typing import Collection, Tuple
-
 from . import util
 from .util import ModalExecuteMixin
 from .addon import addon
+from .layers import update_layer_group
 
 
 def prescale(image:bpy.types.Image):
@@ -161,8 +161,8 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
     def modal_execute(self, context):
         """Replace the image with pixel data"""
         width, height, name, groups, layers = self.args
-
-        print(width, height, name, groups, layers)
+        
+        update_layer_group(width, height, name, groups, layers)
 
         util.refresh()
 

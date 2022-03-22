@@ -302,7 +302,7 @@ else
                 opacity = math.tointeger(opacity * cel.opacity / 255)
             end
 
-            _infos[2 * i - 1] = string.pack("<HHHHhhHHs4I4", i, layer.blendMode, opacity, groupVal, x, y, w, h, layer.name, dataLen)
+            _infos[2 * i - 1] = string.pack("<HHHHhhHHs4I4", i-1, layer.blendMode, opacity, groupVal, x, y, w, h, layer.name, dataLen)
             _infos[2 * i] = img
             nlayers = i
         end
@@ -926,7 +926,7 @@ else
     dlg:button{ text="_ " .. tr("Hide"), onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
 
     dlg:button{ text="AAAAA", onclick=function ()
-        sendImageLayers()
+        sendImageLayers(spr.filename)
     end}
 
     -- GO

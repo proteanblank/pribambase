@@ -28,6 +28,7 @@ import numpy as np
 # TODO move into local methods
 from .. import modify
 from ..addon import addon
+from .. import ase
 
 
 class Batch(Handler):
@@ -164,7 +165,7 @@ class ImageLayers(Handler):
 
     def take_layer(self):
         idx = self.take_uint(2)
-        blend = self.take_uint(2) # TODO enum
+        blend = ase.BlendMode(self.take_uint(2))
         opacity = self.take_uint(2)
         group = self.take_uint(2)
         x = self.take_sint(2)

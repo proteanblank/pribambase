@@ -30,6 +30,56 @@ class ColorMode(enum.Enum):
     INDEXED = 8
 
 
+@enum.unique
+class BlendMode(enum.Enum):
+    NORMAL = 0
+    MULTIPLY = 1
+    SCREEN = 2
+    OVERLAY = 3
+    DARKEN = 4
+    LIGHTEN = 5
+    COLOR_DODGE = 6
+    COLOR_BURN = 7
+    HARD_LIGHT = 8
+    SOFT_LIGHT = 9
+    DIFFERENCE = 10
+    EXCLUSION = 11
+    HSL_HUE = 12
+    HSL_SATURATION = 13
+    HSL_COLOR = 14
+    HSL_LUMINOSITY = 15
+    ADDITION = 16
+    SUBTRACT = 17
+    DIVIDE = 18
+
+    def toMix(self):
+        """Corresponding blender's string identifier for the BlendMode (when exists)"""
+        return BLEND_MODES[self.value]
+
+# blender enum (identifier, name, description, number)
+BLEND_MODES = (
+    'MIX', # 0
+    'MULTIPLY', # 1
+    'SCREEN', # 2
+    'OVERLAY', # 3
+    'DARKEN', # 4
+    'LIGHTEN', # 5
+    'DODGE', # 6
+    'BURN', # 7
+    'LINEAR_LIGHT', # 8
+    'SOFT_LIGHT', # 9
+    'DIFFERENCE', # 10
+    'MIX', # 11
+    'HUE', # 12
+    'SATURATION', # 13
+    'COLOR', # 14
+    'VALUE', # 15
+    'ADD', # 16
+    'SUBTRACT', # 17
+    'DIVIDE' # 18
+)
+
+
 def info(filepath) -> Tuple[Tuple[int, int], ColorMode]:
     """read and parse ase file header. return (size, color_mode)"""
     with open(filepath, "rb") as f:
