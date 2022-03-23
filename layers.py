@@ -7,7 +7,7 @@ from .ase import BlendMode
 
 
 def create_node_helper():
-    """Create helper node group"""        
+    """Create helper node group. It calculates the mask of the cel, and does gamma correction for mixing later"""        
     tree:bpy.types.ShaderNodeTree = bpy.data.node_groups.new("PribambaseLayersHelper", 'ShaderNodeTree')
 
     tree.inputs.new('NodeSocketVector', "UV")
@@ -65,6 +65,7 @@ def create_node_helper():
 
 
 def update_group_outputs(tree:bpy.types.ShaderNodeTree, groups):
+    """Create or assure Color and Alpha outputs for the entire sprite and each top-level group"""
     outs = tree.outputs
 
     print([a for a in chain(("",), groups)])
@@ -99,7 +100,7 @@ def update_group_outputs(tree:bpy.types.ShaderNodeTree, groups):
 def create_layer_image_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, uv_node:bpy.types.ShaderNodeUVMap, \
     x:float, y:float, w:float, h:float, image:bpy.types.Image, opacity:float) \
         -> Tuple[bpy.types.NodeSocketColor, bpy.types.NodeSocketFloat]: # outputs for color and alpha
-    """NOTE this function accepts normalized x/y/w/h/opacity"""
+    """Transform and mask cel image. NOTE this function accepts normalized x/y/w/h/opacity, as in (0.0, 1.0) range"""
     mapping:bpy.types.ShaderNodeMapping = tree.nodes.new('ShaderNodeMapping')
     mapping.vector_type = 'TEXTURE'
     mapping.inputs['Location'].default_value = (x, y, 0.0)
@@ -128,6 +129,7 @@ def create_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, 
     color1:bpy.types.NodeSocketColor, alpha1:bpy.types.NodeSocketFloat, \
     color2:bpy.types.NodeSocketColor, alpha2:bpy.types.NodeSocketFloat) \
         -> Tuple[bpy.types.NodeSocketColor, bpy.types.NodeSocketFloat]: # outputs for color and alpha
+    """Nodes for mixing RGB components and alpha"""
 
     mix:bpy.types.ShaderNodeMixRGB = tree.nodes.new('ShaderNodeMixRGB')
     mix.blend_type = blend_mode
@@ -160,6 +162,8 @@ def create_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, 
 
 
 def create_gamma_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, gamma:float, color_in:bpy.types.NodeSocketColor):
+    """Per-component vector exponent"""
+
     sep:bpy.types.ShaderNodeSeparateRGB = tree.nodes.new('ShaderNodeSeparateRGB')
     sep.location = (node_x, node_y)
     comb:bpy.types.ShaderNodeCombineRGB = tree.nodes.new('ShaderNodeCombineRGB')
