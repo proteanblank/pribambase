@@ -118,7 +118,7 @@ def create_layer_image_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y
     helper.inputs["Layer Opacity"].default_value = opacity
 
     tree.links.new(uv_node.outputs["UV"], mapping.inputs["Vector"])
-    tree.links.new(uv_node.outputs["UV"], helper.inputs["UV"])
+    tree.links.new(mapping.outputs["Vector"], helper.inputs["UV"])
     tree.links.new(mapping.outputs["Vector"], image_node.inputs["Vector"])
     tree.links.new(image_node.outputs["Color"], helper.inputs["Color"])
     tree.links.new(image_node.outputs["Alpha"], helper.inputs["Alpha"])
@@ -219,9 +219,11 @@ def update_layers(tree:bpy.types.ShaderNodeTree, sprite_name:str, sprite_width:i
         node_y = i * -500
 
         mix = BlendMode(blend).toMix()
+        x, y, w, h = x / sprite_width, y / sprite_height, w / sprite_width, h / sprite_height
+        y = (1.0 - y - h)
     
         layer_out_color, layer_out_alpha = create_layer_image_nodes(tree, 300, node_y, uv, \
-            x / sprite_width, y / sprite_height, w / sprite_width, h / sprite_height, layer_image, opacity / 255)
+            x, y, w, h, layer_image, opacity / 255)
         
         # top level layer
         if last_out_color:
