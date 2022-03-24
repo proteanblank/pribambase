@@ -10,7 +10,6 @@ Currently, the addon has mostly one-way workflow where you paint in Ase and not 
 * [Discord](http://discord.gg/Zd3VF69x8Z) or [Itchio forum](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
 * [Issue tracker](https://github.com/lampysprites/pribambase/issues) for bug reports and feature requests. Kindly don't submit non-technical help requests.
 
-​Although the entire project is distributed free of charge, I highly encourage you to support it financially sooner or later, as if it was on blen\*\*\*arket or flip\*\*\*rmals. There's still work left to do, and it'd be pretty great to be able to do it sooner.
 
 ## Setup
 
