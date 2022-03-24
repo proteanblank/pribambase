@@ -420,6 +420,21 @@ else
         end
     end
 
+    
+    -- in versions since 16, name change can be handled immediately via an event
+    -- in older version, it can only be checked at some other time (e.g. image update)
+    local function watchFilename(s)
+        if app.apiVersion >= 16 and s then
+            s.events:on("filenamechange", checkFilename)
+        end
+    end
+
+    local function unwatchFilename(s)
+        if app.apiVersion >= 16 and s then
+            s.events:off(checkFilename)
+        end
+    end
+
 
     local function syncSprite()
         if spr == nil or pause_spr_change then return end
@@ -446,7 +461,7 @@ else
             -- stop watching the hidden sprite
             if spr then
                 spr.events:off(syncSprite)
-                spr.events:off(checkFilename)
+                unwatchFilename()
 
                 -- remove closed docs from docList
                 local found = false
@@ -472,7 +487,7 @@ else
                 sprfile = app.activeSprite.filename
                 frame = app.activeFrame.frameNumber
                 spr.events:on("change", syncSprite)
-                spr.events:on("filenamechange", checkFilename)
+                watchFilename(spr)
                 syncSprite()
             end
 
@@ -539,7 +554,7 @@ else
         pribambase_dlg = nil
         if spr~=nil then 
             spr.events:off(syncSprite)
-            spr.events:off(checkFilename)
+            unwatchFilename()
         end
         app.events:off(onAppChange)
     end
@@ -755,7 +770,7 @@ else
 
             if spr ~= nil then
                 spr.events:on("change", syncSprite)
-                spr.events:on("filenamechange", checkFilename)
+                watchFilename(spr)
                 sendActiveSprite(spr.filename)
             end
 
@@ -769,7 +784,7 @@ else
             dlg:modify{ id="sendopen", visible=false }
             if spr ~= nil then
                 spr.events:off(syncSprite)
-                spr.events:off(checkFilename)
+                unwatchFilename()
             end
         end
 
