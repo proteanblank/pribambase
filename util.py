@@ -58,16 +58,6 @@ def refresh():
             area.tag_redraw()
 
 
-def resize_bpy_collection(col, count):
-    """Add or remove elements from bpy collection to the given length"""
-    end = len(col)
-    for _ in range(count, end):
-        col.remove(count)
-
-    for _ in range(end, count):
-        col.add()
-
-
 def pack_empty_png(image:bpy.types.Image):
     """Load 1x1 ARGB png to the image and pack it"""
     # Do NOT optimize the png. It might set flags that break color after reloading, and they are hard to fix for users.

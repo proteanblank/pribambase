@@ -331,48 +331,6 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         return name
 
 
-class SB_LayerGroup(bpy.types.PropertyGroup):
-    layer_name: bpy.props.StringProperty(
-        name="Layer Name",
-        description="Name of the layer in Aseprite")
-
-
-class SB_Layer(bpy.types.PropertyGroup):
-    image: bpy.props.PointerProperty(
-        name="Image",
-        description="Cel image",
-        type=bpy.types.Image)
-    
-    layer_name: bpy.props.StringProperty(
-        name="Layer Name",
-        description="Name of the layer in Aseprite")
-    
-    position: bpy.props.IntVectorProperty(
-        name="Position",
-        description="Coordinate of the cel's top-left corner on the sprite canvas",
-        size=2)
-    
-    size: bpy.props.IntVectorProperty(
-        name="Size",
-        description="Dimensions of the cel image",
-        size=2)
-
-    group: bpy.props.IntProperty(
-        name="Group",
-        description="Index of the top-level group of the layer in the sprite, or -1 if the layer is top-level itself",
-        default=-1)
-    
-    blend_mode: bpy.props.IntProperty(
-        name="Blend Mode",
-        description="Blend Mode value of the layer in Aseprite",
-        default=0)
-
-    opacity: bpy.props.FloatProperty(
-        name="Opacity",
-        description="Combined opacity of the cel",
-        default=1.0)
-
-
 class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
     """Pribambase node-group-related data"""
 
@@ -386,22 +344,6 @@ class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
         description="Absolute and normalized source path",
         subtype='FILE_PATH',
         get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
-
-    size: bpy.props.IntVectorProperty(
-        name="Sprite Size",
-        description="Dimensions of the canvas. Layers/cels can (and usually, do) have different dimensions",
-        size=2,
-        default=(-1, -1))
-
-    layers: bpy.props.CollectionProperty(
-        name="Layers",
-        description="Layer datas of the sprite",
-        type=SB_Layer)
-    
-    groups: bpy.props.CollectionProperty(
-        name="Groups",
-        description="Top-level groups of the sprite",
-        type=SB_LayerGroup)
 
     def source_set(self, source, relative:bool=None):
         """

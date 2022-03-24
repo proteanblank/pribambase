@@ -28,7 +28,7 @@ from typing import Collection, Tuple
 from . import util
 from .util import ModalExecuteMixin
 from .addon import addon
-from .layers import update_layer_group, update_layers_id_block
+from .layers import update_layers
 
 
 def prescale(image:bpy.types.Image):
@@ -169,12 +169,7 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
             tree = bpy.data.node_groups.new(bpy.path.basename(name), 'ShaderNodeTree')
             tree.sb_props.source_set(name)
         
-        update_layers_id_block(tree, name, width, height, groups, layers)
-        update_layer_group(tree)
-        tree.nodes.update()
-        tree.links.update()
-        tree.update_tag()
-
+        update_layers(tree, name, width, height, groups, layers)
         util.refresh()
 
         self.args = None

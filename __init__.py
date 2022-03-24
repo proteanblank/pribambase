@@ -54,8 +54,6 @@ classes = (
     # Property types
     SB_OpProps,
     SB_State,
-    SB_LayerGroup,
-    SB_Layer,
     SB_Preferences,
     SB_SheetAnimation,
     SB_ObjectProperties,
