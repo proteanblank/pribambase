@@ -28,7 +28,7 @@ from typing import Collection, Tuple
 from . import util
 from .util import ModalExecuteMixin
 from .addon import addon
-from .layers import update_layer_group
+from .layers import update_layer_group, update_layers_id_block
 
 
 def prescale(image:bpy.types.Image):
@@ -161,8 +161,19 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
     def modal_execute(self, context):
         """Replace the image with pixel data"""
         width, height, name, groups, layers = self.args
+
+        tree:bpy.types.ShaderNodeTree = None
+        try:
+            tree = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == name)
+        except StopIteration:
+            tree = bpy.data.node_groups.new(bpy.path.basename(name), 'ShaderNodeTree')
+            tree.sb_props.source_set(name)
         
-        update_layer_group(width, height, name, groups, layers)
+        update_layers_id_block(tree, name, width, height, groups, layers)
+        update_layer_group(tree)
+        tree.nodes.update()
+        tree.links.update()
+        tree.update_tag()
 
         util.refresh()
 

@@ -200,6 +200,7 @@ def _set_animation_tag(self, val):
     name = next(it[0] for it in _enum_tag_action_items if it[4] == val)
     self.id_data.animation_data.action = bpy.data.actions[name] if name != "__none__" else None
 
+
 class SB_ObjectProperties(bpy.types.PropertyGroup):
     animations: bpy.props.CollectionProperty(
         name="Animations",
@@ -328,6 +329,90 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
             name = os.path.normpath(bpy.path.abspath(fp) if fp.startswith("//") else fp)
 
         return name
+
+
+class SB_LayerGroup(bpy.types.PropertyGroup):
+    layer_name: bpy.props.StringProperty(
+        name="Layer Name",
+        description="Name of the layer in Aseprite")
+
+
+class SB_Layer(bpy.types.PropertyGroup):
+    image: bpy.props.PointerProperty(
+        name="Image",
+        description="Cel image",
+        type=bpy.types.Image)
+    
+    layer_name: bpy.props.StringProperty(
+        name="Layer Name",
+        description="Name of the layer in Aseprite")
+    
+    position: bpy.props.IntVectorProperty(
+        name="Position",
+        description="Coordinate of the cel's top-left corner on the sprite canvas",
+        size=2)
+    
+    size: bpy.props.IntVectorProperty(
+        name="Size",
+        description="Dimensions of the cel image",
+        size=2)
+
+    group: bpy.props.IntProperty(
+        name="Group",
+        description="Index of the top-level group of the layer in the sprite, or -1 if the layer is top-level itself",
+        default=-1)
+    
+    blend_mode: bpy.props.IntProperty(
+        name="Blend Mode",
+        description="Blend Mode value of the layer in Aseprite",
+        default=0)
+
+    opacity: bpy.props.FloatProperty(
+        name="Opacity",
+        description="Combined opacity of the cel",
+        default=1.0)
+
+
+class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
+    """Pribambase node-group-related data"""
+
+    source: bpy.props.StringProperty(
+        name="Sprite",
+        description="The file from which the image was created, and that will be synced with this image",
+        subtype='FILE_PATH')
+    
+    source_abs:bpy.props.StringProperty(
+        name="Sprite Path",
+        description="Absolute and normalized source path",
+        subtype='FILE_PATH',
+        get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
+
+    size: bpy.props.IntVectorProperty(
+        name="Sprite Size",
+        description="Dimensions of the canvas. Layers/cels can (and usually, do) have different dimensions",
+        size=2,
+        default=(-1, -1))
+
+    layers: bpy.props.CollectionProperty(
+        name="Layers",
+        description="Layer datas of the sprite",
+        type=SB_Layer)
+    
+    groups: bpy.props.CollectionProperty(
+        name="Groups",
+        description="Top-level groups of the sprite",
+        type=SB_LayerGroup)
+
+    def source_set(self, source, relative:bool=None):
+        """
+        Set source as relative/absolute path according to relative path setting. Use every time when assigning sources automatically, 
+        and never for user interaction. If relative is not specified but possible, it's picked automatically based on blender prefs."""
+        if not source:
+            self.source = ""
+        elif (relative or (relative is None and addon.prefs.use_relative_path)) and bpy.data.filepath: # need to check for None explicitly because bool
+            self.source = bpy.path.relpath(source)
+        else:
+            self.source = os.path.normpath(source)
 
 
 class SB_ActionProperties(bpy.types.PropertyGroup):

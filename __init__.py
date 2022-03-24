@@ -54,10 +54,13 @@ classes = (
     # Property types
     SB_OpProps,
     SB_State,
+    SB_LayerGroup,
+    SB_Layer,
     SB_Preferences,
     SB_SheetAnimation,
     SB_ObjectProperties,
     SB_ImageProperties,
+    SB_ShaderNodeTreeProperties,
     SB_ActionProperties,
     # Operators
     SB_OT_server_start,
@@ -148,6 +151,7 @@ def register():
     bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
     bpy.types.Action.sb_props = bpy.props.PointerProperty(type=SB_ActionProperties)
     bpy.types.Object.sb_props = bpy.props.PointerProperty(type=SB_ObjectProperties)
+    bpy.types.ShaderNodeTree.sb_props = bpy.props.PointerProperty(type=SB_ShaderNodeTreeProperties)
 
     # add menu items
     try:
@@ -244,6 +248,7 @@ def unregister():
     del bpy.types.Image.sb_props
     del bpy.types.Action.sb_props
     del bpy.types.Object.sb_props
+    del bpy.types.ShaderNodeTree.sb_props
 
     from bpy.utils import unregister_class
     for cls in reversed(classes):
