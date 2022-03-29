@@ -64,6 +64,11 @@ def prescale(image:bpy.types.Image):
         # version < 2.83
         image.pixels[:] = px.ravel()
     image.update()
+    image.update_tag()
+
+    if addon.prefs.save_after_sync:
+        bpy.ops.image.save({"edit_image": image})
+        bpy.ops.image.reload({"edit_image": image})
 
 
 _update_image_args = None
@@ -129,6 +134,10 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 img.update()
                 # [#12] for some users viewports do not update from update() alone
                 img.update_tag()
+
+                if addon.prefs.save_after_sync:
+                    bpy.ops.image.save({"edit_image": img})
+                    bpy.ops.image.reload({"edit_image": img})
 
         util.refresh()
 

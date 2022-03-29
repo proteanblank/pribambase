@@ -397,7 +397,11 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Add Fake Users",
         description="Turns on fake user for plugin-created data (images/actions/...) to protect it from disappearing after file reload. Changing this settin won't affect already existing data, only new",
         default=False)
-
+    
+    save_after_sync: bpy.props.BoolProperty(
+        name="Save After Sync",
+        description="Save/pack the image and reload it every time after syncing with aseprite. NOT RECOMMENDED due to potential heavy disk load - it's needed to work around blender 3.1 image update bug",
+        default=False)
 
     def template_box(self, layout, label="Box"):
         row = layout.row().split(factor=0.15)
@@ -432,6 +436,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box = self.template_box(layout, label="Misc:")
 
         box.row().prop(self, "use_fake_users")
+        box.row().prop(self, "save_after_sync")
         box.row().prop(self, "use_relative_path")
         box.row().prop(self, "whole_frames")
 
