@@ -108,34 +108,9 @@ classes = (
 addon_keymaps = []
 
 
-def parse_translations():
-    translation = {}
-    for csv in glob(os.path.join("translations", "*.csv")):
-        with open(csv) as f:
-            locale,_ = os.path.splitext(os.path.split(csv)[1])
-            strings = translation[locale] = {}
-            line_number = 0
-
-            for line in f:
-                line_number += 1
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                try:
-                    ctx, en, tr, *_ = line.split(";")
-                    strings[ctx.rstrip(), en.strip()] = tr.strip().strip("'\"")
-                except ValueError:
-                    print(f"Pribambase translation '{locale}' format error at line {line_number}:\n\t{line}")
-    return translation
-
-
 def register():
     # async thread
     async_loop.setup_asyncio_executor()
-
-    # translation
-    bpy.app.translations.register(__name__, parse_translations())
 
     # types
     from bpy.utils import register_class
@@ -247,8 +222,6 @@ def unregister():
     from bpy.utils import unregister_class
     for cls in reversed(classes):
         unregister_class(cls)
-    
-    bpy.app.translations.unregister(__name__)
 
 
 # hash for the set of image sources/names that is used to check if new images were added

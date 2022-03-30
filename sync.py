@@ -27,7 +27,6 @@ import aiohttp
 from aiohttp import web
 from time import time
 from itertools import chain
-from bpy.app.translations import pgettext
 
 from . import async_loop
 from . import util
@@ -83,7 +82,7 @@ class Server():
             asyncio.get_event_loop().run_until_complete(stop)
             util.refresh()
         except asyncio.TimeoutError:
-            raise RuntimeError(f"{pgettext('Could not start server at')} {self.host}:{self.port}")
+            raise RuntimeError(f"Could not start server at {self.host}:{self.port}")
 
 
     def stop(self):
@@ -122,7 +121,7 @@ class Server():
                 await addon.handlers.process(msg.data)
 
             elif msg.type == aiohttp.WSMsgType.ERROR:
-                bpy.ops.pribambase.report(message_type='ERROR', message=f"{pgettext('Aseprite connection closed with exception')} {self._ws.exception()}")
+                bpy.ops.pribambase.report(message_type='ERROR', message=f"Aseprite connection closed with exception {self._ws.exception()}")
 
         # client disconnected
         

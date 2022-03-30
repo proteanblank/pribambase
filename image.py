@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 import bpy
-from bpy.app.translations import pgettext
 import bmesh
 import gpu
 import bgl
@@ -614,7 +613,7 @@ class SB_PT_sprite(bpy.types.Panel):
             
             sub = layout.row()
             sub.alignment = 'RIGHT'
-            sub.label(text=f"{pgettext('Sheet')} {props.sheet_size[0]}x{props.sheet_size[1]}, {props.animation_length} {pgettext('frames')}")
+            sub.label(text=f"Sheet {props.sheet_size[0]}x{props.sheet_size[1]}, {props.animation_length} frames")
 
         else:
             source.prop(context.edit_image.sb_props, "source")

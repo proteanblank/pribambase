@@ -23,7 +23,6 @@ Working with objects (mesh, material, sprites, ...)
 """
 
 import bpy
-from bpy.app.translations import pgettext
 from bpy_extras import object_utils
 import os.path
 
@@ -411,12 +410,12 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
         try:
             # 3.0
-            obj.id_properties_ui(prop_name).update(description=pgettext("Animation frame, uses the same numbering as timeline in Aseprite"))
+            obj.id_properties_ui(prop_name).update(description="Animation frame, uses the same numbering as timeline in Aseprite")
         except AttributeError:
             # 2.[8/9]x
             if "_RNA_UI" not in obj:
                 obj["_RNA_UI"] = {}
-            obj["_RNA_UI"][prop_name] = { "description": pgettext("Animation frame, uses the same numbering as timeline in Aseprite" )}
+            obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite"}
 
         # modifier
         if prop_name not in obj.modifiers:

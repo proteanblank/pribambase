@@ -24,7 +24,6 @@ Working with animation
 
 import math
 import bpy
-from bpy.app.translations import pgettext
 import numpy as np
 from math import pi
 from mathutils import Matrix
