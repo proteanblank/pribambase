@@ -43,7 +43,7 @@ else
 
     local BIT_SYNC_SHEET = 1
     local BIT_SYNC_SHOWUV = 1 << 1
-    -- next 1 << 2
+    local BIT_SYNC_LAYERS = 1 << 2
 
     local settings = pribambase_settings
     local ws
@@ -52,7 +52,7 @@ else
     local blendfile = ""
     -- the list of texures open in blender, structured as { identifier:str=flags:int_bitfield }
     local syncList = {}
-    -- the list of currently open sprites ever synced, items structured as { blend:str(uid or file), animated:bool }
+    -- the list of currently open sprites ever synced, items structured as { blend:str(uid or file), animated:bool, showUV:bool, layers:bool }
     -- needed to a) avoid syncing same named texture to different docs b) (TODO) when blender is not available, store critical changes to process later
     local docList = {}
     -- map MessageID to handler callback
@@ -376,7 +376,7 @@ else
         if isSprite(spr.filename) then
             ws:sendBinary(messageNewTexture{ name="", path=spr.filename })
         else
-            docList[spr] = { blend=blendfile, animated=false, showUV=false }
+            docList[spr] = { blend=blendfile, animated=false, showUV=false, layers=false }
 
             local popup = Dialog{ title=tr("Choose Texture Name") }
             popup:entry{ id="name", text=unique_name(spr.filename or tr("Sprite")), focus=true }
@@ -504,6 +504,8 @@ else
         if syncList[s] ~= nil and docList[spr] and docList[spr].blend == blendfile then
             if docList[spr].animated then
                 sendSpritesheet(s)
+            elseif docList[spr].layers then
+                sendImageLayers(s)
             else
                 sendImage(s)
             end
@@ -560,7 +562,8 @@ else
                     docList[spr] = { 
                         blend=blendfile, 
                         animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0),
-                        showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0)}
+                        showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0),
+                        layers=(syncList[sf] & BIT_SYNC_LAYERS ~= 0)}
                 end
                 sendActiveSprite(sf)
             else
@@ -570,6 +573,7 @@ else
 
             dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
             dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
+            dlg:modify{ id="layers", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].layers) }
             dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
@@ -682,7 +686,8 @@ else
             if syncList[sf] ~= nil and (docList[s] == nil or isSprite(sf)) then
                 docList[s] = { blend=blendfile, 
                     animated=(syncList[sf] & BIT_SYNC_SHEET ~= 0),
-                    showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0)}
+                    showUV=(syncList[sf] & BIT_SYNC_SHOWUV ~= 0),
+                    layers=(syncList[sf] & BIT_SYNC_LAYERS ~= 0)}
             end
         end
 
@@ -692,6 +697,7 @@ else
         
         dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
         dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
+        dlg:modify{ id="layers", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
         dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         if not synced then
@@ -716,7 +722,7 @@ else
                 sprfile = name
 
                 syncList[name] = flags
-                docList[create] = { blend=blendfile, animated=false, showUV=false }
+                docList[create] = { blend=blendfile, animated=false, showUV=false, layers=false }
             end)
     end
 
@@ -741,7 +747,8 @@ else
             docList[opened] = {
                 blend=blendfile,
                 animated=(flags & BIT_SYNC_SHEET ~= 0),
-                showUV=(flags & BIT_SYNC_SHOWUV ~= 0)}
+                showUV=(flags & BIT_SYNC_SHOWUV ~= 0),
+                layers=(flags & BIT_SYNC_LAYERS ~= 0)}
 
             if app.activeSprite ~= opened then
                 app.activeSprite = opened
@@ -753,7 +760,8 @@ else
                     s = Sprite{ fromFile=path }
                     docList[s] = { blend=blendfile, 
                         animated=(flags & BIT_SYNC_SHEET ~= 0),
-                        showUV=(flags & BIT_SYNC_SHOWUV ~= 0)}
+                        showUV=(flags & BIT_SYNC_SHOWUV ~= 0),
+                        layers=(flags & BIT_SYNC_LAYERS ~= 0)}
                 end)
         end
     end
@@ -784,6 +792,7 @@ else
                 offset = offset + 6 + len -- 6 is string:packsize("<s4I2")
 
                 local animated = flags & BIT_SYNC_SHEET ~= 0
+                local layers = flags & BIT_SYNC_LAYERS ~= 0
                 local s = Sprite{fromFile=name}
                 if animated then
                     tag = ""
@@ -791,8 +800,10 @@ else
                         tag = app.activeTag.name
                     end
                     ws:sendBinary(messageSpritesheet{ sprite=s, name=name, frame=app.activeFrame, tag=tag })
+                elseif layers then
+                    ws:sendBinary(messageImageLayers{ sprite=s, name=name, frame=app.activeFrame })
                 else
-                    ws:sendBinary(messageImage{ sprite=s, name=name, frame=app.activeFrame})
+                    ws:sendBinary(messageImage{ sprite=s, name=name, frame=app.activeFrame })
                 end
                 s:close()
             end
@@ -839,6 +850,7 @@ else
             dlg:modify{ id="status", text=tr("Reconnecting...") }
             dlg:modify{ id="reconnect", visible=true }
             dlg:modify{ id="animated", visible=false }
+            dlg:modify{ id="layers", visible=false }
             dlg:modify{ id="showuv", visible=false }
             dlg:modify{ id="sendopen", visible=false }
             if spr ~= nil then
@@ -859,6 +871,19 @@ else
         end
         if docList[spr] ~= nil then
             docList[spr].animated = val
+        end
+        syncSprite()
+    end
+
+
+    local function changeLayers()
+        local val = dlg.data.layers
+        local sf = spr.filename
+        if syncList[sf] ~= nil then
+            syncList[sf] = (val and (syncList[sf] | BIT_SYNC_SHEET) or (syncList[sf] & ~BIT_SYNC_SHEET))
+        end
+        if docList[spr] ~= nil then
+            docList[spr].layers = val
         end
         syncSprite()
     end
@@ -915,6 +940,11 @@ else
     dlg:check{ id="animated", text=tr("Animation"), onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
     dlg:modify{ id="animated", visible=false }
 
+    dlg:newrow()
+    dlg:check{ id="layers", text=tr("Layers"), onclick=changeLayers, selected=(spr and docList[spr] and docList[spr].layers) }
+    dlg:modify{ id="layers", visible=false }
+
+    dlg:newrow()
     dlg:check{ id="showuv", text=tr("Show UV"), onclick=changeShowUV, selected=(spr and docList[spr] and docList[spr].showUV) }
     dlg:modify{ id="showuv", visible=false }
     
@@ -924,10 +954,6 @@ else
     dlg:newrow()
     dlg:button{ text="X " .. tr("Stop"), onclick=dlgClose }
     dlg:button{ text="_ " .. tr("Hide"), onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
-
-    dlg:button{ text="AAAAA", onclick=function ()
-        sendImageLayers(spr.filename)
-    end}
 
     -- GO
 
