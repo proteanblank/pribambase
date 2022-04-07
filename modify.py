@@ -145,10 +145,10 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
 
 
 _update_layers_args = None
-def image_layers(width, height, name, groups, layers):
+def image_layers(width, height, name, flags, groups, layers):
     # NOTE this operator removes animation flag from image
     global _update_layers_args
-    _update_layers_args = width, height, name, groups, layers
+    _update_layers_args = width, height, name, flags, groups, layers
     bpy.ops.pribambase.update_image_layers()
 
 class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
@@ -160,7 +160,7 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
 
     def modal_execute(self, context):
         """Replace the image with pixel data"""
-        width, height, name, groups, layers = self.args
+        width, height, name, flags, groups, layers = self.args
 
         tree:bpy.types.ShaderNodeTree = None
         try:
@@ -168,6 +168,8 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
         except StopIteration:
             tree = bpy.data.node_groups.new(bpy.path.basename(name), 'ShaderNodeTree')
             tree.sb_props.source_set(name)
+
+        tree.sb_props.sync_flags = flags
         
         update_layers(tree, name, width, height, groups, layers)
         util.refresh()

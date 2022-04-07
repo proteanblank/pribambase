@@ -275,6 +275,7 @@ else
         local sprite = opts.sprite
         local name = opts.name or ""
         local frame = opts.frame
+        local flags = opts.flags
         local id = string.byte('L')
 
         local nlayers = 1
@@ -315,7 +316,7 @@ else
             _frames[i] = nil
         end
 
-        return string.pack("<BHHs4I4I4", id, sprite.width, sprite.height, name, group, nlayers), table.concat(_frames, ""), table.unpack(_infos)
+        return string.pack("<BHHs4HI4I4", id, sprite.width, sprite.height, name, flags, group, nlayers), table.concat(_frames, ""), table.unpack(_infos)
     end
 
     local function messageChangeName(opts)
@@ -349,7 +350,8 @@ else
 
     local function sendImageLayers(name)
         if connected and spr ~= nil then
-            ws:sendBinary(messageImageLayers{ sprite=spr, name=name, frame=app.activeFrame })
+            local flags = syncList[name] or 0
+            ws:sendBinary(messageImageLayers{ sprite=spr, name=name, frame=app.activeFrame, flags=flags })
         end
     end
 
@@ -794,6 +796,7 @@ else
                 local animated = flags & BIT_SYNC_SHEET ~= 0
                 local layers = flags & BIT_SYNC_LAYERS ~= 0
                 local s = Sprite{fromFile=name}
+                local flags = syncList[name] or 0
                 if animated then
                     tag = ""
                     if app.activeTag ~= nil and not app.preferences.editor.play_all then
@@ -801,9 +804,9 @@ else
                     end
                     ws:sendBinary(messageSpritesheet{ sprite=s, name=name, frame=app.activeFrame, tag=tag })
                 elseif layers then
-                    ws:sendBinary(messageImageLayers{ sprite=s, name=name, frame=app.activeFrame })
+                    ws:sendBinary(messageImageLayers{ sprite=s, name=name, frame=app.activeFrame, flags=flags })
                 else
-                    ws:sendBinary(messageImage{ sprite=s, name=name, frame=app.activeFrame })
+                    ws:sendBinary(messageImage{ sprite=s, name=name, frame=app.activeFrame , flags=flags})
                 end
                 s:close()
             end
@@ -880,7 +883,7 @@ else
         local val = dlg.data.layers
         local sf = spr.filename
         if syncList[sf] ~= nil then
-            syncList[sf] = (val and (syncList[sf] | BIT_SYNC_SHEET) or (syncList[sf] & ~BIT_SYNC_SHEET))
+            syncList[sf] = (val and (syncList[sf] | BIT_SYNC_LAYERS) or (syncList[sf] & ~BIT_SYNC_LAYERS))
         end
         if docList[spr] ~= nil then
             docList[spr].layers = val
@@ -899,10 +902,14 @@ else
             docList[spr].showUV = val
         end
         
-        -- instead of syncSprite, always sync the non-spritesheet image here
         local s = spr.filename
-        if syncList[s] ~= nil and docList[spr] and docList[spr].blend == blendfile then
-            sendImage(s)
+        if syncList[sf] & BIT_SYNC_LAYERS then
+            sendImageLayers(s)
+        else
+            -- sync non-spritesheet image for spritesheets
+            if syncList[s] ~= nil and docList[spr] and docList[spr].blend == blendfile then
+                sendImage(s)
+            end
         end
     end
 

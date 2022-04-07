@@ -181,21 +181,22 @@ class ImageLayers(Handler):
         args.width = self.take_uint(2)
         args.height = self.take_uint(2)
         args.name = self.take_str()
+        args.flags = self.take_sync_flags()
         ngroups = self.take_uint(4)
         nlayers = self.take_uint(4)
         args.groups = [self.take_group() for _ in range(ngroups)]
         args.layers = [self.take_layer() for _ in range(nlayers)]
     
 
-    async def execute(self, width:int, height:int, name:str, groups:List[Tuple], layers:List[Tuple]):
+    async def execute(self, width:int, height:int, name:str, flags:Set[str], groups:List[Tuple], layers:List[Tuple]):
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                modify.image_layers(width, height, name, groups, layers)
+                modify.image_layers(width, height, name, flags, groups, layers)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # version 2.80... caveat emptor
-            modify.image_layers(width, height, name, groups, layers)
+            modify.image_layers(width, height, name, flags, groups, layers)
 
 
 class ChangeName(Handler):

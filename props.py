@@ -346,6 +346,14 @@ class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
 
+    sync_flags: bpy.props.EnumProperty(
+        name="Sync Flags",
+        description="Sync related flags passed to Aseprite with texture list",
+        items=(('SHEET', "All Frames", "Send all frames via spritesheet"),
+            ('SHOW_UV', "Show UV", "Sync UV changes to sprite"),
+            ('LAYERS', "Layers", "Separate sprite layers"),),
+        options={'ENUM_FLAG'})
+
     def source_set(self, source, relative:bool=None):
         """
         Set source as relative/absolute path according to relative path setting. Use every time when assigning sources automatically, 
@@ -357,17 +365,10 @@ class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
         else:
             self.source = os.path.normpath(source)
 
-
     @property
     def sync_name(self):
         # unlike image, layer always come from a sprite
         return os.path.normpath(self.source_abs)
-    
-
-    @property
-    def sync_flags(self):
-        # TODO make it a prop
-        return set(('LAYERS', ))    
 
 
 class SB_ActionProperties(bpy.types.PropertyGroup):
