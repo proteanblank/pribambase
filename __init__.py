@@ -321,5 +321,4 @@ def sb_on_depsgraph_update_post(scene):
         if _images_hv != hv:
             _images_hv = hv
             if addon.server_up:
-                lst = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images]
-                addon.server.send(encode.texture_list(addon.state.identifier, lst))
+                addon.server.send(encode.texture_list(addon.state.identifier, addon.texture_list))

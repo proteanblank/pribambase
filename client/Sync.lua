@@ -697,7 +697,7 @@ else
         
         dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
         dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
-        dlg:modify{ id="layers", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
+        dlg:modify{ id="layers", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].layers) }
         dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
 
         if not synced then

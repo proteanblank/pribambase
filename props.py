@@ -358,6 +358,18 @@ class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
             self.source = os.path.normpath(source)
 
 
+    @property
+    def sync_name(self):
+        # unlike image, layer always come from a sprite
+        return os.path.normpath(self.source_abs)
+    
+
+    @property
+    def sync_flags(self):
+        # TODO make it a prop
+        return set(('LAYERS', ))    
+
+
 class SB_ActionProperties(bpy.types.PropertyGroup):
     """Pribambase action-related data"""
     

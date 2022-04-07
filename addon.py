@@ -22,7 +22,7 @@ import bpy
 
 from .messaging import Handlers
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, List, Set, Tuple
 if TYPE_CHECKING:
     from .sync import Server
     from .props import SB_Preferences, SB_State
@@ -84,6 +84,19 @@ class Addon:
     @property
     def active_sprite_image(self) -> Union[bpy.types.Image, None]:
         return next((img for img in bpy.data.images if img.sb_props.sync_name == self.active_sprite), None)
+
+
+    @property
+    def texture_list(self) -> List[Tuple[str, Set[str]]]:
+        layer_images = set()
+        layers = []
+
+        for grp in bpy.data.node_groups:
+            if grp.type == 'SHADER':
+                layers.append((grp.sb_props.sync_name, grp.sb_props.sync_flags))
+
+        images = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images if img not in layer_images]
+        return [*images, *layers]
 
 
 addon = Addon()
