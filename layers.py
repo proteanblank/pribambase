@@ -76,19 +76,23 @@ def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
         # first two are the sprite's color and alpha
         color_name, alpha_name = (f"{layer_name} Color", f"{layer_name} Alpha") if layer_name else ("Color", "Alpha")
 
-        color_idx = next((i for i,out in enumerate(outs) if out.name == color_name), None)
+        color_idx = next((i for i,out in enumerate(outs) if out.name == color_name), -1)
         color_goes = 2 * i
-        if not color_idx:
+        if color_idx < 0:
             color_idx = len(outs)
             outs.new('NodeSocketColor', color_name)
-        outs.move(color_idx, color_goes)
+            
+        if color_idx != color_goes:
+            outs.move(color_idx, color_goes)
         
-        alpha_idx = next((i for i,out in enumerate(outs) if out.name == alpha_name), None)
+        alpha_idx = next((i for i,out in enumerate(outs) if out.name == alpha_name), -1)
         alpha_goes = 2 * i + 1
-        if not alpha_idx:
+        if alpha_idx < 0:
             alpha_idx = len(outs)
             outs.new('NodeSocketFloat', alpha_name)
-        outs.move(alpha_idx, alpha_goes)
+
+        if alpha_idx != alpha_goes:
+            outs.move(alpha_idx, alpha_goes)
     
     # at this point, we swapped first `2 + 2*len(groups)` outputs
     # ones remaining are no longer in the sprite and should be removed
