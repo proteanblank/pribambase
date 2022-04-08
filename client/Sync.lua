@@ -866,6 +866,7 @@ else
             docList[spr].animated = val
         end
         syncSprite()
+        updateDialog()
     end
 
 
@@ -879,6 +880,7 @@ else
             docList[spr].layers = val
         end
         syncSprite()
+        updateDialog()
     end
 
 
@@ -901,6 +903,8 @@ else
                 sendImage(s)
             end
         end
+
+        updateDialog()
     end
 
 
@@ -933,14 +937,18 @@ else
 
 
     updateDialog = function(status)
-        if status then
-            dlg:modify{ id="status", text=status }
-        end
+        local sync = (spr ~= nil and syncList[spr.filename])
+        local doc =  (spr ~= nil and docList[spr])
+
+        local layers = (spr ~= nil and doc and doc.layers)
+        local animated = (spr ~= nil and doc and doc.animated)
+
+        if status then dlg:modify{ id="status", text=status } end
         dlg:modify{ id="reconnect", visible=(not connected) }
-        dlg:modify{ id="animated", visible=(connected and spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
-        dlg:modify{ id="showuv", visible=(connected and spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
-        dlg:modify{ id="layers", visible=(connected and spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].layers) }
-        dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
+        dlg:modify{ id="animated", visible=(connected and spr ~= nil and sync ~= nil and not layers), selected=animated }
+        dlg:modify{ id="showuv", visible=(connected and spr ~= nil and sync ~= nil), selected=(spr and doc and doc.showUV) }
+        dlg:modify{ id="layers", visible=(connected and spr ~= nil and sync ~= nil and not animated), selected=layers }
+        dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and sync == nil) }
     end
 
 
