@@ -515,6 +515,9 @@ else
     end
 
 
+    local updateDialog = nil -- function(status:string|nil)
+
+
     local function onAppChange()
         if pause_app_change then return end
 
@@ -572,11 +575,7 @@ else
                 sendActiveSprite("")
             end
 
-
-            dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
-            dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
-            dlg:modify{ id="layers", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].layers) }
-            dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
+            updateDialog()
 
         elseif spr and connected and app.activeFrame.frameNumber ~= frame then
             frame = app.activeFrame.frameNumber
@@ -672,7 +671,7 @@ else
         local offset = 2 + 4 + bflen -- start of the image names
 
         blendfile = string.unpack("<s4", msg, 2)
-        dlg:modify{ id="status", text=tr("ON:") .. " " .. (isUntitled(blendfile) and "untitled" or app.fs.fileName(blendfile)) }
+        updateDialog("ON: " .. (isUntitled(blendfile) and "untitled" or app.fs.fileName(blendfile)))
 
         syncList = {}
 
@@ -697,10 +696,7 @@ else
             synced = false
         end
         
-        dlg:modify{ id="animated", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
-        dlg:modify{ id="showuv", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
-        dlg:modify{ id="layers", visible=(spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].layers) }
-        dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
+        updateDialog()
 
         if not synced then
             syncSprite()
@@ -837,8 +833,7 @@ else
 
         elseif t == WebSocketMessageType.OPEN then
             connected = true
-            dlg:modify{ id="status", text=tr("Sync ON") }
-            dlg:modify{ id="reconnect", visible=false }
+            updateDialog("Sync ON")
             -- animated and sendopen are modified during texture list sync
 
             if spr ~= nil then
@@ -850,12 +845,7 @@ else
 
         elseif t == WebSocketMessageType.CLOSE and dlg ~= nil then
             connected = false
-            dlg:modify{ id="status", text=tr("Reconnecting...") }
-            dlg:modify{ id="reconnect", visible=true }
-            dlg:modify{ id="animated", visible=false }
-            dlg:modify{ id="layers", visible=false }
-            dlg:modify{ id="showuv", visible=false }
-            dlg:modify{ id="sendopen", visible=false }
+            updateDialog("Reconnecting...")
             if spr ~= nil then
                 spr.events:off(syncSprite)
                 spr.events:off(checkFilename)
@@ -941,26 +931,36 @@ else
     dlg = Dialog{ title=tr("Sync"), onclose=dlgClose }
     --[[ global ]] pribambase_dlg = dlg
 
+
+    updateDialog = function(status)
+        if status then
+            dlg:modify{ id="status", text=status }
+        end
+        dlg:modify{ id="reconnect", visible=(not connected) }
+        dlg:modify{ id="animated", visible=(connected and spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].animated) }
+        dlg:modify{ id="showuv", visible=(connected and spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].showUV) }
+        dlg:modify{ id="layers", visible=(connected and spr ~= nil and syncList[spr.filename] ~= nil), selected=(spr and docList[spr] and docList[spr].layers) }
+        dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and syncList[spr.filename] == nil) }
+    end
+
+
     dlg:label{ id="status", text=tr("Connecting...") }
     dlg:button{ id="reconnect", text=tr("Reconnect"), onclick=function() ws:close() ws:connect() end }
 
     dlg:check{ id="animated", text=tr("Animation"), onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
-    dlg:modify{ id="animated", visible=false }
 
     dlg:newrow()
     dlg:check{ id="layers", text=tr("Layers"), onclick=changeLayers, selected=(spr and docList[spr] and docList[spr].layers) }
-    dlg:modify{ id="layers", visible=false }
 
     dlg:newrow()
     dlg:check{ id="showuv", text=tr("Show UV"), onclick=changeShowUV, selected=(spr and docList[spr] and docList[spr].showUV) }
-    dlg:modify{ id="showuv", visible=false }
-    
     dlg:button{ id="sendopen", text=tr("Add to Blendfile"), onclick=sendNewTexture }
-    dlg:modify{ id="sendopen", visible=false }
 
     dlg:newrow()
     dlg:button{ text="X " .. tr("Stop"), onclick=dlgClose }
     dlg:button{ text="_ " .. tr("Hide"), onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
+
+    updateDialog()
 
     -- GO
 
