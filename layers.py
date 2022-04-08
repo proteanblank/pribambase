@@ -66,6 +66,46 @@ def create_node_helper():
     tree.links.new(gamma_out, group_out.inputs["Color"])
 
 
+def create_node_exclusion():
+    """Create mix node equivalent for exclusion blend mode in ase. The formula for each channel is `C_res = C_src + C_dst - 2*C_src*C_dst`"""        
+    tree:bpy.types.ShaderNodeTree = bpy.data.node_groups.new("PribambaseMixExclusion", 'ShaderNodeTree')
+
+    tree.inputs.new('NodeSocketFloat', "Fac")
+    tree.inputs.new('NodeSocketColor', "Color1")
+    tree.inputs.new('NodeSocketColor', "Color2")
+
+    tree.outputs.new('NodeSocketColor', "Color")
+
+    group_in = tree.nodes.new('NodeGroupInput')
+    group_in.location = (0, 0)
+    group_out = tree.nodes.new('NodeGroupOutput')
+    group_out.location = (850, 0)
+
+    fac:bpy.types.ShaderNodeVectorMath = tree.nodes.new('ShaderNodeVectorMath')
+    fac.operation = 'SCALE'
+    fac.location = (250, 0)
+    add:bpy.types.ShaderNodeVectorMath = tree.nodes.new('ShaderNodeVectorMath')
+    add.operation = 'ADD'
+    add.location = (450, -150)
+    mul:bpy.types.ShaderNodeVectorMath = tree.nodes.new('ShaderNodeVectorMath')
+    mul.operation = 'MULTIPLY'
+    mul.location = (450, 0)
+    combine:bpy.types.ShaderNodeVectorMath = tree.nodes.new('ShaderNodeVectorMath')
+    combine.operation = 'MULTIPLY_ADD'
+    combine.inputs[1].default_value = (-2, -2, -2)
+    combine.location = (650, 0)
+
+    tree.links.new(group_in.outputs["Fac"], fac.inputs["Scale"])
+    tree.links.new(group_in.outputs["Color2"], fac.inputs["Vector"])
+    tree.links.new(group_in.outputs["Color1"], mul.inputs[0])
+    tree.links.new(fac.outputs["Vector"], mul.inputs[1])
+    tree.links.new(group_in.outputs["Color1"], add.inputs[0])
+    tree.links.new(fac.outputs["Vector"], add.inputs[1])
+    tree.links.new(mul.outputs["Vector"], combine.inputs[0])
+    tree.links.new(add.outputs["Vector"], combine.inputs[2])
+    tree.links.new(combine.outputs["Vector"], group_out.inputs["Color"])
+
+
 def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
     """Create or assure Color and Alpha outputs for the entire sprite and each top-level group"""
     outs = tree.outputs
@@ -136,8 +176,15 @@ def create_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, 
         -> Tuple[bpy.types.NodeSocketColor, bpy.types.NodeSocketFloat]: # outputs for color and alpha
     """Nodes for mixing RGB components and alpha"""
 
-    mix:bpy.types.ShaderNodeMixRGB = tree.nodes.new('ShaderNodeMixRGB')
-    mix.blend_type = blend_mode
+    mix:bpy.types.ShaderNode = None
+    if blend_mode == 'EXCLUSION':
+        if "PribambaseMixExclusion" not in bpy.data.node_groups:
+            create_node_exclusion()
+        mix = tree.nodes.new('ShaderNodeGroup')
+        mix.node_tree = bpy.data.node_groups["PribambaseMixExclusion"]
+    else:
+        mix = tree.nodes.new('ShaderNodeMixRGB')
+        mix.blend_type = blend_mode
     mix.location = (node_x, node_y + 200)
 
     inv:bpy.types.ShaderNodeMath = tree.nodes.new('ShaderNodeMath')

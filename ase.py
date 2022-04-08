@@ -69,7 +69,7 @@ BLEND_MODES = (
     'LINEAR_LIGHT', # 8
     'SOFT_LIGHT', # 9
     'DIFFERENCE', # 10
-    'MIX', # 11
+    'EXCLUSION', # 11
     'HUE', # 12
     'SATURATION', # 13
     'COLOR', # 14
