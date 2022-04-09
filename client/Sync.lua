@@ -692,7 +692,10 @@ else
             end
         end
 
-        if not dlg.data.animated and spr and docList[spr] and docList[spr].animated then
+        if spr and docList[spr] and (
+                (not dlg.data.animated and docList[spr].animated) or
+                (not dlg.data.layers and docList[spr].layers) or
+                (not dlg.data.showuv and docList[spr].showUV)) then
             synced = false
         end
         
