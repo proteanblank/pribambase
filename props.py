@@ -282,6 +282,11 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
             ('LAYERS', "Layers", "Separate sprite layers"),),
         options={'ENUM_FLAG'})
 
+    is_layer: bpy.props.BoolProperty(
+        name="Layer",
+        description="Flag if the image is a layer",
+        default=False)
+
     # Spritesheet-specific props
     is_sheet: bpy.props.BoolProperty(
         name="Spritesheet",

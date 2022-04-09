@@ -334,6 +334,8 @@ def update_images(tree:bpy.types.ShaderNodeTree, sprite_name:str, layers:List[Tu
         else:
             image = bpy.data.images[image_name]
         
+        image.sb_props.is_layer = True
+        
         try:
             unused_images.remove(image)
         except KeyError:
@@ -369,3 +371,9 @@ def update_images(tree:bpy.types.ShaderNodeTree, sprite_name:str, layers:List[Tu
         bpy.data.images.remove(image)
 
     return images
+
+
+def find_tree(layer:bpy.types.Image) -> bpy.types.ShaderNodeTree:
+    return next((tree \
+        for tree in bpy.data.node_groups if tree.type == 'SHADER' \
+            for node in tree.nodes if node.type == 'TEX_IMAGE' and node.image == layer), None)
