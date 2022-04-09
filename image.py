@@ -189,7 +189,8 @@ class SB_OT_sprite_open(bpy.types.Operator):
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
-    sheet: bpy.props.BoolProperty(name="Animation", description="If checked, entire animation will be synced to blender; if not, only the current frame will. Same as 'Animation' switch in Aseprite's sync popup")
+    sheet: bpy.props.BoolProperty(name="Sync Animation", description="If checked, sync entire animation to blender as a spritesheet image; if not, only send the current frame. Same as 'Animation' switch in Aseprite's sync popup")
+    layers: bpy.props.BoolProperty(name="Sync Layers", description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
 
     # dialog settings
     filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;*.bmp;*.flc;*.fli;*.gif;*.ico;*.jpeg;*.jpg;*.pcx;*.pcc;*.png;*.tga;*.webp", options={'HIDDEN'})
@@ -221,11 +222,13 @@ class SB_OT_sprite_open(bpy.types.Operator):
         if context and context.area and context.area.type == 'IMAGE_EDITOR':
             context.area.spaces.active.image = img
 
-        if addon.connected:
-            msg = encode.sprite_open(name=self.filepath, flags={'SHEET'} if self.sheet else set())
-            addon.server.send(msg)
-        else:
-            self.report({'WARNING'}, "Aseprite not connected - image data might not be loaded")
+        flags = set()
+        if self.sheet:
+            flags.add('SHEET')
+        if self.layers:
+            flags.add('LAYERS')
+        msg = encode.sprite_open(name=self.filepath, flags=flags)
+        addon.server.send(msg)
 
         return {'FINISHED'}
 
@@ -266,6 +269,14 @@ class SB_OT_sprite_new(bpy.types.Operator):
         description="Color mode of the created sprite",
         items=COLOR_MODES,
         default='rgba')
+    
+    sheet: bpy.props.BoolProperty(
+        name="Sync Animation", 
+        description="If checked, sync entire animation to blender as a spritesheet image; if not, only send the current frame. Same as 'Animation' switch in Aseprite's sync popup")
+
+    layers: bpy.props.BoolProperty(
+        name="Sync Layers", 
+        description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
 
 
     @classmethod
@@ -290,11 +301,17 @@ class SB_OT_sprite_new(bpy.types.Operator):
         for i,m in enumerate(COLOR_MODES):
             if m[0] == self.mode:
                 mode = i
+        
+        flags = set()
+        if self.sheet:
+            flags.add('SHEET')
+        if self.layers:
+            flags.add('LAYERS')
 
         msg = encode.sprite_new(
             name=img.name,
             size=self.size,
-            flags=set(),
+            flags=flags,
             mode=mode)
 
         addon.server.send(msg)

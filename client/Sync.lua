@@ -723,7 +723,11 @@ else
                 sprfile = name
 
                 syncList[name] = flags
-                docList[create] = { blend=blendfile, animated=false, showUV=false, layers=false }
+                docList[create] = {
+                    blend=blendfile,
+                    animated=(flags & BIT_SYNC_SHEET ~= 0),
+                    showUV=(flags & BIT_SYNC_SHOWUV ~= 0),
+                    layers=(flags & BIT_SYNC_LAYERS ~= 0)}
             end)
     end
 
@@ -759,6 +763,7 @@ else
         elseif isSprite(path) then -- check if absolute path; message can't contain rel path, so getting one mean it's a datablock name, and we don't need to open it if it isn't
             batchAppChanges(function()
                     s = Sprite{ fromFile=path }
+                    syncList[path] = flags
                     docList[s] = { blend=blendfile, 
                         animated=(flags & BIT_SYNC_SHEET ~= 0),
                         showUV=(flags & BIT_SYNC_SHOWUV ~= 0),
