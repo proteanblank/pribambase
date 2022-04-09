@@ -30,6 +30,7 @@ from os import path
 
 from .messaging import encode
 from . import util
+from . import layers
 from .addon import addon
 
 from typing import Tuple, Generator
@@ -516,10 +517,15 @@ class SB_OT_sprite_replace(bpy.types.Operator):
     def execute(self, context):
         self.__class__._last_relative = self.relative
         img = context.edit_image
+
         if img.sb_props.is_sheet:
             img = next((i for i in bpy.data.images if i.sb_props.sheet == img), img)
+
+        if img.sb_props.is_layer:
+            img = layers.find_tree(img)
+
         img.sb_props.source_set(self.filepath, self.relative)
-        msg = encode.sprite_open(name=self.filepath, flags=context.edit_image.sb_props.sync_flags)
+        msg = encode.sprite_open(name=self.filepath, flags=img.sb_props.sync_flags)
         addon.server.send(msg)
 
         return {'FINISHED'}
