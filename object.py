@@ -25,14 +25,28 @@ Working with objects (mesh, material, sprites, ...)
 import bpy
 from bpy.app.translations import pgettext
 from bpy_extras import object_utils
-import os.path
 
-from .messaging import encode
 from .addon import addon
 from .image import SB_OT_sprite_open
 from . import util
 from . import modify
 from . import ase
+
+
+_sprite_enum_items_ref = None
+
+def _get_sprite_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _sprite_enum_items_ref
+
+    if context:
+        images = (("IMG" + img.name, img.name, "") for img in bpy.data.images if not img.sb_props.is_layer)
+        trees = (("GRP" + tree.name, tree.name, "") for tree in bpy.data.node_groups if tree.type == 'SHADER' and tree.sb_props.source)
+        _sprite_enum_items_ref = [*images, *trees] 
+    else:
+        _sprite_enum_items_ref = []
+        
+    return _sprite_enum_items_ref
 
 
 # Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
@@ -45,18 +59,22 @@ _material_sprite_common_props = {
     "sheet": bpy.props.BoolProperty(
         name="Animated",
         description="Use spritesheet image in the material. Use when UV animation is set up, or will be",
-        default=True),
+        default=False),
 
     "blend": bpy.props.EnumProperty(name="Blend Mode", description="Imitate blending mode for the material", items=(
         ('NORM', "Normal", "", 0),
         ('ADD', "Additive", "", 1),
         ('MUL', "Multply", "", 2)), 
-        default='NORM')}
+        default='NORM'),
+        
+    "sprite": bpy.props.EnumProperty(
+        name="Sprite",
+        description="Image to use",
+        items=_get_sprite_enum_items)}
 
 
 def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
-    img = addon.state.op_props.image_sprite
-    if img and img.sb_props.sheet:
+    if self.sprite[:3] == 'IMG' and bpy.data.images[self.sprite[3:]].sb_props.is_sheet:
         layout.prop(self, "sheet")
     layout.prop(self, "two_sided")
     layout.prop(self, "blend")
@@ -77,15 +95,14 @@ class SB_OT_material_add(bpy.types.Operator):
     sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
+    sprite: _material_sprite_common_props["sprite"]
 
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
 
-        row = layout.row()
-        row.enabled = self.invoke
-        row.prop(addon.state.op_props, "image_sprite")
+        layout.row().prop(self, "sprite")
         layout.row().prop(self, "shading", expand=True)
         _draw_material_props(self, layout)
 
@@ -98,28 +115,37 @@ class SB_OT_material_add(bpy.types.Operator):
 
     def execute(self, context):
         self.invoke = False
-        
-        img = addon.state.op_props.image_sprite
-        if not img:
-            self.report({'ERROR'}, "No image selected")
-            return {'CANCELLED'}
-        
-        if img.sb_props.sheet and self.sheet:
-            img = img.sb_props.sheet
 
-        mat = bpy.data.materials.new(addon.state.op_props.image_sprite.name)
+        img_type, img_name = self.sprite[:3], self.sprite[3:]
+
+        mat = bpy.data.materials.new(img_name)
         # create nodes
         mat.use_nodes = True
         mat.use_backface_culling = not self.two_sided
         mat.blend_method = 'CLIP'
         
         tree = mat.node_tree
+        
+        if img_type == 'IMG':
+            img = bpy.data.images[img_name]
 
-        tex = tree.nodes.new("ShaderNodeTexImage")
+            if img.sb_props.sheet and self.sheet:
+                img = img.sb_props.sheet
+
+            tex = tree.nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            tex.interpolation = 'Closest'
+            tex.extension = 'CLIP'
+
+        elif img_type == 'GRP':
+            img = bpy.data.node_groups[img_name]
+            tex = tree.nodes.new('ShaderNodeGroup')
+            tex.node_tree = img
+
+        else:
+            raise RuntimeError()
+            
         tex.location = (-500, 100)
-        tex.image = img
-        tex.interpolation = 'Closest'
-        tex.extension = 'CLIP'
 
         bsdf = tree.nodes[tree.nodes.find("Principled BSDF")]
         bsdf.location = (-200, 250)
@@ -159,7 +185,6 @@ class SB_OT_material_add(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.invoke = True
-        addon.state.op_props.image_sprite = next(i for i in bpy.data.images if not i.sb_props.is_sheet)
         return context.window_manager.invoke_props_dialog(self)
 
 
@@ -218,6 +243,7 @@ class SB_OT_plane_add(bpy.types.Operator):
     sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
+    sprite: _material_sprite_common_props["sprite"]
 
     def draw(self, context):
         layout = self.layout
