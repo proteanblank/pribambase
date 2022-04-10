@@ -31,6 +31,7 @@ from os import path
 from .messaging import encode
 from . import util
 from . import layers
+from .layers import find_tree
 from .addon import addon
 
 from typing import Tuple, Generator
@@ -419,23 +420,37 @@ class SB_OT_sprite_purge(bpy.types.Operator):
         name="Sprite Image", 
         description="Remove 'view' image. All relations to other pieces of data will be erased, so unchecking those makes IMPOSSIBLE to remove them automatically another time", 
         default=True)
+
+    remove_nodes: bpy.props.BoolProperty(
+        name="Node Group", 
+        description="Remove node group of the sprite. All relations to other pieces of data will be erased, so unchecking those makes IMPOSSIBLE to remove them automatically another time", 
+        default=True)
     
+    remove_cels: bpy.props.BoolProperty(
+        name="Layer Images", 
+        description="Remove images used for separate layers", 
+        default=True)
+
 
     @classmethod
     def poll(cls, context):
         if not context.edit_image:
             return False
         props = context.edit_image.sb_props
-        return props.is_sheet or props.sheet
+        return props.is_sheet or props.sheet or props.is_layer
     
     def draw(self, context):
         row=self.layout.split(factor=.28)
         row.label(text="Remove:")
         col = row.column(align=True)
-        col.prop(self, "remove_sprite")
-        col.prop(self, "remove_sheet")
-        col.prop(self, "remove_anim")
-        col.prop(self, "remove_actions")
+        if context.edit_image.sb_props.is_layer:
+            col.prop(self, "remove_nodes")
+            col.prop(self, "remove_cels")
+        else:
+            col.prop(self, "remove_sprite")
+            col.prop(self, "remove_sheet")
+            col.prop(self, "remove_anim")
+            col.prop(self, "remove_actions")
     
 
     def execute(self, context):
@@ -482,6 +497,18 @@ class SB_OT_sprite_purge(bpy.types.Operator):
 
         if self.remove_sprite and self.img:
                 bpy.data.images.remove(self.img)
+
+        if self.is_layer:
+            tree = find_tree(self.img)
+
+            if self.remove_cels:
+                for node in tree.nodes:
+                    if node.type == 'TEX_IMAGE':
+                        bpy.data.images.remove(node.image)
+
+            if self.remove_nodes:
+                # goes after everything else
+                bpy.data.node_groups.remove(tree)
 
         return {'FINISHED'}
 
