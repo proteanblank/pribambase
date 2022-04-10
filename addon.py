@@ -88,14 +88,13 @@ class Addon:
 
     @property
     def texture_list(self) -> List[Tuple[str, Set[str]]]:
-        layer_images = set()
         layers = []
 
         for grp in bpy.data.node_groups:
-            if grp.type == 'SHADER':
+            if grp.type == 'SHADER' and grp.sb_props.source:
                 layers.append((grp.sb_props.sync_name, grp.sb_props.sync_flags))
 
-        images = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images if img not in layer_images]
+        images = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images if not img.sb_props.is_layer]
         return [*images, *layers]
 
 
