@@ -573,16 +573,7 @@ class SB_OT_sprite_reload_all(bpy.types.Operator):
         return addon.connected
 
     def execute(self, context):
-        images = []
-
-        for img in bpy.data.images:
-            if img.sb_props.source:
-                if path.exists(img.sb_props.source_abs):
-                    images.append((img.sb_props.sync_name, img.sb_props.sync_flags))
-                else:
-                    self.report({'INFO'}, f"Image {img.name} skipped: file '{img.sb_props.source_abs}' does not exist")
-
-        addon.server.send(encode.peek(images))
+        addon.server.send(encode.peek([it for it in addon.texture_list if path.exists(it[0])]))
         return {'FINISHED'}
 
 
