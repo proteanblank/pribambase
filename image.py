@@ -31,7 +31,7 @@ from os import path
 from .messaging import encode
 from . import util
 from . import layers
-from .layers import find_tree
+from .layers import find_tree, update_color_outputs
 from .addon import addon
 
 from typing import Tuple, Generator
@@ -191,8 +191,8 @@ class SB_OT_sprite_open(bpy.types.Operator):
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
-    sheet: bpy.props.BoolProperty(name="Sync Animation", description="If checked, sync entire animation to blender as a spritesheet image; if not, only send the current frame. Same as 'Animation' switch in Aseprite's sync popup")
-    layers: bpy.props.BoolProperty(name="Sync Layers", description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
+    sheet: bpy.props.BoolProperty(name="Sheet Animation", description="If checked, sync entire animation to blender as a spritesheet image; if not, only send the current frame. Same as 'Animation' switch in Aseprite's sync popup")
+    layers: bpy.props.BoolProperty(name="Separate Layers", description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
 
     # dialog settings
     filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;*.bmp;*.flc;*.fli;*.gif;*.ico;*.jpeg;*.jpg;*.pcx;*.pcc;*.png;*.tga;*.webp", options={'HIDDEN'})
@@ -210,15 +210,26 @@ class SB_OT_sprite_open(bpy.types.Operator):
 
         self.__class__._last_relative = self.relative
 
-        try:
-            # we might have this image opened already
-            img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
-        except StopIteration:
-            # create a stub that will be filled after receiving data
-            with util.pause_depsgraph_updates():
-                img = bpy.data.images.new(name, 1, 1, alpha=True)
-                util.pack_empty_png(img)
-                img.sb_props.source_set(self.filepath, self.relative)
+        if self.layers:
+            try:
+                # we might have this image opened already
+                img = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == self.filepath)
+            except StopIteration:
+                # create a stub that will be filled after receiving data
+                with util.pause_depsgraph_updates():
+                    tree = bpy.data.node_groups.new(name, 'ShaderNodeTree')
+                    tree.sb_props.source_set(self.filepath)
+                    update_color_outputs(tree, [])
+        else:
+            try:
+                # we might have this image opened already
+                img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
+            except StopIteration:
+                # create a stub that will be filled after receiving data
+                with util.pause_depsgraph_updates():
+                    img = bpy.data.images.new(name, 1, 1, alpha=True)
+                    util.pack_empty_png(img)
+                    img.sb_props.source_set(self.filepath, self.relative)
 
         # switch to the image in the editor
         if context and context.area and context.area.type == 'IMAGE_EDITOR':
