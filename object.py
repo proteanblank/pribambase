@@ -250,12 +250,7 @@ class SB_OT_plane_add(bpy.types.Operator):
         layout.use_property_split = True
         
         if not self.from_file:
-            layout.label(text="Sprite")
-            row = layout.row(align=True)
-            row.enabled = self.invoke
-            row.prop(addon.state.op_props, "image_sprite")
-            if not addon.state.op_props.image_sprite:
-                row.label(text="", icon='ERROR')
+            layout.row().prop(self, "sprite")
 
         layout.prop(self, "facing")
         if self.facing in ('SPH', 'CYL'):
@@ -281,26 +276,37 @@ class SB_OT_plane_add(bpy.types.Operator):
         self.invoke = False
 
         if self.from_file:
+            # TODO layers
+            # TODO animation
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
                 # ase files
-                # TODO should work without connection
+                # TODO show an info message if there's no connection
                 SB_OT_sprite_open.execute(self, context)
-                addon.state.op_props.image_sprite = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
+                img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
                 size, _ = ase.info(self.filepath)
-                addon.state.op_props.image_sprite.scale(*size)
+                img.scale(*size)
             else:
                 # blender supported
-                addon.state.op_props.image_sprite = bpy.data.images.load(self.filepath)
-            # TODO animation
+                img = bpy.data.images.load(self.filepath)
+            
+        else:
+            img_type, img_name = self.sprite[:3], self.sprite[3:]
 
-        img = addon.state.op_props.image_sprite
-        if not img:
-            self.report({'ERROR'}, "No image selected")
-            return {'CANCELLED'}
-        w,h = img.size
+            if img_type == 'IMG':
+                img = bpy.data.images[img_name]
+            elif img_type == 'GRP':
+                img = bpy.data.node_groups[img_name]
+
+        try:
+            w,h = img.size
+        except AttributeError:
+            w,h = img.sb_props.size
 
         # normalize to pixel coord
-        px, py = [self.pivot[i] * img.size[i] if self.pivot_relative else self.pivot[i] for i in (0,1)]
+        px, py = self.pivot
+        if self.pivot_relative:
+            px *= w
+            py *= h
         px = w - px
 
         # start with 2d uv coords, scaled to pixels
@@ -321,7 +327,7 @@ class SB_OT_plane_add(bpy.types.Operator):
                 points.append((-u, -v, 0))
 
         mesh = bpy.data.meshes.new("Plane")
-        mesh.from_pydata( # this will be z up?
+        mesh.from_pydata(
             vertices=points,
             edges=[(0, 1),(1, 2),(2, 3),(3, 0)],
             faces=[(0, 1, 2, 3)])
@@ -329,12 +335,14 @@ class SB_OT_plane_add(bpy.types.Operator):
 
         obj = object_utils.object_data_add(context, mesh, name="Sprite")
         if self.shading != 'NONE':
-            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend)
+            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend, sprite=self.sprite)
         
+        # TODO remove this
         if img.sb_props.sheet:
             addon.state.op_props.animated_sprite = img
             bpy.ops.pribambase.spritesheet_rig()
 
+        # TODO and this
         if self.facing in ('SPH', 'CYL'):
             # Face camera
             face:bpy.types.TrackToConstraint = obj.constraints.new('TRACK_TO')
@@ -352,10 +360,8 @@ class SB_OT_plane_add(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        addon.state.op_props.image_sprite = None
         addon.state.op_props.look_at = context.scene.camera
         self.scale = 1 / context.space_data.overlay.grid_scale
-        self.sheet = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
         self.invoke = True
 
         if self.from_file:
