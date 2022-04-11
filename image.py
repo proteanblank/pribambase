@@ -240,6 +240,7 @@ class SB_OT_sprite_open(bpy.types.Operator):
             flags.add('SHEET')
         if self.layers:
             flags.add('LAYERS')
+        img.sb_props.sync_flags
         msg = encode.sprite_open(name=self.filepath, flags=flags)
         addon.server.send(msg)
 
