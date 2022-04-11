@@ -170,6 +170,7 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
             tree.sb_props.source_set(name)
 
         tree.sb_props.sync_flags = flags
+        tree.sb_props.size = (width, height)
         
         update_layers(tree, name, width, height, groups, layers)
         util.refresh()

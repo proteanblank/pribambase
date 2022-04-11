@@ -350,6 +350,11 @@ class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
         description="Absolute and normalized source path",
         subtype='FILE_PATH',
         get=lambda self: os.path.normpath(bpy.path.abspath(self.source)) if self.source and self.source.startswith("//") else self.source)
+    
+    size:bpy.props.IntVectorProperty(
+        name="Size",
+        description="Dimensions of the sprite in pixels. Individual images can be different from that",
+        size=2)
 
     sync_flags: bpy.props.EnumProperty(
         name="Sync Flags",
