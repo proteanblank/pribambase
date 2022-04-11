@@ -231,6 +231,11 @@ class SB_OT_plane_add(bpy.types.Operator):
             ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
         default='LIT')
     
+    layers: bpy.props.BoolProperty(
+        name="Separate Layers", 
+        description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup",
+        default=False)
+    
     ## FILE DIALOG
     from_file: bpy.props.BoolProperty("Open File", options={'HIDDEN'})
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
@@ -249,7 +254,13 @@ class SB_OT_plane_add(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
         
-        if not self.from_file:
+        if self.from_file:
+            layout.label(text="Sprite:")
+            if not self.sheet:
+                layout.prop(self, "layers")
+            if not self.layers:
+                layout.prop(self, "sheet")
+        else:
             layout.row().prop(self, "sprite")
 
         layout.prop(self, "facing")
@@ -276,31 +287,36 @@ class SB_OT_plane_add(bpy.types.Operator):
         self.invoke = False
 
         if self.from_file:
-            # TODO layers
-            # TODO animation
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
-                # ase files
-                # TODO show an info message if there's no connection
-                SB_OT_sprite_open.execute(self, context)
-                img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
-                size, _ = ase.info(self.filepath)
-                img.scale(*size)
+                if not addon.connected:
+                    self.report({'ERROR'}, "Connect to Aseprite to open .ase files")
+                    return {'CANCELLED'}
+
+                res = SB_OT_sprite_open.execute(self, context)
+                if 'CANCELLED' in res:
+                    return res
+
+                (w, h), _ = ase.info(self.filepath)
+                if self.layers:
+                    img = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == self.filepath)
+                    self.sprite = 'GRP' + img.name
+                else:
+                    img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
+                    self.sprite = 'IMG' + img.name
             else:
                 # blender supported
                 img = bpy.data.images.load(self.filepath)
+                w, h = img.size
             
         else:
             img_type, img_name = self.sprite[:3], self.sprite[3:]
 
             if img_type == 'IMG':
                 img = bpy.data.images[img_name]
+                w,h = img.size
             elif img_type == 'GRP':
                 img = bpy.data.node_groups[img_name]
-
-        try:
-            w,h = img.size
-        except AttributeError:
-            w,h = img.sb_props.size
+                w,h = img.sb_props.size
 
         # normalize to pixel coord
         px, py = self.pivot
@@ -335,10 +351,10 @@ class SB_OT_plane_add(bpy.types.Operator):
 
         obj = object_utils.object_data_add(context, mesh, name="Sprite")
         if self.shading != 'NONE':
-            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend, sprite=self.sprite)
+            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, sheet=self.sheet, blend=self.blend, sprite=self.sprite)
         
         # TODO remove this
-        if img.sb_props.sheet:
+        if isinstance(img, bpy.types.Image) and img.sb_props.sheet:
             addon.state.op_props.animated_sprite = img
             bpy.ops.pribambase.spritesheet_rig()
 
