@@ -62,7 +62,7 @@ def create_node_helper():
 
     # correct color gamma so that mix node blending works same as in ase
     # after blending it should be corrected back
-    gamma_out = create_gamma_nodes(tree, 300, -100, 1/2.2, group_in.outputs["Color"])
+    gamma_out = add_gamma_nodes(tree, 300, -100, 1/2.2, group_in.outputs["Color"])
     tree.links.new(gamma_out, group_out.inputs["Color"])
 
 
@@ -107,7 +107,7 @@ def create_node_exclusion():
 
 
 def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
-    """Create or assure Color and Alpha outputs for the entire sprite and each top-level group"""
+    """Create or assure Color and Alpha outputs for the entire sprite and each top-level group. Moves existing ones of the same name in order to preserve connections."""
     outs = tree.outputs
 
     # first iteration checks first two outputs being sprite's combined color and alpha
@@ -141,7 +141,7 @@ def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
         outs.remove(outs[end]) # del is not implemented ( ' _ ' )
 
 
-def create_layer_image_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, uv_node:bpy.types.ShaderNodeUVMap, \
+def add_layer_image_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, uv_node:bpy.types.ShaderNodeUVMap, \
     x:float, y:float, w:float, h:float, image:bpy.types.Image, opacity:float) \
         -> Tuple[bpy.types.NodeSocketColor, bpy.types.NodeSocketFloat]: # outputs for color and alpha
     """Transform and mask cel image. NOTE this function accepts normalized x/y/w/h/opacity, as in (0.0, 1.0) range"""
@@ -170,7 +170,7 @@ def create_layer_image_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y
     return (helper.outputs["Color"], helper.outputs["Alpha"])
 
 
-def create_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, blend_mode:str, \
+def add_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, blend_mode:str, \
     color1:bpy.types.NodeSocketColor, alpha1:bpy.types.NodeSocketFloat, \
     color2:bpy.types.NodeSocketColor, alpha2:bpy.types.NodeSocketFloat) \
         -> Tuple[bpy.types.NodeSocketColor, bpy.types.NodeSocketFloat]: # outputs for color and alpha
@@ -213,7 +213,7 @@ def create_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, 
     return (mix.outputs["Color"], add.outputs["Value"])
 
 
-def create_gamma_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, gamma:float, color_in:bpy.types.NodeSocketColor):
+def add_gamma_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, gamma:float, color_in:bpy.types.NodeSocketColor):
     """Per-component vector exponent"""
 
     sep:bpy.types.ShaderNodeSeparateRGB = tree.nodes.new('ShaderNodeSeparateRGB')
@@ -273,12 +273,12 @@ def update_layers(tree:bpy.types.ShaderNodeTree, sprite_name:str, sprite_width:i
         x, y, w, h = x / sprite_width, y / sprite_height, w / sprite_width, h / sprite_height
         y = (1.0 - y - h)
     
-        layer_out_color, layer_out_alpha = create_layer_image_nodes(tree, 300, node_y, uv, \
+        layer_out_color, layer_out_alpha = add_layer_image_nodes(tree, 300, node_y, uv, \
             x, y, w, h, layer_image, opacity / 255)
         
         # top level layer
         if last_out_color:
-            last_out_color, last_out_alpha = create_mix_nodes(tree, 1100, node_y + 150, mix, \
+            last_out_color, last_out_alpha = add_mix_nodes(tree, 1100, node_y + 150, mix, \
                 last_out_color, last_out_alpha, layer_out_color, layer_out_alpha)
         else:
             # bottomest layer in the sprite
@@ -290,7 +290,7 @@ def update_layers(tree:bpy.types.ShaderNodeTree, sprite_name:str, sprite_width:i
             next_group = layers[i + 1][3] if i < len(layers) - 1 else -1
 
             if last_group_color:
-                last_group_color, last_group_alpha = create_mix_nodes(tree, 1800, node_y + 150, mix, \
+                last_group_color, last_group_alpha = add_mix_nodes(tree, 1800, node_y + 150, mix, \
                     last_group_color, last_group_alpha, layer_out_color, layer_out_alpha)
             else:
                 last_group_color = layer_out_color
@@ -298,13 +298,13 @@ def update_layers(tree:bpy.types.ShaderNodeTree, sprite_name:str, sprite_width:i
             
             if group != next_group:
                 (group_name, ) = groups[group - 1]
-                gamma_out = create_gamma_nodes(tree, 2500, (group + 1) * -200, 2.2, last_group_color)
+                gamma_out = add_gamma_nodes(tree, 2500, (group + 1) * -200, 2.2, last_group_color)
                 tree.links.new(gamma_out, group_out.inputs[f"{group_name} Color"])
                 tree.links.new(last_group_alpha, group_out.inputs[f"{group_name} Alpha"])
                 last_group_color = None
                 last_group_alpha = None
 
-    gamma_out = create_gamma_nodes(tree, 2500, 0, 2.2, last_out_color)
+    gamma_out = add_gamma_nodes(tree, 2500, 0, 2.2, last_out_color)
     tree.links.new(gamma_out, group_out.inputs["Color"])
     tree.links.new(last_out_alpha, group_out.inputs["Alpha"])
 
