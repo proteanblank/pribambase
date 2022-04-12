@@ -297,15 +297,18 @@ class SB_OT_plane_add(bpy.types.Operator):
 
         if self.from_file:
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
-                if not addon.connected:
-                    self.report({'ERROR'}, "Connect to Aseprite to open .ase files")
-                    return {'CANCELLED'}
-
-                res = SB_OT_sprite_open.execute(self, context)
-                if 'CANCELLED' in res:
-                    return res
-
                 (w, h), _ = ase.info(self.filepath)
+
+                if addon.connected:
+                    # open the sprite normally
+                    res = bpy.ops.pribambase.sprite_open(filepath=self.filepath, relative=self.relative, sheet=self.sheet, layers=self.layers)
+                    if 'CANCELLED' in res:
+                        return res
+                else:
+                    # make a stub and wait for the user to launch Ase
+                    bpy.ops.pribambase.sprite_stub(name=self.sprite, source=self.filepath, layers=self.layers, sheet=self.sheet)
+                    self.report({'INFO'}, "Placeholder image created. Connect aseprite and open it to retrieve image data")
+
                 if self.layers:
                     img = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == self.filepath)
                     self.sprite = 'GRP' + img.name

@@ -206,33 +206,14 @@ class SB_OT_sprite_open(bpy.types.Operator):
 
     def execute(self, context):
         _, name = path.split(self.filepath)
-        img = None
 
         self.__class__._last_relative = self.relative
-
-        if self.layers:
-            try:
-                # we might have this image opened already
-                img = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == self.filepath)
-            except StopIteration:
-                # create a stub that will be filled after receiving data
-                with util.pause_depsgraph_updates():
-                    tree = bpy.data.node_groups.new(name, 'ShaderNodeTree')
-                    tree.sb_props.source_set(self.filepath)
-                    update_color_outputs(tree, [])
-        else:
-            try:
-                # we might have this image opened already
-                img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
-            except StopIteration:
-                # create a stub that will be filled after receiving data
-                with util.pause_depsgraph_updates():
-                    img = bpy.data.images.new(name, 1, 1, alpha=True)
-                    util.pack_empty_png(img)
-                    img.sb_props.source_set(self.filepath, self.relative)
+        
+        bpy.ops.pribambase.sprite_stub(name=name, source=self.filepath, layers=self.layers, sheet=self.sheet)
 
         # switch to the image in the editor
-        if context and context.area and context.area.type == 'IMAGE_EDITOR':
+        if not self.layers and context and context.area and context.area.type == 'IMAGE_EDITOR':
+            img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
             context.area.spaces.active.image = img
 
         flags = set()
@@ -240,7 +221,6 @@ class SB_OT_sprite_open(bpy.types.Operator):
             flags.add('SHEET')
         if self.layers:
             flags.add('LAYERS')
-        img.sb_props.sync_flags
         msg = encode.sprite_open(name=self.filepath, flags=flags)
         addon.server.send(msg)
 
@@ -250,7 +230,7 @@ class SB_OT_sprite_open(bpy.types.Operator):
     def invoke(self, context, event):
         self.invoke_context = context
 
-        # I have a feeling blender already has a solution but can't seem to find it
+        # TODO  I have a feeling blender already has a solution but can't seem to find it
         if not hasattr(self.__class__, "_last_relative"):
             self.__class__._last_relative = addon.prefs.use_relative_path
         self.relative = self.__class__._last_relative
@@ -258,6 +238,65 @@ class SB_OT_sprite_open(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+
+class SB_OT_sprite_stub(bpy.types.Operator):
+    bl_description = "Prepare placeholder sprite that awaits data from aseprite later. Does not require ase connection."
+    bl_idname = "pribambase.sprite_stub"
+    bl_label = "Stub Sprite"
+    bl_options = {'INTERNAL'}
+    
+    name:bpy.props.StringProperty(description="Datablock name. Shall not be empty")
+    source:bpy.props.StringProperty(description="Sprite filepath or identifier. Shall not be empty")
+    layers:bpy.props.BoolProperty(default=False)
+    sheet:bpy.props.BoolProperty(default=False)
+    path_relative:bpy.props.EnumProperty(items=(('DEFAULT', "", ""), ('RELATIVE', "", ""), ('ABSOLUTE', "", "")), default='DEFAULT')
+    
+    def execute(self, context):
+        # TODO implement and remove
+        if self.layers and self.sheet:
+            raise NotImplementedError
+        
+        if not self.name or not self.source:
+            raise RuntimeError
+
+        created = False
+        
+        if self.layers:
+            try:
+                # we might have this image opened already
+                img = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == self.source)
+            except StopIteration:
+                # create a stub that will be filled after receiving data
+                with util.pause_depsgraph_updates():
+                    img = bpy.data.node_groups.new(self.name, 'ShaderNodeTree')
+                    update_color_outputs(img, [])
+                    created = True
+        else:
+            try:
+                # we might have this image opened already
+                img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.source)
+            except StopIteration:
+                # create a stub that will be filled after receiving data
+                with util.pause_depsgraph_updates():
+                    img = bpy.data.images.new(self.name, 1, 1, alpha=True)
+                    util.pack_empty_png(img)
+                    created = True
+        
+        if created:
+            if self.path_relative == 'DEFAULT':
+                img.sb_props.source_set(self.source)
+            else:
+                img.sb_props.source_set(self.source, self.path_relative == 'RELATIVE')
+
+        flags = set()
+        if self.sheet:
+            flags.add('SHEET')
+        if self.layers:
+            flags.add('LAYERS')
+        img.sb_props.sync_flags
+
+        return {'FINISHED'}
+        
 
 class SB_OT_sprite_new(bpy.types.Operator):
     bl_idname = "pribambase.sprite_new"
