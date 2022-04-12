@@ -49,6 +49,15 @@ def _get_sprite_enum_items(self, context):
     return _sprite_enum_items_ref
 
 
+_anim_sprite_enum_items_ref = None
+
+def _get_anim_sprite_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _anim_sprite_enum_items_ref
+    _sprite_enum_items_ref = [(img.name, img.name, "") for img in bpy.data.images if img.sb_props.sheet] if context else []
+    return _sprite_enum_items_ref
+
+
 # Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
 _material_sprite_common_props = {    
     "two_sided": bpy.props.BoolProperty(
@@ -353,12 +362,10 @@ class SB_OT_plane_add(bpy.types.Operator):
         if self.shading != 'NONE':
             bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, sheet=self.sheet, blend=self.blend, sprite=self.sprite)
         
-        # TODO remove this
         if isinstance(img, bpy.types.Image) and img.sb_props.sheet:
-            addon.state.op_props.animated_sprite = img
-            bpy.ops.pribambase.spritesheet_rig()
+            bpy.ops.pribambase.spritesheet_rig(sprite=img.name)
 
-        # TODO and this
+        # TODO remove this
         if self.facing in ('SPH', 'CYL'):
             # Face camera
             face:bpy.types.TrackToConstraint = obj.constraints.new('TRACK_TO')
@@ -413,11 +420,16 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         description="Replace the image with spritesheet in Image Texture nodes of the object's material, if there's any",
         default=True)
 
+    sprite: bpy.props.EnumProperty(
+        name="Sprite",
+        description="Sprite to use. Only sprites with animation sync are available",
+        items=_get_anim_sprite_enum_items)
+
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
-        layout.prop(addon.state.op_props, "animated_sprite")
+        layout.prop(self, "sprite")
         layout.prop(self, "uv_map")
         layout.prop(self, "update_nodes")
     
@@ -434,7 +446,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             return {'CANCELLED'}
 
         obj = context.active_object
-        img = addon.state.op_props.animated_sprite
+        img = bpy.data.images[self.sprite]
         if not img:
             self.report({'ERROR'}, "No sprite selected")
             return {'CANCELLED'}
