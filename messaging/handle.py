@@ -237,16 +237,19 @@ class NewTexture(Handler):
     def parse(self, args):
         args.name = self.take_str()
         args.path = self.take_str()
+        flags = self.take_sync_flags()
+        args.sheet = 'SHEET' in flags
+        args.layers = 'LAYERS' in flags
 
-    async def execute(self, *, name:str, path:str):
+    async def execute(self, *, name:str, path:str, sheet:bool, layers:bool):
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                bpy.ops.pribambase.new_texture(name=name, path=path)
+                bpy.ops.pribambase.new_texture(name=name, path=path, sheet=sheet, layers=layers)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
-            bpy.ops.pribambase.new_texture(name=name, path=path)
+            bpy.ops.pribambase.new_texture(name=name, path=path, sheet=sheet, layers=layers)
 
 
 class ActiveSprite(Handler):

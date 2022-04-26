@@ -502,15 +502,28 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
 
     name:bpy.props.StringProperty(name="Name")
     path:bpy.props.StringProperty(name="Path")
+    sheet:bpy.props.BoolProperty(name="Animated")
+    layers:bpy.props.BoolProperty(name="Layers")
 
     def modal_execute(self, context):
         if self.path:
-            bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=False)
+            bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=self.sheet, layers=self.layers)
         else:
+            flags = set()
+            if self.layers:
+                flags.add('LAYERS')
+            if self.sheet:
+                flags.add('SHEET')
+
             with util.pause_depsgraph_updates():
-                img = bpy.data.images.new(self.name, 1, 1, alpha=True)
-                util.pack_empty_png(img)
+                if self.layers:
+                    img = bpy.data.node_groups.new(self.name, "ShaderNodeTree")
+                else:
+                    img = bpy.data.images.new(self.name, 1, 1, alpha=True)
+                    util.pack_empty_png(img)
+
                 img.sb_props.source=self.name
+                img.sb_props.sync_flags = flags
             bpy.ops.pribambase.send_texture_list()
 
         return {'FINISHED'}

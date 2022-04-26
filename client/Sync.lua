@@ -324,7 +324,7 @@ else
     end
 
     local function messageNewTexture(opts)
-        return string.pack("<Bs4s4", string.byte('O'), opts.name, opts.path)
+        return string.pack("<Bs4s4H", string.byte('O'), opts.name, opts.path, opts.flags)
     end
 
     local function _messageBatchImpl(msg, ...)
@@ -375,21 +375,32 @@ else
         if spr == nil then
             return
         end
-        if isSprite(spr.filename) then
-            ws:sendBinary(messageNewTexture{ name="", path=spr.filename })
+
+        local popup = Dialog{ title=tr("Choose Texture Name") }
+        local file = isSprite(spr.filename)
+
+        if file then
+            popup:label{ text=spr.filename }
         else
-            docList[spr] = { blend=blendfile, animated=false, showUV=false, layers=false }
-
-            local popup = Dialog{ title=tr("Choose Texture Name") }
             popup:entry{ id="name", text=unique_name(spr.filename or tr("Sprite")), focus=true }
-            popup:button{ id="cancel", text= tr("Cancel")}
-            popup:button{ id="ok", text= tr("OK")}
-            popup:show()
+        end
+        popup:check{ id="animated", text="Animated", onclick=function() popup:modify{ id="layers", visible = not popup.data.animated } end}
+        popup:newrow()
+        popup:check{ id="layers", text="Layers", onclick=function() popup:modify{ id="animated", visible = not popup.data.layers } end}
+        popup:button{ id="cancel", text= tr("Cancel")}
+        popup:button{ id="ok", text= tr("OK")}
+        popup:show()
 
-            if popup.data.ok then
+        if popup.data.ok then
+            docList[spr] = { blend=blendfile, animated=popup.data.animated, showUV=false, layers=popup.data.layers }
+            local flags = (popup.data.animated and BIT_SYNC_SHEET or 0) | (popup.data.layers and BIT_SYNC_LAYERS or 0)
+
+            if file then
+                ws:sendBinary(messageNewTexture{ name="", path=spr.filename, flags=flags })
+            else
                 spr.filename = unique_name(popup.data.name)
                 app.command.RunScript() -- refresh name on the tab
-                ws:sendBinary(messageNewTexture{ name=spr.filename, path="" })
+                ws:sendBinary(messageNewTexture{ name=spr.filename, path="", flags=flags })
             end
         end
     end
