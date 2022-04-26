@@ -27,49 +27,6 @@ pribambase_default_settings = {
     autoshow=false
 }
 
-
--- localization
--- locales are loaded from the same files for both blender and aseprite; only, aseprite's strings are stored in 'ase' context
-local loaded_locale = 'en'
-local locale_translations = {} -- stores english strings as keys, translated as values
-
--- load locale translations and mark current locale to be loaded, regardles of whether there's any translations in it
-local function load_locale(locale)
-    -- reset
-    locale_translations = {}
-    loaded_locale = locale
-
-    local csv = io.open(app.fs.joinPath(app.fs.userConfigPath, "extensions", "pribambase", "translations", locale .. ".csv"))
-
-    if not csv then
-        return -- no translations for the locale
-    end
-
-    for line in csv:lines() do
-        -- only keep 'ase' context
-        en, tr = string.match(line, "^ase;%s*([^;]+);%s*([^;]+)")
-        if en then
-            en = string.gsub(string.gsub(en, "%s+$", ""), "^%s+", "")
-            tr = string.gsub(string.gsub(tr, "%s+$", ""), "^%s+", "")
-            locale_translations[en] = tr
-        end
-    end
-
-    csv:close()
-end
-
--- imitates bpy.app.translations.pgettext
-pribambase_gettext = function(str)
-    current_locale = app.preferences.general.language
-    if current_locale ~= loaded_locale then
-        load_locale(current_locale)
-    end
-
-    return locale_translations[str] or str
-end
-
--- end localization
-
 function run_script(f) 
     local s = app.fs.joinPath(app.fs.userConfigPath, "extensions", "pribambase", f) .. ".lua"
 
@@ -80,8 +37,6 @@ end
 
 
 function init(plugin)
-    local tr = pribambase_gettext
-    load_locale(app.preferences.general.language)
 
     -- fill the missing settings with default values
     for key,defval in pairs(pribambase_default_settings) do
@@ -96,14 +51,14 @@ function init(plugin)
     -- register new menus
     plugin:newCommand{
         id="SbSync",
-        title=tr("Sync"),
+        title="Sync",
         group="file_export",
         onclick=run_script("Sync")
     }
 
     plugin:newCommand{
         id="SbSyncSettings",
-        title=tr("Sync Settings..."),
+        title="Sync Settings...",
         group="file_export",
         onenabled=function() return pribambase_dlg == nil end,
         onclick=run_script("Settings")
@@ -113,7 +68,7 @@ function init(plugin)
         pribambase_start = true
         local ok, what = pcall(run_script("Sync"))
         if not ok then
-            print(tr("Could not start sync") .. ": " .. what)
+            print("Could not start sync" .. ": " .. what)
         end
         pribambase_start = nil
     end

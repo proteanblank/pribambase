@@ -18,18 +18,17 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-local tr = pribambase_gettext
 
 if app.apiVersion < 15 then
-    app.alert{title=tr("Pribambase: Error"), text={tr("This version of Aseprite is not supported"), "",
-        tr("Current"), ":  " .. tr("Version") .. ": " .. tostring(app.version), "  " .. tr("API version") .. ": " .. tostring(app.apiVersion),
-        "", tr("Required") .. ":", "  " .. tr("Version: 1.2.30 or 1.3-beta7 or newer"), "  " .. tr("API version: 15 or newer"),
+    app.alert{title="Pribambase: Error", text={"This version of Aseprite is not supported", "",
+        "Current", ":  " .. "Version" .. ": " .. tostring(app.version), "  " .. "API version" .. ": " .. tostring(app.apiVersion),
+        "", "Required" .. ":", "  " .. "Version: 1.2.30 or 1.3-beta7 or newer", "  " .. "API version: 15 or newer",
     }}
     error()
 
 elseif WebSocket == nil then
-    app.alert{title=tr("Pribambase: Error"), text={tr("Websocket functionality is disabled in Aseprite."),
-        tr("If you're compiling it yourself, add") .. ' "-DENABLE_WEBSOCKET=ON" ' .. tr("to CMake options.")}}
+    app.alert{title="Pribambase: Error", text={"Websocket functionality is disabled in Aseprite.",
+        "If you're compiling it yourself, add" .. ' "-DENABLE_WEBSOCKET=ON" ' .. "to CMake options."}}
     error()
 
 elseif pribambase_dlg then
@@ -376,19 +375,19 @@ else
             return
         end
 
-        local popup = Dialog{ title=tr("Choose Texture Name") }
+        local popup = Dialog{ title="Choose Texture Name" }
         local file = isSprite(spr.filename)
 
         if file then
             popup:label{ text=spr.filename }
         else
-            popup:entry{ id="name", text=unique_name(spr.filename or tr("Sprite")), focus=true }
+            popup:entry{ id="name", text=unique_name(spr.filename or "Sprite"), focus=true }
         end
         popup:check{ id="animated", text="Animated", onclick=function() popup:modify{ id="layers", visible = not popup.data.animated } end}
         popup:newrow()
         popup:check{ id="layers", text="Layers", onclick=function() popup:modify{ id="animated", visible = not popup.data.layers } end}
-        popup:button{ id="cancel", text= tr("Cancel")}
-        popup:button{ id="ok", text= tr("OK")}
+        popup:button{ id="cancel", text= "Cancel"}
+        popup:button{ id="ok", text= "OK"}
         popup:show()
 
         if popup.data.ok then
@@ -966,7 +965,7 @@ else
     
     -- create an UI
     
-    dlg = Dialog{ title=tr("Sync"), onclose=dlgClose }
+    dlg = Dialog{ title="Sync", onclose=dlgClose }
     --[[ global ]] pribambase_dlg = dlg
 
 
@@ -986,21 +985,21 @@ else
     end
 
 
-    dlg:label{ id="status", text=tr("Connecting...") }
-    dlg:button{ id="reconnect", text=tr("Reconnect"), onclick=function() ws:close() ws:connect() end }
+    dlg:label{ id="status", text="Connecting..." }
+    dlg:button{ id="reconnect", text="Reconnect", onclick=function() ws:close() ws:connect() end }
 
-    dlg:check{ id="animated", text=tr("Animation"), onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
-
-    dlg:newrow()
-    dlg:check{ id="layers", text=tr("Layers"), onclick=changeLayers, selected=(spr and docList[spr] and docList[spr].layers) }
+    dlg:check{ id="animated", text="Animation", onclick=changeAnimated, selected=(spr and docList[spr] and docList[spr].animated) }
 
     dlg:newrow()
-    dlg:check{ id="showuv", text=tr("Show UV"), onclick=changeShowUV, selected=(spr and docList[spr] and docList[spr].showUV) }
-    dlg:button{ id="sendopen", text=tr("Add to Blendfile"), onclick=sendNewTexture }
+    dlg:check{ id="layers", text="Layers", onclick=changeLayers, selected=(spr and docList[spr] and docList[spr].layers) }
 
     dlg:newrow()
-    dlg:button{ text="X " .. tr("Stop"), onclick=dlgClose }
-    dlg:button{ text="_ " .. tr("Hide"), onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
+    dlg:check{ id="showuv", text="Show UV", onclick=changeShowUV, selected=(spr and docList[spr] and docList[spr].showUV) }
+    dlg:button{ id="sendopen", text="Add to Blendfile", onclick=sendNewTexture }
+
+    dlg:newrow()
+    dlg:button{ text="X " .. "Stop", onclick=dlgClose }
+    dlg:button{ text="_ " .. "Hide", onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
 
     updateDialog()
 
