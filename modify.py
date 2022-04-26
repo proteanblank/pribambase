@@ -25,10 +25,10 @@ Operators used internally to modify blender data during sync.
 import bpy
 import numpy as np
 from typing import Collection, Tuple
-
 from . import util
 from .util import ModalExecuteMixin
 from .addon import addon
+from .layers import update_layers
 
 
 def prescale(image:bpy.types.Image):
@@ -150,6 +150,49 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
 
     def execute(self, context):
         self.args = _update_image_args
+        return ModalExecuteMixin.execute(self, context)
+
+
+_update_layers_args = None
+def image_layers(width, height, name, flags, groups, layers):
+    # NOTE this operator removes animation flag from image
+    global _update_layers_args
+    _update_layers_args = width, height, name, flags, groups, layers
+    bpy.ops.pribambase.update_image_layers()
+
+class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
+    bl_idname = "pribambase.update_image_layers"
+    bl_label = "Update Image (Layers)"
+    bl_description = ""
+    bl_options = {'UNDO_GROUPED', 'INTERNAL'}
+    bl_undo_group = "pribambase.update_image_layers"
+
+    def modal_execute(self, context):
+        """Replace the image with pixel data"""
+        width, height, name, flags, groups, layers = self.args
+
+        tree:bpy.types.ShaderNodeTree = None
+        try:
+            tree = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == name)
+        except StopIteration:
+            tree = bpy.data.node_groups.new(bpy.path.basename(name), 'ShaderNodeTree')
+            tree.sb_props.source_set(name)
+
+        tree.sb_props.sync_flags = flags
+        tree.sb_props.size = (width, height)
+        
+        update_layers(tree, name, width, height, groups, layers)
+        util.refresh()
+
+        self.args = None
+        global _update_layers_args
+        _update_layers_args = None
+
+        return {'FINISHED'}
+
+
+    def execute(self, context):
+        self.args = _update_layers_args
         return ModalExecuteMixin.execute(self, context)
 
 
@@ -468,15 +511,28 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
 
     name:bpy.props.StringProperty(name="Name")
     path:bpy.props.StringProperty(name="Path")
+    sheet:bpy.props.BoolProperty(name="Animated")
+    layers:bpy.props.BoolProperty(name="Layers")
 
     def modal_execute(self, context):
         if self.path:
-            bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=False)
+            bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=self.sheet, layers=self.layers)
         else:
+            flags = set()
+            if self.layers:
+                flags.add('LAYERS')
+            if self.sheet:
+                flags.add('SHEET')
+
             with util.pause_depsgraph_updates():
-                img = bpy.data.images.new(self.name, 1, 1, alpha=True)
-                util.pack_empty_png(img)
+                if self.layers:
+                    img = bpy.data.node_groups.new(self.name, "ShaderNodeTree")
+                else:
+                    img = bpy.data.images.new(self.name, 1, 1, alpha=True)
+                    util.pack_empty_png(img)
+
                 img.sb_props.source=self.name
+                img.sb_props.sync_flags = flags
             bpy.ops.pribambase.send_texture_list()
 
         return {'FINISHED'}

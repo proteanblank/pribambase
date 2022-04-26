@@ -105,9 +105,7 @@ class Server():
         await self._ws.prepare(request)
 
         # client connected
-        lst = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images]
-        bf = addon.state.identifier
-        await self._ws.send_bytes(encode.texture_list(bf, lst), False)
+        await self._ws.send_bytes(encode.texture_list(addon.state.identifier, addon.texture_list), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
 
         if addon.prefs.uv_sync_auto:
@@ -302,9 +300,7 @@ class SB_OT_send_texture_list(bpy.types.Operator):
 
     def execute(self, context):
         if addon.connected:
-            images = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images]
-            bf = addon.state.identifier
-            msg = encode.texture_list(bf, images)
+            msg = encode.texture_list(addon.state.identifier, addon.texture_list)
             addon.server.send(msg)
 
         return {'FINISHED'}

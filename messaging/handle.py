@@ -28,6 +28,7 @@ import numpy as np
 # TODO move into local methods
 from .. import modify
 from ..addon import addon
+from .. import ase
 
 
 class Batch(Handler):
@@ -153,6 +154,51 @@ class Frame(Handler):
             modify.frame(name, frame, start, frames)
 
 
+class ImageLayers(Handler):
+    """static image with separate layers"""
+    id = "L"
+
+    def take_group(self):
+        name = self.take_str()
+        return (name,)
+    
+
+    def take_layer(self):
+        idx = self.take_uint(2)
+        blend = ase.BlendMode(self.take_uint(2))
+        opacity = self.take_uint(2)
+        group = self.take_uint(2)
+        x = self.take_sint(2)
+        y = self.take_sint(2)
+        w = self.take_uint(2)
+        h = self.take_uint(2)
+        name = self.take_str()
+        pixels = self.take_data()
+        return (idx, blend, opacity, group, x, y, w, h, name, pixels)
+
+
+    def parse(self, args):
+        args.width = self.take_uint(2)
+        args.height = self.take_uint(2)
+        args.name = self.take_str()
+        args.flags = self.take_sync_flags()
+        ngroups = self.take_uint(4)
+        nlayers = self.take_uint(4)
+        args.groups = [self.take_group() for _ in range(ngroups)]
+        args.layers = [self.take_layer() for _ in range(nlayers)]
+    
+
+    async def execute(self, width:int, height:int, name:str, flags:Set[str], groups:List[Tuple], layers:List[Tuple]):
+        try:
+            if not bpy.context.window_manager.is_interface_locked:
+                modify.image_layers(width, height, name, flags, groups, layers)
+            else:
+                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+        except AttributeError:
+            # version 2.80... caveat emptor
+            modify.image_layers(width, height, name, flags, groups, layers)
+
+
 class ChangeName(Handler):
     """Change textures' sources when aseprite saves the file under a new name"""
     id = "C"
@@ -191,16 +237,19 @@ class NewTexture(Handler):
     def parse(self, args):
         args.name = self.take_str()
         args.path = self.take_str()
+        flags = self.take_sync_flags()
+        args.sheet = 'SHEET' in flags
+        args.layers = 'LAYERS' in flags
 
-    async def execute(self, *, name:str, path:str):
+    async def execute(self, *, name:str, path:str, sheet:bool, layers:bool):
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                bpy.ops.pribambase.new_texture(name=name, path=path)
+                bpy.ops.pribambase.new_texture(name=name, path=path, sheet=sheet, layers=layers)
             else:
                 bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
-            bpy.ops.pribambase.new_texture(name=name, path=path)
+            bpy.ops.pribambase.new_texture(name=name, path=path, sheet=sheet, layers=layers)
 
 
 class ActiveSprite(Handler):

@@ -58,12 +58,14 @@ classes = (
     SB_SheetAnimation,
     SB_ObjectProperties,
     SB_ImageProperties,
+    SB_ShaderNodeTreeProperties,
     SB_ActionProperties,
     # Operators
     SB_OT_server_start,
     SB_OT_server_stop,
     SB_OT_uv_send,
     SB_OT_send_texture_list,
+    SB_OT_sprite_stub,
     SB_OT_sprite_open,
     SB_OT_sprite_new,
     SB_OT_sprite_edit,
@@ -82,6 +84,7 @@ classes = (
     SB_OT_reference_freeze_all,
     SB_OT_grid_set,
     SB_OT_update_image,
+    SB_OT_update_image_layers,
     SB_OT_update_spritesheet,
     SB_OT_update_frame,
     SB_OT_new_texture,
@@ -122,6 +125,7 @@ def register():
     bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)
     bpy.types.Action.sb_props = bpy.props.PointerProperty(type=SB_ActionProperties)
     bpy.types.Object.sb_props = bpy.props.PointerProperty(type=SB_ObjectProperties)
+    bpy.types.ShaderNodeTree.sb_props = bpy.props.PointerProperty(type=SB_ShaderNodeTreeProperties)
 
     # add menu items
     try:
@@ -218,6 +222,7 @@ def unregister():
     del bpy.types.Image.sb_props
     del bpy.types.Action.sb_props
     del bpy.types.Object.sb_props
+    del bpy.types.ShaderNodeTree.sb_props
 
     from bpy.utils import unregister_class
     for cls in reversed(classes):
@@ -290,5 +295,4 @@ def sb_on_depsgraph_update_post(scene):
         if _images_hv != hv:
             _images_hv = hv
             if addon.server_up:
-                lst = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images]
-                addon.server.send(encode.texture_list(addon.state.identifier, lst))
+                addon.server.send(encode.texture_list(addon.state.identifier, addon.texture_list))

@@ -24,14 +24,37 @@ Working with objects (mesh, material, sprites, ...)
 
 import bpy
 from bpy_extras import object_utils
-import os.path
 
-from .messaging import encode
 from .addon import addon
 from .image import SB_OT_sprite_open
 from . import util
 from . import modify
 from . import ase
+
+
+_sprite_enum_items_ref = None
+
+def _get_sprite_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _sprite_enum_items_ref
+
+    if context:
+        images = (("IMG" + img.name, img.name, "") for img in bpy.data.images if not img.sb_props.is_layer)
+        trees = (("GRP" + tree.name, tree.name, "") for tree in bpy.data.node_groups if tree.type == 'SHADER' and tree.sb_props.source)
+        _sprite_enum_items_ref = [*images, *trees] 
+    else:
+        _sprite_enum_items_ref = []
+        
+    return _sprite_enum_items_ref
+
+
+_anim_sprite_enum_items_ref = None
+
+def _get_anim_sprite_enum_items(self, context):
+    # enum items reference must be stored to avoid crashing the UI
+    global _anim_sprite_enum_items_ref
+    _sprite_enum_items_ref = [(img.name, img.name, "") for img in bpy.data.images if img.sb_props.sheet] if context else []
+    return _sprite_enum_items_ref
 
 
 # Pretty annoying but Add SPrite operator should incorporate material creation/assignment, so goo portion of material setup will live outside the operator
@@ -44,18 +67,22 @@ _material_sprite_common_props = {
     "sheet": bpy.props.BoolProperty(
         name="Animated",
         description="Use spritesheet image in the material. Use when UV animation is set up, or will be",
-        default=True),
+        default=False),
 
     "blend": bpy.props.EnumProperty(name="Blend Mode", description="Imitate blending mode for the material", items=(
         ('NORM', "Normal", "", 0),
         ('ADD', "Additive", "", 1),
         ('MUL', "Multply", "", 2)), 
-        default='NORM')}
+        default='NORM'),
+        
+    "sprite": bpy.props.EnumProperty(
+        name="Sprite",
+        description="Image to use",
+        items=_get_sprite_enum_items)}
 
 
 def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
-    img = addon.state.op_props.image_sprite
-    if img and img.sb_props.sheet:
+    if self.sprite[:3] == 'IMG' and bpy.data.images[self.sprite[3:]].sb_props.is_sheet:
         layout.prop(self, "sheet")
     layout.prop(self, "two_sided")
     layout.prop(self, "blend")
@@ -76,15 +103,14 @@ class SB_OT_material_add(bpy.types.Operator):
     sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
+    sprite: _material_sprite_common_props["sprite"]
 
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
 
-        row = layout.row()
-        row.enabled = self.invoke
-        row.prop(addon.state.op_props, "image_sprite")
+        layout.row().prop(self, "sprite")
         layout.row().prop(self, "shading", expand=True)
         _draw_material_props(self, layout)
 
@@ -97,28 +123,37 @@ class SB_OT_material_add(bpy.types.Operator):
 
     def execute(self, context):
         self.invoke = False
-        
-        img = addon.state.op_props.image_sprite
-        if not img:
-            self.report({'ERROR'}, "No image selected")
-            return {'CANCELLED'}
-        
-        if img.sb_props.sheet and self.sheet:
-            img = img.sb_props.sheet
 
-        mat = bpy.data.materials.new(addon.state.op_props.image_sprite.name)
+        img_type, img_name = self.sprite[:3], self.sprite[3:]
+
+        mat = bpy.data.materials.new(img_name)
         # create nodes
         mat.use_nodes = True
         mat.use_backface_culling = not self.two_sided
         mat.blend_method = 'CLIP'
         
         tree = mat.node_tree
+        
+        if img_type == 'IMG':
+            img = bpy.data.images[img_name]
 
-        tex = tree.nodes.new("ShaderNodeTexImage")
+            if img.sb_props.sheet and self.sheet:
+                img = img.sb_props.sheet
+
+            tex = tree.nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            tex.interpolation = 'Closest'
+            tex.extension = 'CLIP'
+
+        elif img_type == 'GRP':
+            img = bpy.data.node_groups[img_name]
+            tex = tree.nodes.new('ShaderNodeGroup')
+            tex.node_tree = img
+
+        else:
+            raise RuntimeError()
+            
         tex.location = (-500, 100)
-        tex.image = img
-        tex.interpolation = 'Closest'
-        tex.extension = 'CLIP'
 
         bsdf = tree.nodes[tree.nodes.find("Principled BSDF")]
         bsdf.location = (-200, 250)
@@ -158,7 +193,6 @@ class SB_OT_material_add(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.invoke = True
-        addon.state.op_props.image_sprite = next(i for i in bpy.data.images if not i.sb_props.is_sheet)
         return context.window_manager.invoke_props_dialog(self)
 
 
@@ -205,6 +239,11 @@ class SB_OT_plane_add(bpy.types.Operator):
             ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
         default='LIT')
     
+    layers: bpy.props.BoolProperty(
+        name="Separate Layers", 
+        description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup",
+        default=False)
+    
     ## FILE DIALOG
     from_file: bpy.props.BoolProperty("Open File", options={'HIDDEN'})
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
@@ -217,18 +256,20 @@ class SB_OT_plane_add(bpy.types.Operator):
     sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
     blend: _material_sprite_common_props["blend"]
+    sprite: _material_sprite_common_props["sprite"]
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
         
-        if not self.from_file:
-            layout.label(text="Sprite")
-            row = layout.row(align=True)
-            row.enabled = self.invoke
-            row.prop(addon.state.op_props, "image_sprite")
-            if not addon.state.op_props.image_sprite:
-                row.label(text="", icon='ERROR')
+        if self.from_file:
+            layout.label(text="Sprite:")
+            if not self.sheet:
+                layout.prop(self, "layers")
+            if not self.layers:
+                layout.prop(self, "sheet")
+        else:
+            layout.row().prop(self, "sprite")
 
         layout.prop(self, "facing")
         if self.facing in ('SPH', 'CYL'):
@@ -255,25 +296,44 @@ class SB_OT_plane_add(bpy.types.Operator):
 
         if self.from_file:
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
-                # ase files
-                # TODO should work without connection
-                SB_OT_sprite_open.execute(self, context)
-                addon.state.op_props.image_sprite = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
-                size, _ = ase.info(self.filepath)
-                addon.state.op_props.image_sprite.scale(*size)
+                (w, h), _ = ase.info(self.filepath)
+
+                if addon.connected:
+                    # open the sprite normally
+                    res = bpy.ops.pribambase.sprite_open(filepath=self.filepath, relative=self.relative, sheet=self.sheet, layers=self.layers)
+                    if 'CANCELLED' in res:
+                        return res
+                else:
+                    # make a stub and wait for the user to launch Ase
+                    bpy.ops.pribambase.sprite_stub(name=self.sprite, source=self.filepath, layers=self.layers, sheet=self.sheet)
+                    self.report({'INFO'}, "Placeholder image created. Connect aseprite and open it to retrieve image data")
+
+                if self.layers:
+                    img = next(g for g in bpy.data.node_groups if g.type == 'SHADER' and g.sb_props.source_abs == self.filepath)
+                    self.sprite = 'GRP' + img.name
+                else:
+                    img = next(i for i in bpy.data.images if i.sb_props.source_abs == self.filepath)
+                    self.sprite = 'IMG' + img.name
             else:
                 # blender supported
-                addon.state.op_props.image_sprite = bpy.data.images.load(self.filepath)
-            # TODO animation
+                img = bpy.data.images.load(self.filepath)
+                w, h = img.size
+            
+        else:
+            img_type, img_name = self.sprite[:3], self.sprite[3:]
 
-        img = addon.state.op_props.image_sprite
-        if not img:
-            self.report({'ERROR'}, "No image selected")
-            return {'CANCELLED'}
-        w,h = img.size
+            if img_type == 'IMG':
+                img = bpy.data.images[img_name]
+                w,h = img.size
+            elif img_type == 'GRP':
+                img = bpy.data.node_groups[img_name]
+                w,h = img.sb_props.size
 
         # normalize to pixel coord
-        px, py = [self.pivot[i] * img.size[i] if self.pivot_relative else self.pivot[i] for i in (0,1)]
+        px, py = self.pivot
+        if self.pivot_relative:
+            px *= w
+            py *= h
         px = w - px
 
         # start with 2d uv coords, scaled to pixels
@@ -294,7 +354,7 @@ class SB_OT_plane_add(bpy.types.Operator):
                 points.append((-u, -v, 0))
 
         mesh = bpy.data.meshes.new("Plane")
-        mesh.from_pydata( # this will be z up?
+        mesh.from_pydata(
             vertices=points,
             edges=[(0, 1),(1, 2),(2, 3),(3, 0)],
             faces=[(0, 1, 2, 3)])
@@ -302,12 +362,12 @@ class SB_OT_plane_add(bpy.types.Operator):
 
         obj = object_utils.object_data_add(context, mesh, name="Sprite")
         if self.shading != 'NONE':
-            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, blend=self.blend)
+            bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, sheet=self.sheet, blend=self.blend, sprite=self.sprite)
         
-        if img.sb_props.sheet:
-            addon.state.op_props.animated_sprite = img
-            bpy.ops.pribambase.spritesheet_rig()
+        if isinstance(img, bpy.types.Image) and img.sb_props.sheet:
+            bpy.ops.pribambase.spritesheet_rig(sprite=img.name)
 
+        # TODO remove this
         if self.facing in ('SPH', 'CYL'):
             # Face camera
             face:bpy.types.TrackToConstraint = obj.constraints.new('TRACK_TO')
@@ -325,10 +385,8 @@ class SB_OT_plane_add(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        addon.state.op_props.image_sprite = None
         addon.state.op_props.look_at = context.scene.camera
         self.scale = 1 / context.space_data.overlay.grid_scale
-        self.sheet = addon.state.op_props.image_sprite is not None and addon.state.op_props.image_sprite.sb_props.sheet is not None
         self.invoke = True
 
         if self.from_file:
@@ -364,11 +422,16 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         description="Replace the image with spritesheet in Image Texture nodes of the object's material, if there's any",
         default=True)
 
+    sprite: bpy.props.EnumProperty(
+        name="Sprite",
+        description="Sprite to use. Only sprites with animation sync are available",
+        items=_get_anim_sprite_enum_items)
+
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
-        layout.prop(addon.state.op_props, "animated_sprite")
+        layout.prop(self, "sprite")
         layout.prop(self, "uv_map")
         layout.prop(self, "update_nodes")
     
@@ -385,7 +448,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             return {'CANCELLED'}
 
         obj = context.active_object
-        img = addon.state.op_props.animated_sprite
+        img = bpy.data.images[self.sprite]
         if not img:
             self.report({'ERROR'}, "No sprite selected")
             return {'CANCELLED'}

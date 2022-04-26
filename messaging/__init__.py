@@ -92,6 +92,8 @@ class Handler:
             flags.add('SHEET')
         if bf & (1 << 1):
             flags.add('SHOW_UV')
+        if bf & (1 << 2):
+            flags.add('LAYERS')
         return flags
 
 
@@ -177,4 +179,5 @@ def add_sync_flags(ba:bytearray, flags:Set[str]):
     bits = 0
     bits |= ('SHEET' in flags) << 0
     bits |= ('SHOW_UV' in flags) << 1
+    bits |= ('LAYERS' in flags) << 2
     add_uint(ba, bits, 2)
