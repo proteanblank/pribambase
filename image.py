@@ -32,6 +32,7 @@ from . import util
 from . import layers
 from .layers import find_tree, update_color_outputs
 from .addon import addon
+from.util import image_nodata
 
 from typing import Tuple, Generator
 
@@ -384,7 +385,7 @@ class SB_OT_sprite_edit(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         return addon.connected and context.area.type == 'IMAGE_EDITOR' \
-            and context.edit_image and context.edit_image.has_data
+            and not image_nodata(context.edit_image)
 
 
     def execute(self, context):
@@ -422,7 +423,7 @@ class SB_OT_sprite_edit_copy(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         return addon.connected and context.area.type == 'IMAGE_EDITOR' \
-            and context.edit_image and context.edit_image.has_data
+            and not image_nodata(context.edit_image)
 
 
     def execute(self, context):

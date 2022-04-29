@@ -26,7 +26,7 @@ import bpy
 import numpy as np
 from typing import Collection, Tuple
 from . import util
-from .util import ModalExecuteMixin
+from .util import ModalExecuteMixin, image_nodata
 from .addon import addon
 from .layers import update_layers
 
@@ -100,7 +100,7 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
             if name == img.sb_props.sync_name:
                 prescale = img.sb_props.prescale
 
-                if not img.has_data:
+                if image_nodata(img):
                     # load *some* data so that the image can be updated
                     util.pack_empty_png(img)
 
