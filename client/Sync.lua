@@ -666,6 +666,8 @@ else
                         sprite.filename = name
                     end
                     app.command.LoadPalette{ preset="default" } -- also functions as a hack to reload tab name and window title
+                    -- first cel is created with the sprite
+                    ---@diagnostic disable-next-line: need-check-nil
                     sprite.cels[1].image.bytes = pixels
                 end)
         end
