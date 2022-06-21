@@ -32,8 +32,8 @@ elseif WebSocket == nil then
     error()
 
 elseif pribambase_dlg then
-    -- when everything's already running, only need to pop up the dialog again
-    pribambase_dlg:show{ wait = false }
+    -- already running; in this case the command should be disabled
+    error("Sync is already running")
 
 else
     -- start a websocket and change observers
@@ -58,6 +58,8 @@ else
     local handlers = {}
     -- main dialog, created later
     local dlg = nil
+    -- minimized "titlebar" is a different dialog
+    local miniDlg = nil
     -- used to track the change of active sprite
     local spr = app.activeSprite
     -- used to track saving the image under a different name
@@ -953,6 +955,39 @@ else
     end
 
 
+    local function dlgUnhide()
+        if pause_dlg_close then return end
+
+        local mb, bb = miniDlg.bounds, dlg.bounds
+        bb.x = mb.x
+        bb.y = mb.y
+        dlg.bounds = bb
+        dlg:show{ wait=false }
+
+        pause_dlg_close = true
+        miniDlg:close()
+        miniDlg = nil
+        pause_dlg_close = false
+    end
+
+
+    local function dlgHide()
+        if pause_dlg_close then return end
+        pause_dlg_close = true
+        dlg:close()
+        pause_dlg_close = false
+
+        miniDlg = Dialog{ title="Sync...", onclose=dlgUnhide }
+        local mb, bb = miniDlg.bounds, dlg.bounds
+        mb.width = 100 // app.preferences.general.ui_scale
+        mb.height = 40 // app.preferences.general.ui_scale
+        mb.x = bb.x
+        mb.y = bb.y
+        miniDlg.bounds = mb
+        miniDlg:show{ wait=false }
+    end
+
+
     -- set up a websocket
     ws = WebSocket{
         url=table.concat{"http://", settings.host, ":", settings.port},
@@ -1001,7 +1036,7 @@ else
 
     dlg:newrow()
     dlg:button{ text="X " .. "Stop", onclick=dlgClose }
-    dlg:button{ text="_ " .. "Hide", onclick=function() pause_dlg_close = true dlg:close() pause_dlg_close = false end }
+    dlg:button{ text="_ " .. "Hide", onclick=dlgHide }
 
     updateDialog()
 
