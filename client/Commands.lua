@@ -53,7 +53,6 @@ function init(plugin)
         id="SbSync",
         title="Sync",
         group="file_export",
-        onenabled=function() return pribambase_dlg == nil end,
         onclick=run_script("Sync")
     }
 
