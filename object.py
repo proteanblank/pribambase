@@ -89,7 +89,7 @@ def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
 
 class SB_OT_material_add(bpy.types.Operator):
     bl_idname = "pribambase.material_add"
-    bl_label = "Create Pixel Material"
+    bl_label = "New Pixel Material"
     bl_description = "Quick pixel material setup"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -98,6 +98,10 @@ class SB_OT_material_add(bpy.types.Operator):
             ('LIT', "Lit", "Basic material that receives lighting", 1), 
             ('SHADELESS', "Shadeless", "Emission material that works without any lighting in the scene", 2)), 
         default='LIT')
+    
+    assign: bpy.props.BoolProperty(name="Assign To Selected",
+        description="Assign created material to selected objects. Otherwise only material is created.", 
+        default=True)
 
     sheet: _material_sprite_common_props["sheet"]
     two_sided: _material_sprite_common_props["two_sided"]
@@ -112,12 +116,12 @@ class SB_OT_material_add(bpy.types.Operator):
         layout.row().prop(self, "sprite")
         layout.row().prop(self, "shading", expand=True)
         _draw_material_props(self, layout)
+        layout.row().prop(self, "assign")
 
 
     @classmethod
     def poll(cls, context):
-        return context.active_object and context.active_object.type == 'MESH' and not context.active_object.active_material \
-            and next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
+        return next((True for i in bpy.data.images if not i.sb_props.is_sheet), False)
     
 
     def execute(self, context):
@@ -186,7 +190,10 @@ class SB_OT_material_add(bpy.types.Operator):
             tree.links.new(tex.outputs["Color"], trans.inputs["Color"])
             tree.links.new(trans.outputs["BSDF"], out.inputs["Surface"])        
 
-        context.active_object.active_material = mat
+        if self.assign:
+            for obj in context.selected_objects:
+                obj.active_material = mat
+
         return {'FINISHED'}
 
 
@@ -387,6 +394,8 @@ class SB_OT_plane_add(bpy.types.Operator):
 
         obj = object_utils.object_data_add(context, mesh, name="Sprite")
         if self.shading != 'NONE':
+            bpy.ops.object.select_all(action='DESELECT')
+            obj.select_set(True)
             bpy.ops.pribambase.material_add(shading=self.shading, two_sided=self.two_sided, sheet=self.sheet, blend=self.blend, sprite=self.sprite)
         
         if isinstance(img, bpy.types.Image) and img.sb_props.sheet:

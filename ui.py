@@ -104,7 +104,7 @@ class SB_PT_edit(bpy.types.Panel):
         row.operator("pribambase.plane_add", text="Open", icon='FILE').from_file = True
         row.operator("pribambase.plane_add", text="New", icon='ADD').new_image = True
 
-        layout.operator("pribambase.material_add", icon='ADD')
+        layout.operator("pribambase.material_add", icon='MATERIAL')
         layout.operator("pribambase.grid_set", icon='GRID')
         
         row = layout.row()
