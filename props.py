@@ -41,30 +41,6 @@ def _get_identifier(self):
     return self["_identifier"]
 
 
-class SB_OpProps(bpy.types.PropertyGroup):
-    """Workaround for operators not having pointer properties. Instead, they draw this group's props"""
-
-    # used by: SB_OT_plane_add
-    look_at: bpy.props.PointerProperty(
-        name="Look At",
-        description="Object the sprite will be facing",
-        type=bpy.types.Object)
-
-    # used by: SB_OT_plane_add, SB_OT_material_add
-    image_sprite: bpy.props.PointerProperty(
-        name="Image", 
-        description="Image to use",
-        type=bpy.types.Image,
-        poll=lambda self,img:not img.sb_props.is_sheet)
-
-    # used by: SB_OT_spritesheet_rig
-    animated_sprite: bpy.props.PointerProperty(
-        name="Image", 
-        description="Animation to use",
-        type=bpy.types.Image,
-        poll=lambda self,img: bool(img.sb_props.sheet))
-
-
 class SB_State(bpy.types.PropertyGroup):
     """Pribambase file-related data"""
     identifier: bpy.props.StringProperty(
@@ -122,8 +98,6 @@ class SB_State(bpy.types.PropertyGroup):
         name="Thickness",
         description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
         default=1.0)
-
-    op_props: bpy.props.PointerProperty(type=SB_OpProps, options={'HIDDEN', 'SKIP_SAVE'})
 
 
 class SB_SheetAnimation(bpy.types.PropertyGroup):

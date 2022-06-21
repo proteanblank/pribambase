@@ -434,7 +434,6 @@ class SB_OT_plane_add(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        addon.state.op_props.look_at = context.scene.camera
         self.scale = 1 / context.space_data.overlay.grid_scale
         self.invoke = True
 

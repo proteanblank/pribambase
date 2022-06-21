@@ -51,7 +51,6 @@ bl_info = {
 
 classes = (
     # Property types
-    SB_OpProps,
     SB_State,
     SB_Preferences,
     SB_SheetAnimation,
