@@ -96,6 +96,7 @@ classes = (
     SB_PT_uv_draw,
     # Menus
     SB_MT_sprite,
+    SB_MT_mesh_add,
     SB_MT_global
 )
 
