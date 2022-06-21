@@ -684,8 +684,8 @@ class SB_MT_sprite(bpy.types.Menu):
 
 class SB_PT_sprite(bpy.types.Panel):
     bl_idname = "SB_PT_sprite"
-    bl_label = "Sprite"
-    bl_category = "Pribambase"
+    bl_label = "Pribambase"
+    bl_category = "Image"
     bl_space_type = "IMAGE_EDITOR"
     bl_region_type = "UI"
 
