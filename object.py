@@ -26,7 +26,6 @@ import bpy
 from bpy_extras import object_utils
 
 from .addon import addon
-from .image import SB_OT_sprite_open
 from . import util
 from . import modify
 from . import ase
@@ -244,6 +243,22 @@ class SB_OT_plane_add(bpy.types.Operator):
         description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup",
         default=False)
     
+    ## New Image
+    new_image: bpy.props.BoolProperty("New Image", options={'HIDDEN'})
+
+    new_sprite: bpy.props.StringProperty(
+        name="Name",
+        description="Name of the texture. It will also be displayed on the tab in Aseprite until you save the file",
+        default="Sprite")
+
+    new_size: bpy.props.IntVectorProperty(
+        name="Size",
+        description="Size of the created canvas",
+        default=(128, 128),
+        size=2,
+        min=1,
+        max=65535)
+    
     ## FILE DIALOG
     from_file: bpy.props.BoolProperty("Open File", options={'HIDDEN'})
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
@@ -262,7 +277,11 @@ class SB_OT_plane_add(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
         
-        if self.from_file:
+        if self.new_image:
+            layout.prop(self, "new_sprite")
+            layout.prop(self, "new_size")
+            layout.prop(self, "new_mode")
+        elif self.from_file:
             layout.label(text="Sprite:")
             if not self.sheet:
                 layout.prop(self, "layers")
@@ -294,7 +313,13 @@ class SB_OT_plane_add(bpy.types.Operator):
     def execute(self, context):
         self.invoke = False
 
-        if self.from_file:
+        if self.new_image:
+            with util.pause_depsgraph_updates():
+                w, h = self.new_size
+                img = bpy.data.images.new(self.sprite, w, h, alpha=True)
+                util.pack_empty_png(img)
+
+        elif self.from_file:
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
                 (w, h), _ = ase.info(self.filepath)
 

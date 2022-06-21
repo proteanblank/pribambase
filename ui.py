@@ -100,8 +100,9 @@ class SB_PT_edit(bpy.types.Panel):
 
         row = layout.row(align=True)
         row.label(text="As Plane")
-        row.operator("pribambase.plane_add", text="Sprite", icon='FILE_IMAGE').from_file = False
+        row.operator("pribambase.plane_add", text="Image", icon='FILE_IMAGE').from_file = False
         row.operator("pribambase.plane_add", text="Open", icon='FILE').from_file = True
+        row.operator("pribambase.plane_add", text="New", icon='ADD').new_image = True
 
         layout.operator("pribambase.material_add", icon='ADD')
         layout.operator("pribambase.grid_set", icon='GRID')
