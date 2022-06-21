@@ -130,13 +130,7 @@ class SB_MT_global(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator("pribambase.grid_set")
-        layout.separator()
         layout.operator("pribambase.sprite_reload_all")
-        layout.separator()
-        layout.operator("pribambase.reference_reload_all")
-        layout.operator("pribambase.reference_freeze_all").invert = False
-        layout.operator("pribambase.reference_freeze_all", text="Unlock All References").invert = True
-        layout.separator()
         layout.operator("pribambase.preferences", icon='PREFERENCES')
 
 

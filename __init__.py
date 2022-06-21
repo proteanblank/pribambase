@@ -34,7 +34,6 @@ from .image import *
 from .ui import *
 from .object import *
 from .animation import *
-from .reference import *
 from .modify import *
 from .util import *
 from .addon import addon
@@ -76,12 +75,6 @@ classes = (
     SB_OT_material_add,
     SB_OT_plane_add,
     SB_OT_sprite_reload_all,
-    SB_OT_reference_add,
-    SB_OT_reference_replace,
-    SB_OT_reference_rescale,
-    SB_OT_reference_reload,
-    SB_OT_reference_reload_all,
-    SB_OT_reference_freeze_all,
     SB_OT_grid_set,
     SB_OT_update_image,
     SB_OT_update_image_layers,
@@ -100,7 +93,6 @@ classes = (
     SB_PT_link,
     SB_PT_animation,
     SB_PT_sprite,
-    SB_PT_reference,
     SB_PT_uv_draw,
     # Menus
     SB_MT_sprite,
@@ -134,7 +126,6 @@ def register():
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.append(SB_MT_sprite.header_draw)
 
-    bpy.types.VIEW3D_MT_image_add.append(menu_reference_add)
     bpy.types.VIEW3D_MT_mesh_add.append(menu_mesh_add)
 
     # hotkeys
@@ -150,17 +141,8 @@ def register():
         key(km_screen, "pribambase.action_preview_set")
         key(km_screen, "pribambase.action_preview_clear")
         key(km_screen, "pribambase.sprite_reload_all")
-        key(km_screen, "pribambase.reference_reload_all")
-        key(km_screen, "pribambase.reference_freeze_all")
-        kmi = km_screen.keymap_items.new(idname="pribambase.reference_freeze_all", type='NONE', value='PRESS') # register again but now inverted
-        kmi.properties["invert"] = True
-        addon_keymaps.append((km_screen, kmi))
 
         km_v3d = kcfg.keymaps.new(name="3D View", space_type='VIEW_3D')
-        key(km_v3d, "pribambase.reference_add")
-        key(km_v3d, "pribambase.reference_reload")
-        key(km_v3d, "pribambase.reference_rescale")
-        key(km_v3d, "pribambase.reference_replace")
         key(km_v3d, "pribambase.plane_add")
         key(km_v3d, "pribambase.material_add")
         key(km_v3d, "pribambase.spritesheet_rig")
@@ -210,7 +192,6 @@ def unregister():
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.remove(SB_MT_sprite.header_draw)
 
-    bpy.types.VIEW3D_MT_image_add.remove(menu_reference_add)
     bpy.types.VIEW3D_MT_mesh_add.remove(menu_mesh_add)
 
     global addon_keymaps
@@ -257,8 +238,6 @@ def sb_on_load_post(scene):
 
     global _images_hv
     _images_hv = hash(frozenset(img.sb_props.sync_name for img in bpy.data.images))
-
-    bpy.ops.pribambase.reference_reload_all()
 
     # these settings aren't supposed to persist but 'SKIP_SAVE' flag didn't do anyhitng so let's clear them manually if needed
     if addon.state.action_preview_enabled:
