@@ -930,7 +930,7 @@ else
         end
         
         local s = spr.filename
-        if syncList[sf] & BIT_SYNC_LAYERS then
+        if syncList[sf] & BIT_SYNC_LAYERS ~= 0 then
             sendImageLayers(s)
         else
             -- sync non-spritesheet image for spritesheets
