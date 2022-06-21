@@ -25,11 +25,12 @@ Connection panel and general stuff.
 import bpy
 
 from .addon import addon
+from .image import SB_OT_sprite_reload_all
 
 
 class SB_OT_grid_set(bpy.types.Operator):
     bl_idname = "pribambase.grid_set"
-    bl_label = "Set Pixel Grid"
+    bl_label = "Pixel Grid"
     bl_description = "Set grid step in every viewport"
     
 
@@ -63,10 +64,11 @@ class SB_OT_grid_set(bpy.types.Operator):
 
 class SB_PT_uv_draw(bpy.types.Panel):
     bl_idname = "SB_PT_uv_draw"
-    bl_label = "UV Properties"
+    bl_label = "UV Style"
+    bl_category = "Pribambase"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_option = {'INSTANCED'}
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, ctx):
         layout = self.layout
@@ -85,11 +87,35 @@ class SB_PT_uv_draw(bpy.types.Panel):
         layout.prop(addon.state, "uv_weight")
 
 
+class SB_PT_edit(bpy.types.Panel):
+    bl_idname = "SB_PT_edittil"
+    bl_label = "Edit"
+    bl_category = "Pribambase"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row(align=True)
+        row.label(text="As Plane")
+        row.operator("pribambase.plane_add", text="Sprite", icon='FILE_IMAGE').from_file = False
+        row.operator("pribambase.plane_add", text="Open", icon='FILE').from_file = True
+
+        layout.operator("pribambase.material_add", icon='ADD')
+        layout.operator("pribambase.grid_set", icon='GRID')
+        
+        row = layout.row()
+        row.operator("pribambase.sprite_reload_all", icon='FILE_REFRESH')
+        if not SB_OT_sprite_reload_all.poll(context):
+            row.label(text="", icon='UNLINKED')
+
 
 class SB_PT_link(bpy.types.Panel):
     bl_idname = "SB_PT_link"
     bl_label = "Sync"
-    bl_category = "Tool"
+    bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -118,19 +144,4 @@ class SB_PT_link(bpy.types.Panel):
             row.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
             row.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
-        row.menu("SB_MT_global", icon='DOWNARROW_HLT', text="")
-
-        layout.popover("SB_PT_uv_draw")
-
-
-class SB_MT_global(bpy.types.Menu):
-    bl_label = "Pribambase"
-    bl_idname = "SB_MT_global"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.operator("pribambase.grid_set")
-        layout.operator("pribambase.sprite_reload_all")
-        layout.operator("pribambase.preferences", icon='PREFERENCES')
-
-
+        row.operator("pribambase.preferences", icon='PREFERENCES', text="")

@@ -91,13 +91,12 @@ classes = (
     SB_UL_animations,
     # Panels
     SB_PT_link,
+    SB_PT_edit,
+    SB_PT_uv_draw,
     SB_PT_animation,
     SB_PT_sprite,
-    SB_PT_uv_draw,
     # Menus
-    SB_MT_sprite,
-    SB_MT_mesh_add,
-    SB_MT_global
+    SB_MT_sprite
 )
 
 
@@ -126,8 +125,6 @@ def register():
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.append(SB_MT_sprite.header_draw)
-
-    bpy.types.VIEW3D_MT_mesh_add.append(menu_mesh_add)
 
     # hotkeys
     try:
@@ -192,8 +189,6 @@ def unregister():
     except AttributeError:
         editor_menus = bpy.types.MASK_MT_editor_menus
     editor_menus.remove(SB_MT_sprite.header_draw)
-
-    bpy.types.VIEW3D_MT_mesh_add.remove(menu_mesh_add)
 
     global addon_keymaps
     for km,item in addon_keymaps:

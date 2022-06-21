@@ -118,28 +118,18 @@ class SB_UL_animations(bpy.types.UIList):
 
 class SB_PT_animation(bpy.types.Panel):
     bl_idname = "SB_PT_animation"
-    bl_label = "Sprite"
-    bl_category = "Item"
+    bl_label = "Animation"
+    bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 476
-
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object and context.active_object.type == 'MESH'
 
 
     def draw(self, context):        
+        layout = self.layout
+
         if context.active_object and context.active_object.type == 'MESH':
-            layout = self.layout
             obj = context.active_object
             
-            if not obj.active_material:
-                layout.row().operator("pribambase.material_add", icon='ADD')
-
-            layout.row().label(text="Animation:")
-
             # Info
             row = layout.row()
             row.alignment = 'CENTER'
@@ -183,3 +173,6 @@ class SB_PT_animation(bpy.types.Panel):
                 row.operator("pribambase.action_preview_clear", icon='PREVIEW_RANGE', text="", depress=True)
             else:
                 row.operator("pribambase.action_preview_set", icon='PREVIEW_RANGE', text="")
+
+        else:
+            layout.label(text="Mesh object only")

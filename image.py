@@ -642,7 +642,7 @@ class SB_OT_sprite_make_animated(bpy.types.Operator):
 
 class SB_OT_sprite_reload_all(bpy.types.Operator):
     bl_idname = "pribambase.sprite_reload_all"
-    bl_label = "Reload All Sprites"
+    bl_label = "Reload Sprites"
     bl_description = "Update data for all sprite textures from their original files"
     bl_options = {'UNDO'}
 
@@ -685,13 +685,15 @@ class SB_MT_sprite(bpy.types.Menu):
 class SB_PT_sprite(bpy.types.Panel):
     bl_idname = "SB_PT_sprite"
     bl_label = "Sprite"
-    bl_category = "Image"
+    bl_category = "Pribambase"
     bl_space_type = "IMAGE_EDITOR"
     bl_region_type = "UI"
+
 
     @classmethod
     def poll(cls, context):
         return context.edit_image is not None
+
 
     def draw(self, context):
         layout = self.layout

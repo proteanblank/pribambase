@@ -577,24 +577,3 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
         obj.sb_props.animations_remove(anim)
 
         return {'FINISHED'}
-
-
-class SB_MT_mesh_add(bpy.types.Menu):
-    bl_label = "Pribambase"
-    bl_idname = "SB_MT_mesh_add"
-
-    def draw(self, context):
-        layout = self.layout
-        connected = addon.connected
-
-        if not connected:
-            layout.operator("pribambase.server_start", icon="ERROR")
-            layout.separator()
-
-        layout.operator("pribambase.plane_add", text="Sprite As Plane", icon='FILE_IMAGE').from_file = False
-        layout.operator("pribambase.plane_add", text="Sprite As Plane (File)", icon='FILE').from_file=True
-
-
-def menu_mesh_add(self, context):
-    # deceiptively, self is not the menu here but the header
-    self.layout.menu("SB_MT_mesh_add", icon='ALIASED')
