@@ -234,9 +234,19 @@ class SB_OT_plane_add(bpy.types.Operator):
             ('XPOS', "Right", "Positive X axis"),
             ('ZPOS', "Top", "Positive Z axis"),
             ('ZNEG', "Bottom", "Negative Z axis"),
-            ('SPH', "Camera", "Face the selected object, usually camera, from any angle (AKA spherical billboard)"),
-            ('CYL', "Camera XY", "Face the selected object by rotating around Z axis only (AKA cylindrical billboard)")),
+            ('SPH', "Look At", "Face the chosen object, usually camera, from any angle (spherical billboard)"),
+            ('CYL', "Look At XY", "Face the chosen object by rotating around Z axis only (cylindrical billboard)")),
         default='YNEG')
+
+    look_at: bpy.props.EnumProperty(
+        name="Look At",
+        description="Object that the billboard will be facing",
+        items=(
+            ('CAMERA', "Active Camera", "Current active camera"),
+            ('ACTIVE', "Active Object", "Current active object"),
+            ('NONE', "None", "Leave target unspecified")),
+        default='CAMERA'
+    )
 
     shading: bpy.props.EnumProperty(name="Shading", description="Material",
         items=(
@@ -301,7 +311,7 @@ class SB_OT_plane_add(bpy.types.Operator):
         if self.facing in ('SPH', 'CYL'):
             row = layout.row()
             row.enabled = self.invoke
-            row.prop(addon.state.op_props, "look_at")
+            row.prop(self, "look_at")
         layout.prop(self, "scale")
         layout.prop(self, "pivot")
         layout.prop(self, "pivot_relative", text="Relative")
@@ -378,9 +388,9 @@ class SB_OT_plane_add(bpy.types.Operator):
             # now add third coord
             if self.facing in ('XPOS', 'XNEG'):
                 points.append((0, u, v))
-            elif self.facing in ('YPOS', 'YNEG', 'SPH', 'CYL'):
+            elif self.facing in ('YPOS', 'YNEG'):
                 points.append((u, 0, v))
-            elif self.facing == 'ZPOS':
+            elif self.facing in ('ZPOS', 'SPH', 'CYL'):
                 points.append((u, v, 0))
             elif self.facing == 'ZNEG':
                 points.append((-u, -v, 0))
@@ -404,10 +414,15 @@ class SB_OT_plane_add(bpy.types.Operator):
         # TODO remove this
         if self.facing in ('SPH', 'CYL'):
             # Face camera
-            face:bpy.types.TrackToConstraint = obj.constraints.new('TRACK_TO')
-            face.track_axis = 'TRACK_NEGATIVE_Y'
-            face.up_axis = 'UP_Z'
-            face.target = addon.state.op_props.look_at
+            face:bpy.types.CopyRotationConstraint = obj.constraints.new('COPY_ROTATION')
+            if self.facing == 'CYL':
+                face.use_x = False
+                face.use_y = False
+
+            if self.look_at == 'CAMERA':
+                face.target = context.scene.camera
+            elif self.look_at == 'ACTIVE':
+                face.targe = context.active_object
 
             if self.facing == 'CYL':
                 # For cylindric, also constrain rotation
