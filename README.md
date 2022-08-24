@@ -5,9 +5,9 @@ Pribambase is a small tool that connects Aseprite and Blender, to allow painting
 Currently, the addon has mostly one-way workflow where you paint in Ase and not much in Blender. Better bidirectional workflow ~~is quite a task tell ya what~~ is planned in future versions.
 
 * [Download](https://lampysprites.itch.io/pribambase) packaged version for your platform.
-* [How Do I...](https://github.com/lampysprites/pribambase/wiki/How-Do-I...) has some advice.
+* [How Do I...](https://github.com/lampysprites/pribambase/wiki/How-Do-I...) tutorials and advice.
 * [Reference](https://github.com/lampysprites/pribambase/wiki/Reference) explains each button and setting.
-* [Discord](http://discord.gg/Zd3VF69x8Z) or [Itchio forum](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
+* [Itchio forum](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
 * [Issue tracker](https://github.com/lampysprites/pribambase/issues) for bug reports and feature requests. Kindly don't submit non-technical help requests.
 
 
