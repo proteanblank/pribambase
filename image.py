@@ -485,7 +485,7 @@ class SB_OT_sprite_purge(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if not context.edit_image:
+        if bpy.types.Context.mode != 'PAINT_TEXTURE' or not context.edit_image:
             return False
         props = context.edit_image.sb_props
         return props.is_sheet or props.sheet or props.is_layer
