@@ -149,33 +149,6 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         set=_set_animation_tag)
 
 
-    def animation_intact(self):
-        """Check that none of the rig pieces were removed (usually, by the user)"""
-        try:
-            obj = self.id_data
-            mod_datapath = f'modifiers["UV Frame (Pribambase)"].offset'
-            
-            # two driver curves
-            assert len([True for driver in obj.animation_data.drivers if driver.data_path == mod_datapath]) >= 2
-
-            # custom property
-            assert "pribambase_frame" in obj
-            try:
-                # seems like in 3.0+ this part is managed automatically, and we just asserted the property
-                # so this just checks if fallback is needed
-                obj.id_properties_ui("pribambase_frame")
-            except AttributeError:
-                # v2.[8/9]x, there's no manager so need to check with available methods
-                assert "_RNA_UI" in obj
-                assert "pribambase_frame" in obj["_RNA_UI"]
-
-            # modifier
-            assert "UV Frame (Pribambase)" in obj.modifiers
-        except AssertionError:
-            return False
-        return True
-
-
 class SB_ImageProperties(bpy.types.PropertyGroup):
     """Pribambase image-related data"""
 
