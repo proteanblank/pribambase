@@ -99,6 +99,14 @@ class SB_State(bpy.types.PropertyGroup):
         description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
         default=1.0)
 
+    # stub to show in the animation panel instead of the object property when it's absent
+    frame_stub: bpy.props.IntProperty(
+        name="Frame",
+        description="Animation frame, uses the same numbering as timeline in Aseprite",
+        default=0,
+        min=0,
+        max=0)
+
 
 _enum_tag_action_items = []
 def _enum_tag_actions(self, context):

@@ -127,19 +127,27 @@ class SB_PT_animation(bpy.types.Panel):
             if next((False for img in bpy.data.images if img.sb_props.sheet), True):
                 row.label(text="No synced sprites have animations", icon='INFO')
 
-            row = layout.row(align=True)
-            row.operator("pribambase.spritesheet_rig", icon='ADD', text="Set Up")
-            row.operator("pribambase.spritesheet_unrig", icon='REMOVE', text="Remove")
-
+            row = layout.row()
             if obj.sb_props.animation:
+                row.label(text=obj.sb_props.animation.name, icon='IMAGE_DATA')
+                row.operator("pribambase.spritesheet_unrig", icon='TRASH', text="Delete")
+
                 if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset'), False):
-                    layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
+                    layout.row().label(text="Driver not found", icon='ERROR')
                 elif "UV Frame (Pribambase)" not in obj.modifiers:
-                    layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
+                    layout.row().label(text="UVWarp not found", icon='ERROR')
                 elif "pribambase_frame" not in obj:
-                    layout.row().label(text="Object property was removed or renamed", icon='ERROR')
-                else:
-                    layout.row().prop(obj, f'["pribambase_frame"]', text="Frame", expand=False)
+                    layout.row().label(text="Property not found", icon='ERROR')
+            else:
+                row.label(text="None", icon='IMAGE_DATA')
+                row.operator("pribambase.spritesheet_rig", icon='ADD', text="Set Up")
+
+            row = layout.row()
+            row.enabled = bool("pribambase_frame" in obj and obj.sb_props.animation)
+            if "pribambase_frame" in obj:
+                row.prop(obj, f'["pribambase_frame"]', text="Frame")
+            else:
+                row.prop(addon.state, "frame_stub", text="Frame")
 
             row = layout.row(align=True)
             row.enabled = bool(obj.animation_data)
