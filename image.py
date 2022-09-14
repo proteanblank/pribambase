@@ -510,32 +510,29 @@ class SB_OT_sprite_purge(bpy.types.Operator):
         
         if self.remove_anim:
             for obj in bpy.data.objects:
-                for anim in obj.sb_props.animations:
-                    if anim.image == self.img:
-                        prop_name = anim.prop_name
+                if obj.sb_props.animation == self.img:
+                    # modifier
+                    if obj.animation_data:
+                        for driver in obj.animation_data.drivers:
+                            if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset':
+                                obj.animation_data.drivers.remove(driver)
 
-                        # modifier
-                        if obj.animation_data:
-                            for driver in obj.animation_data.drivers:
-                                if driver.data_path == f'modifiers["{prop_name}"].offset':
-                                    obj.animation_data.drivers.remove(driver)
+                    if "UV Frame (Pribambase)" in obj.modifiers:
+                        obj.modifiers.remove(obj.modifiers["UV Frame (Pribambase)"])
 
-                        if prop_name in obj.modifiers:
-                            obj.modifiers.remove(obj.modifiers[prop_name])
+                    # custom property
+                    try:
+                        # 3.0+
+                        obj.id_properties_ui("pribambase_frame").clear()
+                    except AttributeError:
+                        # 2.[8/9]x
+                        if "_RNA_UI" in obj and "pribambase_frame" in obj["_RNA_UI"]:
+                            del obj["_RNA_UI"]["pribambase_frame"]
 
-                        # custom property
-                        try:
-                            # 3.0+
-                            obj.id_properties_ui(prop_name).clear()
-                        except AttributeError:
-                            # 2.[8/9]x
-                            if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
-                                del obj["_RNA_UI"][prop_name]
+                    if "pribambase_frame" in obj:
+                        del obj["pribambase_frame"]
 
-                        if prop_name in obj:
-                            del obj[prop_name]
-
-                        obj.sb_props.animations_remove(anim)
+                    obj.sb_props.animation_remove()
 
 
         if self.remove_actions:

@@ -487,7 +487,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     def poll(self, context):
         # need a mesh to store modifiers these days
         return context.active_object and context.active_object.type == 'MESH' and context.active_object.select_get() \
-                and next((img for img in bpy.data.images if img.sb_props.sheet), False) and not context.active_object.sb_props.animations
+                and next((img for img in bpy.data.images if img.sb_props.sheet), False) and not context.active_object.sb_props.animation
 
 
     def execute(self, context):
@@ -502,40 +502,31 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             return {'CANCELLED'}
         start = img.sb_props.sheet.sb_props.sheet_start
 
-        # Uniqualize the name in case there's already one from the same sprite
-        default_prop = f"Frame {img.name}" # this is the name that generated actions use by default
-        prop_name = util.unique_name(default_prop, obj)
-        prop_path = f'["{prop_name}"]'
-
-        if prop_name != default_prop:
-            self.report({'WARNING'}, "Several animations of this object use the same sprite. Change FCurves' channel to the object property with the name of the desired modifier")
-
-        anim = obj.sb_props.animations_new(util.unique_name("FrameAnim", obj.sb_props.animations))
-        anim.image = img
-        anim.prop_name = prop_name
+        prop_path = f'["pribambase_frame"]'
+        obj.sb_props.animation = img
 
         # custom property
-        if prop_name not in obj:
-            obj[prop_name] = start
+        if "pribambase_frame" not in obj:
+            obj["pribambase_frame"] = start
 
         try:
             # 3.0
-            obj.id_properties_ui(prop_name).update(description="Animation frame, uses the same numbering as timeline in Aseprite")
+            obj.id_properties_ui("pribambase_frame").update(description="Animation frame, uses the same numbering as timeline in Aseprite")
         except AttributeError:
             # 2.[8/9]x
             if "_RNA_UI" not in obj:
                 obj["_RNA_UI"] = {}
-            obj["_RNA_UI"][prop_name] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite"}
+            obj["_RNA_UI"]["pribambase_frame"] = { "description": "Animation frame, uses the same numbering as timeline in Aseprite"}
 
         # modifier
-        if prop_name not in obj.modifiers:
-            obj.modifiers.new(prop_name, "UV_WARP")
+        if "UV Frame (Pribambase)" not in obj.modifiers:
+            obj.modifiers.new("UV Frame (Pribambase)", "UV_WARP")
         
-        uvwarp = obj.modifiers[prop_name]
+        uvwarp = obj.modifiers["UV Frame (Pribambase)"]
         uvwarp.uv_layer = "" if self.uv_map == "__none__" else self.uv_map
         uvwarp.center = (0.0, 1.0)
         
-        modify.sheet_animation(anim)
+        modify.sheet_animation(obj, obj.sb_props.animation)
 
         # revive the curves if needed
         if obj.animation_data and obj.animation_data.action:
@@ -570,7 +561,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
     def invoke(self, context, event):
         if not next((True for img in bpy.data.images if img.sb_props.sheet), False):
-            self.report({'ERROR'}, "No animations in the current blendfile")
+            self.report({'ERROR'}, "No animated sprites in the current blendfile")
             return {'CANCELLED'}
 
         if not context.active_object.data.uv_layers:
@@ -589,38 +580,35 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
     @classmethod 
     def poll(self, context):
         try:
-            context.active_object.sb_props.animations[0]
-            return context.active_object.select_get() and context.active_object.sb_props.animations
+            return context.active_object.select_get() and context.active_object.sb_props.animation
         except (AttributeError, IndexError):
             return False
     
     def execute(self, context):
         obj = context.active_object
-        anim = obj.sb_props.animations[0]
-        prop_name = anim.prop_name
 
         # drivers
         for driver in obj.animation_data.drivers:
-            if driver.data_path == f'modifiers["{prop_name}"].offset':
+            if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset':
                 obj.animation_data.drivers.remove(driver)
 
         # custom property
         try:
             # 3.0+
-            obj.id_properties_ui(prop_name).clear()
+            obj.id_properties_ui("pribambase_frame").clear()
         except AttributeError:
             # 2.[8/9]x
-            if "_RNA_UI" in obj and prop_name in obj["_RNA_UI"]:
-                del obj["_RNA_UI"][prop_name]
+            if "_RNA_UI" in obj and "pribambase_frame" in obj["_RNA_UI"]:
+                del obj["_RNA_UI"]["pribambase_frame"]
 
-        if prop_name in obj:
-            del obj[prop_name]
+        if "pribambase_frame" in obj:
+            del obj["pribambase_frame"]
 
         # modifier
-        if prop_name in obj.modifiers:
-            obj.modifiers.remove(obj.modifiers[prop_name])
+        if "UV Frame (Pribambase)" in obj.modifiers:
+            obj.modifiers.remove(obj.modifiers["UV Frame (Pribambase)"])
         
         # animation
-        obj.sb_props.animations_remove(anim)
+        obj.sb_props.animation = None
 
         return {'FINISHED'}

@@ -100,62 +100,19 @@ class SB_State(bpy.types.PropertyGroup):
         default=1.0)
 
 
-class SB_SheetAnimation(bpy.types.PropertyGroup):
-    """Pribambase spritesheet animation. Use `object.sb_props.animation_new` to create them with unique names (adds .001 etc)"""
-    # use anim.name for an identifier
-    # use anim.id_data to get the animated object
-
-    image: bpy.props.PointerProperty(
-        name="Sprite",
-        description="Image for the sprite the animation came from",
-        type=bpy.types.Image)
-    
-    prop_name: bpy.props.StringProperty(
-        name="Prop Name",
-        description="Name of the object property for the frame")
-
-    def is_intact(self):
-        """Check that none of the rig pieces were removed (usually, by the user)"""
-        try:
-            prop_name = self.prop_name
-            obj = self.id_data
-            mod_datapath = f'modifiers["{prop_name}"].offset'
-            
-            # two driver curves
-            assert len([True for driver in obj.animation_data.drivers if driver.data_path == mod_datapath]) >= 2
-
-            # custom property
-            assert prop_name in obj
-            try:
-                # seems like in 3.0+ this part is managed automatically, and we just asserted the property
-                # so this just checks if fallback is needed
-                obj.id_properties_ui(prop_name)
-            except AttributeError:
-                # v2.[8/9]x, there's no manager so need to check with available methods
-                assert "_RNA_UI" in obj
-                assert prop_name in obj["_RNA_UI"]
-
-            # modifier
-            assert prop_name in obj.modifiers
-        except AssertionError:
-            return False
-        return True
-
-
 _enum_tag_action_items = []
 def _enum_tag_actions(self, context):
     global _enum_tag_action_items
     if not context:
         return []
     obj = context.active_object
-    anim_sprite = obj.sb_props.animations[0].image if obj.sb_props.animations else None
     # TODO icons?
     # tag actions
     idx = 0
     actions = [("__none__", "", "", 'BLANK1', idx)] # empty list item
     for a in bpy.data.actions:
         idx += 1
-        if a.sb_props.sprite == anim_sprite:
+        if a.sb_props.sprite == obj.sb_props.animation:
             if a.sb_props.tag == "__loop__":
                 actions.append((a.name, "*Loop*", "Playback section in Aseprite", 'SEQUENCE', idx))
             elif a.sb_props.tag == "__view__":
@@ -164,7 +121,7 @@ def _enum_tag_actions(self, context):
                 actions.append((a.name, a.sb_props.tag, "Tag Action", 'KEYFRAME', idx))
     # add current action
     if context.active_object.animation_data and context.active_object.animation_data.action and \
-            context.active_object.animation_data.action.sb_props.sprite != anim_sprite:
+            context.active_object.animation_data.action.sb_props.sprite != obj.sb_props.animation:
         a = context.active_object.animation_data.action
         actions.insert(1, (a.name, a.name, "Current non-sprite action of this object", 'ACTION', idx))
     _enum_tag_action_items = actions
@@ -176,10 +133,10 @@ def _set_animation_tag(self, val):
 
 
 class SB_ObjectProperties(bpy.types.PropertyGroup):
-    animations: bpy.props.CollectionProperty(
-        name="Animations",
-        description="DEPRECATED: now returns the first object animation",
-        type=SB_SheetAnimation,
+    animation: bpy.props.PointerProperty(
+        name="Animation",
+        description="Image used for UV animation. The image stores the data. Can be None",
+        type=bpy.types.Image,
         options={'HIDDEN'})
     
     animation_tag_setter: bpy.props.EnumProperty(
@@ -192,16 +149,31 @@ class SB_ObjectProperties(bpy.types.PropertyGroup):
         set=_set_animation_tag)
 
 
-    def animations_new(self, name:str) -> SB_SheetAnimation:
-        item = self.animations.add()
-        item.name = util.unique_name(name, self.animations)
-        return item
+    def animation_intact(self):
+        """Check that none of the rig pieces were removed (usually, by the user)"""
+        try:
+            obj = self.id_data
+            mod_datapath = f'modifiers["UV Frame (Pribambase)"].offset'
+            
+            # two driver curves
+            assert len([True for driver in obj.animation_data.drivers if driver.data_path == mod_datapath]) >= 2
 
+            # custom property
+            assert "pribambase_frame" in obj
+            try:
+                # seems like in 3.0+ this part is managed automatically, and we just asserted the property
+                # so this just checks if fallback is needed
+                obj.id_properties_ui("pribambase_frame")
+            except AttributeError:
+                # v2.[8/9]x, there's no manager so need to check with available methods
+                assert "_RNA_UI" in obj
+                assert "pribambase_frame" in obj["_RNA_UI"]
 
-    def animations_remove(self, item):
-        idx = self.animations.find(item.name)
-        assert idx > -1, "Item not in the collection"
-        self.animations.remove(idx)
+            # modifier
+            assert "UV Frame (Pribambase)" in obj.modifiers
+        except AssertionError:
+            return False
+        return True
 
 
 class SB_ImageProperties(bpy.types.PropertyGroup):

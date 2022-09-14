@@ -53,7 +53,6 @@ classes = (
     # Property types
     SB_State,
     SB_Preferences,
-    SB_SheetAnimation,
     SB_ObjectProperties,
     SB_ImageProperties,
     SB_ShaderNodeTreeProperties,

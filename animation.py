@@ -131,24 +131,21 @@ class SB_PT_animation(bpy.types.Panel):
             row.operator("pribambase.spritesheet_rig", icon='ADD', text="Set Up")
             row.operator("pribambase.spritesheet_unrig", icon='REMOVE', text="Remove")
 
-            if obj.sb_props.animations:
-                anim = obj.sb_props.animations[0]
-                prop_name = anim.prop_name
-
-                if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
+            if obj.sb_props.animation:
+                if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset'), False):
                     layout.row().label(text="Driver(s) were removed or renamed", icon='ERROR')
-                elif prop_name not in obj.modifiers:
+                elif "UV Frame (Pribambase)" not in obj.modifiers:
                     layout.row().label(text="UVWarp modifier was removed or renamed", icon='ERROR')
-                elif prop_name not in obj:
+                elif "pribambase_frame" not in obj:
                     layout.row().label(text="Object property was removed or renamed", icon='ERROR')
                 else:
-                    layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
+                    layout.row().prop(obj, f'["pribambase_frame"]', text="Frame", expand=False)
 
             row = layout.row(align=True)
             row.enabled = bool(obj.animation_data)
 
             sub = row.column()
-            sub.enabled = bool(obj.sb_props.animations)
+            sub.enabled = bool(obj.sb_props.animation)
             sub.prop(obj.sb_props, "animation_tag_setter", text="Tag", text_ctxt="ase")
             
             if addon.state.action_preview_enabled:

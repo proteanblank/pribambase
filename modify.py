@@ -196,14 +196,12 @@ class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
         return ModalExecuteMixin.execute(self, context)
 
 
-def sheet_animation(anim):
-    obj = anim.id_data
-    prop_name = anim.prop_name
-    img = anim.image
+def sheet_animation(obj, img):
+    assert img
 
-    if prop_name not in obj.modifiers or prop_name not in obj:
+    if "UV Frame (Pribambase)" not in obj.modifiers or "pribambase_frame" not in obj:
         # it's strange if either is removed manually, to be safe let's assume the user no longer wants that animation
-        obj.sb_props.animations_remove(anim)
+        obj.sb_props.animation = None
 
     elif img.sb_props.sheet:
         sheet = img.sb_props.sheet
@@ -211,24 +209,24 @@ def sheet_animation(anim):
         start,nframes = sheet.sb_props.sheet_start, sheet.sb_props.animation_length
         try:
             # version 3.0 and onwards
-            obj.id_properties_ui(prop_name).update(min=start, soft_min=start, max=start + nframes - 1, soft_max=start + nframes - 1)
+            obj.id_properties_ui("pribambase_frame").update(min=start, soft_min=start, max=start + nframes - 1, soft_max=start + nframes - 1)
         except AttributeError:
             # 2.8x and 2.9x
-            rna_ui = obj["_RNA_UI"][prop_name]
+            rna_ui = obj["_RNA_UI"]["pribambase_frame"]
             rna_ui["min"] = rna_ui["soft_min"] = start
             rna_ui["max"] = rna_ui["soft_max"] = start + nframes - 1
-        obj[prop_name] = max(start, min(obj[prop_name], start + nframes - 1))
+        obj["pribambase_frame"] = max(start, min(obj["pribambase_frame"], start + nframes - 1))
 
         w,h = sheet.sb_props.sheet_size
         iw, ih = img.size
-        uvwarp = obj.modifiers[prop_name]
+        uvwarp = obj.modifiers["UV Frame (Pribambase)"]
         uvwarp.scale = (iw/sheet.size[0], ih/sheet.size[1])
 
         if obj.animation_data is None:
             obj.animation_data_create()
         else:
             for driver in obj.animation_data.drivers:
-                if driver.data_path == f'modifiers["{prop_name}"].offset':
+                if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset':
                     obj.animation_data.drivers.remove(driver)
 
         dx, dy = curves = uvwarp.driver_add("offset")
@@ -253,7 +251,7 @@ def sheet_animation(anim):
             tgt = fv.targets[0]
             tgt.id_type = 'OBJECT'
             tgt.id = obj
-            tgt.data_path = f'["{prop_name}"]'
+            tgt.data_path = f'["pribambase_frame"]'
 
             curve.update()
 
@@ -261,7 +259,7 @@ def sheet_animation(anim):
 def _update_action_range(scene):
     # change nla strip action start/end
     for obj in bpy.data.objects:
-        if obj.sb_props.animations and obj.animation_data:
+        if obj.sb_props.animation and obj.animation_data:
             for track in obj.animation_data.nla_tracks:
                 for strip in track.strips:
                     if strip.action.sb_props.sprite and strip.use_sync_length:
@@ -410,9 +408,8 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
                 # update rig
                 for obj in bpy.data.objects:
-                    for anim in obj.sb_props.animations:
-                        if anim.image == img:
-                            sheet_animation(anim)
+                    if obj.sb_props.animation == img:
+                        sheet_animation(obj, obj.sb_props.animation)
 
                     obj.update_tag
 
