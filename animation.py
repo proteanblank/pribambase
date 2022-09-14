@@ -122,10 +122,13 @@ class SB_PT_animation(bpy.types.Panel):
             obj = context.active_object
             
             # Info
-            row = layout.row()
-            row.alignment = 'CENTER'
             if next((False for img in bpy.data.images if img.sb_props.sheet), True):
-                row.label(text="No synced sprites have animations", icon='INFO')
+                row = layout.row()
+                row.alignment = 'CENTER'
+                row.label(text="No synced animations", icon='INFO')
+
+            if not obj.material_slots:
+                layout.row().label(text="No material", icon='INFO')
 
             row = layout.row()
             if obj.sb_props.animation:
