@@ -442,17 +442,3 @@ class SB_OT_preferences(bpy.types.Operator):
         bpy.ops.preferences.addon_show(module=__package__)
 
         return {'FINISHED'}
-
-
-def migrate():
-    """Move image props created by older versions to the property group"""
-
-    for img in bpy.data.images:
-        if "sb_source" in img:
-            # copy without source_set here as we don't know how and why it was assigned
-            img.sb_props.source = img["sb_source"]
-            del img["sb_source"]
-
-        if "sb_scale" in img:
-            img.sb_props.prescale = img["sb_scale"]
-            del img["sb_scale"]

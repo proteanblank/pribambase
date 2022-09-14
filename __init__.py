@@ -226,8 +226,6 @@ def start():
 
 @persistent
 def sb_on_load_post(scene):
-    props.migrate()
-
     global _images_hv
     _images_hv = hash(frozenset(img.sb_props.sync_name for img in bpy.data.images))
 
