@@ -148,7 +148,7 @@ def _enum_tag_actions(self, context):
     if not context:
         return []
     obj = context.active_object
-    anim_sprite = obj.sb_props.animations[obj.sb_props.animation_index].image if obj.sb_props.animations else None
+    anim_sprite = obj.sb_props.animations[0].image if obj.sb_props.animations else None
     # TODO icons?
     # tag actions
     idx = 0
@@ -178,14 +178,9 @@ def _set_animation_tag(self, val):
 class SB_ObjectProperties(bpy.types.PropertyGroup):
     animations: bpy.props.CollectionProperty(
         name="Animations",
-        description="Store animations the object uses, to sync or remove",
+        description="DEPRECATED: now returns the first object animation",
         type=SB_SheetAnimation,
         options={'HIDDEN'})
-    
-    animation_index: bpy.props.IntProperty(
-        name="Animation",
-        description="List index of the animation selected. For UI purposes",
-        options={'HIDDEN', 'SKIP_SAVE'})
     
     animation_tag_setter: bpy.props.EnumProperty(
         name="Tag",

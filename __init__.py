@@ -86,8 +86,6 @@ classes = (
     SB_OT_spritesheet_unrig,
     SB_OT_preferences,
     SB_OT_report,
-    # Lists
-    SB_UL_animations,
     # Panels
     SB_PT_link,
     SB_PT_edit,

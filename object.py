@@ -297,7 +297,6 @@ class SB_OT_plane_add(bpy.types.Operator):
         if self.new_image:
             layout.prop(self, "new_sprite")
             layout.prop(self, "new_size")
-            layout.prop(self, "new_mode")
         elif self.from_file:
             layout.label(text="Sprite:")
             if not self.sheet:
@@ -487,7 +486,8 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         # need a mesh to store modifiers these days
-        return context.active_object and context.active_object.type == 'MESH' and context.active_object.select_get() and next((img for img in bpy.data.images if img.sb_props.sheet), False)  
+        return context.active_object and context.active_object.type == 'MESH' and context.active_object.select_get() \
+                and next((img for img in bpy.data.images if img.sb_props.sheet), False) and not context.active_object.sb_props.animations
 
 
     def execute(self, context):
@@ -513,7 +513,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         anim = obj.sb_props.animations_new(util.unique_name("FrameAnim", obj.sb_props.animations))
         anim.image = img
         anim.prop_name = prop_name
-        obj.sb_props.animation_index = obj.sb_props.animations.find(anim.name)
 
         # custom property
         if prop_name not in obj:
@@ -583,21 +582,21 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
 class SB_OT_spritesheet_unrig(bpy.types.Operator):
     bl_idname = "pribambase.spritesheet_unrig"
-    bl_label = "Clean Up"
+    bl_label = "Remove Animation"
     bl_description = "Remove modifier, drivers, and custom property created buy spritesheet UV animation"
     bl_options = {'UNDO'}
 
     @classmethod 
     def poll(self, context):
         try:
-            context.active_object.sb_props.animations[context.active_object.sb_props.animation_index]
-            return context.active_object.select_get()
+            context.active_object.sb_props.animations[0]
+            return context.active_object.select_get() and context.active_object.sb_props.animations
         except (AttributeError, IndexError):
             return False
     
     def execute(self, context):
         obj = context.active_object
-        anim = obj.sb_props.animations[obj.sb_props.animation_index]
+        anim = obj.sb_props.animations[0]
         prop_name = anim.prop_name
 
         # drivers

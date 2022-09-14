@@ -107,15 +107,6 @@ class SB_OT_action_preview_clear(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SB_UL_animations(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(item, "name", text="", emboss=False, icon = 'BLANK1' if item.is_intact() else 'ERROR')
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label(text="", icon='DECORATE_LINKED')
-
-
 class SB_PT_animation(bpy.types.Panel):
     bl_idname = "SB_PT_animation"
     bl_label = "Animation"
@@ -135,17 +126,13 @@ class SB_PT_animation(bpy.types.Panel):
             row.alignment = 'CENTER'
             if next((False for img in bpy.data.images if img.sb_props.sheet), True):
                 row.label(text="No synced sprites have animations", icon='INFO')
-            elif not obj.sb_props.animations:
-                row.label(text="Press \"+\" to set up 2D animation", icon='INFO')
-            row = layout.row()
-            row.column().template_list("SB_UL_animations", "", obj.sb_props, "animations", obj.sb_props, "animation_index", rows=1)
 
-            col = row.column(align=True)
-            col.operator("pribambase.spritesheet_rig", icon='ADD', text="")
-            col.operator("pribambase.spritesheet_unrig", icon='REMOVE', text="")
+            row = layout.row(align=True)
+            row.operator("pribambase.spritesheet_rig", icon='ADD', text="Set Up")
+            row.operator("pribambase.spritesheet_unrig", icon='REMOVE', text="Remove")
 
-            try:
-                anim = obj.sb_props.animations[obj.sb_props.animation_index]
+            if obj.sb_props.animations:
+                anim = obj.sb_props.animations[0]
                 prop_name = anim.prop_name
 
                 if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["{prop_name}"].offset'), False):
@@ -157,14 +144,11 @@ class SB_PT_animation(bpy.types.Panel):
                 else:
                     layout.row().prop(obj, f'["{prop_name}"]', text="Frame", expand=False)
 
-            except IndexError:
-                pass # no selected animation
-
             row = layout.row(align=True)
             row.enabled = bool(obj.animation_data)
 
             sub = row.column()
-            sub.enabled = bool(obj.sb_props.animations and obj.sb_props.animation_index > -1)
+            sub.enabled = bool(obj.sb_props.animations)
             sub.prop(obj.sb_props, "animation_tag_setter", text="Tag", text_ctxt="ase")
             
             if addon.state.action_preview_enabled:
@@ -175,4 +159,4 @@ class SB_PT_animation(bpy.types.Panel):
                 row.operator("pribambase.action_preview_set", icon='PREVIEW_RANGE', text="")
 
         else:
-            layout.label(text="Mesh object only")
+            layout.label(text="Select a mesh")
