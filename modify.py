@@ -334,7 +334,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             tag_frames.append(tag_frames[-1]) # one more keyframe to keep the last frame duration inside in the action
 
             if not action.fcurves:
-                fcurve = action.fcurves.new(f'["Frame {img.name}"]')
+                fcurve = action.fcurves.new(f'["pribambase_frame"]')
                 fcurve.lock = True
 
             for fcurve in action.fcurves:
