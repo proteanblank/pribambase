@@ -75,7 +75,7 @@ class SB_OT_action_preview_set(bpy.types.Operator):
         addon.state.action_preview = obj
         addon.state.action_preview_enabled = True
         scene.use_preview_range = True
-        scene.frame_preview_start, scene.frame_preview_end = obj.animation_data.action.frame_range
+        scene.frame_preview_start, scene.frame_preview_end = (int(f) for f in  obj.animation_data.action.frame_range)
 
         bpy.msgbus.clear_by_owner(_msgbus_anim_data_callback_owner) # try to unsub in case we're changing the object
         bpy.msgbus.subscribe_rna(
@@ -157,7 +157,7 @@ class SB_PT_animation(bpy.types.Panel):
 
             sub = row.column()
             sub.enabled = bool(obj.sb_props.animation)
-            sub.prop(obj.sb_props, "animation_tag_setter", text="Tag", text_ctxt="ase")
+            sub.prop(obj.sb_props, "animation_tag_setter", text="Tag")
             
             if addon.state.action_preview_enabled:
                 active_picked = (context.active_object == addon.state.action_preview)
