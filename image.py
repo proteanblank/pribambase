@@ -192,7 +192,7 @@ class SB_OT_sprite_open(bpy.types.Operator):
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
     relative: bpy.props.BoolProperty(name="Relative Path", description="Select the file relative to blend file")
     sheet: bpy.props.BoolProperty(name="Sheet Animation", description="If checked, sync entire animation to blender as a spritesheet image; if not, only send the current frame. Same as 'Animation' switch in Aseprite's sync popup")
-    layers: bpy.props.BoolProperty(name="Separate Layers", description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
+    layers: bpy.props.BoolProperty(options={'HIDDEN'}, name="Separate Layers", description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
 
     # dialog settings
     filter_glob: bpy.props.StringProperty(default="*.ase;*.aseprite;*.bmp;*.flc;*.fli;*.gif;*.ico;*.jpeg;*.jpg;*.pcx;*.pcc;*.png;*.tga;*.webp", options={'HIDDEN'})
@@ -328,6 +328,7 @@ class SB_OT_sprite_new(bpy.types.Operator):
         description="If checked, sync entire animation to blender as a spritesheet image; if not, only send the current frame. Same as 'Animation' switch in Aseprite's sync popup")
 
     layers: bpy.props.BoolProperty(
+        options={'HIDDEN'}, # experimental - probably will be removed later
         name="Sync Layers", 
         description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup")
 

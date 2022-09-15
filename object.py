@@ -254,6 +254,7 @@ class SB_OT_plane_add(bpy.types.Operator):
         default='LIT')
     
     layers: bpy.props.BoolProperty(
+        options={'HIDDEN'},
         name="Separate Layers", 
         description="If checked, sync layers to blender separately, and generate a node group to combine them; Otherwise, sync flattened sprite to a single image. Same as 'Layers' switch in Aseprite's sync popup",
         default=False)
@@ -297,10 +298,7 @@ class SB_OT_plane_add(bpy.types.Operator):
             layout.prop(self, "new_size")
         elif self.from_file:
             layout.label(text="Sprite:")
-            if not self.sheet:
-                layout.prop(self, "layers")
-            if not self.layers:
-                layout.prop(self, "sheet")
+            layout.prop(self, "sheet")
         else:
             layout.row().prop(self, "sprite")
 
