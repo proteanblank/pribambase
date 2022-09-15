@@ -99,7 +99,7 @@ class SB_PT_edit(bpy.types.Panel):
         layout = self.layout
 
         row = layout.split(factor=.33)
-        row.label(text="Sprite")
+        row.label(text="Plane")
         col = row.column(align=True)
         col.operator("pribambase.plane_add", text="Image", icon='FILE_IMAGE').from_file = False
         col.operator("pribambase.plane_add", text="File", icon='FILE').from_file = True
