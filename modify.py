@@ -219,17 +219,17 @@ def sheet_animation(obj, img):
 
         w,h = sheet.sb_props.sheet_size
         iw, ih = img.size
-        uvwarp:bpy.types.Object = obj.modifiers["UV Frame (Pribambase)"].object_to
-        uvwarp.scale = (sheet.size[0]/iw, sheet.size[1]/ih, 1)
+        ofs_obj:bpy.types.Object = obj.modifiers["UV Frame (Pribambase)"].object_to
+        ofs_obj.scale = (sheet.size[0]/iw, sheet.size[1]/ih, 1)
 
-        if uvwarp.animation_data is None:
-            uvwarp.animation_data_create()
+        if not ofs_obj.animation_data:
+            ofs_obj.animation_data_create()
         else:
-            for driver in uvwarp.animation_data.drivers:
+            for driver in ofs_obj.animation_data.drivers:
                 # there shouldn't be any user drivers on this object
-                obj.animation_data.drivers.remove(driver)
+                ofs_obj.animation_data.drivers.remove(driver)
 
-        dx, dy, _dz = uvwarp.driver_add("location")
+        dx, dy, _dz = ofs_obj.driver_add("location")
         for curve in (dx, dy):
             # there's a polynomial modifier by default
             curve.modifiers.remove(curve.modifiers[0])
