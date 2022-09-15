@@ -387,7 +387,7 @@ else
         popup:newrow()
         popup:check{ id="layers", text="Layers", onclick=function() popup:modify{ id="animated", visible = not popup.data.layers } end}
         popup:button{ id="cancel", text= "Cancel"}
-        popup:button{ id="ok", text= "OK"}
+        popup:button{ id="ok", text= "OK", focus=true}
         popup:show()
 
         if popup.data.ok then
