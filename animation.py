@@ -123,17 +123,13 @@ class SB_PT_animation(bpy.types.Panel):
             
             # Info
             if next((False for img in bpy.data.images if img.sb_props.sheet), True):
-                row = layout.row()
-                row.alignment = 'CENTER'
-                row.label(text="No synced animations", icon='INFO')
+                layout.row().label(text="No synced animations", icon='INFO')
 
             if not obj.material_slots:
                 layout.row().label(text="No material", icon='INFO')
 
-            row = layout.row()
             if obj.sb_props.animation:
-                row.label(text=obj.sb_props.animation.name, icon='IMAGE_DATA')
-                row.operator("pribambase.spritesheet_unrig", icon='TRASH', text="Delete")
+                layout.row().label(text=obj.sb_props.animation.name, icon='IMAGE_DATA')
 
                 try:
                     drivers = obj.modifiers["UV Frame (Pribambase)"].object_to.animation_data.drivers
@@ -147,8 +143,9 @@ class SB_PT_animation(bpy.types.Panel):
                 if "pribambase_frame" not in obj:
                     layout.row().label(text="Property not found", icon='ERROR')
             else:
+                row = layout.split(factor=.33)
                 row.label(text="None", icon='IMAGE_DATA')
-                row.operator("pribambase.spritesheet_rig", icon='ADD', text="Set Up")
+                row.operator("pribambase.spritesheet_rig", icon='ADD', text="Animate")
 
             row = layout.row()
             row.enabled = bool("pribambase_frame" in obj and obj.sb_props.animation)
@@ -170,6 +167,9 @@ class SB_PT_animation(bpy.types.Panel):
                 row.operator("pribambase.action_preview_clear", icon='PREVIEW_RANGE', text="", depress=True)
             else:
                 row.operator("pribambase.action_preview_set", icon='PREVIEW_RANGE', text="")
+
+            if obj.sb_props.animation:
+                layout.row().operator("pribambase.spritesheet_unrig", icon='TRASH')
 
         else:
             layout.label(text="Select a mesh")

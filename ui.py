@@ -88,7 +88,7 @@ class SB_PT_uv_draw(bpy.types.Panel):
 
 
 class SB_PT_edit(bpy.types.Panel):
-    bl_idname = "SB_PT_edittil"
+    bl_idname = "SB_PT_edit"
     bl_label = "Edit"
     bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
@@ -98,11 +98,12 @@ class SB_PT_edit(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        row = layout.row(align=True)
-        row.label(text="As Plane")
-        row.operator("pribambase.plane_add", text="Image", icon='FILE_IMAGE').from_file = False
-        row.operator("pribambase.plane_add", text="Open", icon='FILE').from_file = True
-        row.operator("pribambase.plane_add", text="New", icon='ADD').new_image = True
+        row = layout.split(factor=.33)
+        row.label(text="Sprite")
+        col = row.column(align=True)
+        col.operator("pribambase.plane_add", text="Image", icon='FILE_IMAGE').from_file = False
+        col.operator("pribambase.plane_add", text="File", icon='FILE').from_file = True
+        col.operator("pribambase.plane_add", text="New", icon='ADD').new_image = True
 
         layout.operator("pribambase.material_add", icon='MATERIAL')
         layout.operator("pribambase.grid_set", icon='GRID')
@@ -141,8 +142,9 @@ class SB_PT_link(bpy.types.Panel):
 
         row = row.row(align=True)
         row.alignment = 'RIGHT'
-        if addon.server_up:
-            row.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
-        else:
-            row.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
         row.operator("pribambase.preferences", icon='PREFERENCES', text="")
+        
+        if addon.server_up:
+            layout.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
+        else:
+            layout.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
