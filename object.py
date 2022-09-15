@@ -495,8 +495,8 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             self.report({'ERROR'}, "UVWarp transforms needed for animation are not supported in your blender version. Has to be 2.83 or newer")
             return {'CANCELLED'}
 
-        obj = context.active_object
-        img = bpy.data.images[self.sprite]
+        obj:bpy.types.Object = context.active_object
+        img:bpy.types.Image = bpy.data.images[self.sprite]
         if not img:
             self.report({'ERROR'}, "No sprite selected")
             return {'CANCELLED'}
@@ -522,23 +522,32 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         if "UV Frame (Pribambase)" not in obj.modifiers:
             obj.modifiers.new("UV Frame (Pribambase)", "UV_WARP")
         
-        uvwarp = obj.modifiers["UV Frame (Pribambase)"]
+        uvwarp:bpy.types.UVWarpModifier = obj.modifiers["UV Frame (Pribambase)"]
         uvwarp.uv_layer = "" if self.uv_map == "__none__" else self.uv_map
         uvwarp.center = (0.0, 1.0)
+
+        if not uvwarp.object_from:
+            uvwarp.object_from = addon.uv_offset_origin
         
+        if not uvwarp.object_to:
+            uvwarp.object_to = bpy.data.objects.new("~PribambaseUVDriver_" + obj.name, None)
+            uvwarp.object_to.use_fake_user = True
+            uvwarp.object_to.parent = uvwarp.object_from
+        offset = uvwarp.object_to
+
         modify.sheet_animation(obj, obj.sb_props.animation)
 
         # revive the curves if needed
-        if obj.animation_data and obj.animation_data.action:
-            for fcurve in obj.animation_data.action.fcurves:
+        if offset.animation_data and offset.animation_data.action:
+            for fcurve in offset.animation_data.action.fcurves:
                 if fcurve.data_path == prop_path:
                     # It seems there's no way to clear FCURVE_DISABLED flag directly from script
                     # Seems that changing the path does that as a side effect
                     fcurve.data_path += ""
                     fcurve.update()
 
-        obj.animation_data.drivers.update()
-        obj.update_tag()
+        offset.animation_data.drivers.update()
+        offset.update_tag()
 
         # try updating the material
         if self.update_nodes and obj.active_material and obj.active_material.use_nodes:

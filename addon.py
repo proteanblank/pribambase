@@ -97,6 +97,16 @@ class Addon:
         images = [(img.sb_props.sync_name, img.sb_props.sync_flags) for img in bpy.data.images if not img.sb_props.is_layer]
         return [*images, *layers]
 
+    @property
+    def uv_offset_origin(self) -> bpy.types.Object:
+        try:
+            return bpy.data.objects["~PribambaseDriverOrigin"]
+        except KeyError:
+            obj:bpy.types.Object = bpy.data.objects.new("~PribambaseDriverOrigin", None)
+            obj.use_fake_user = True
+            obj.lock_location = [True, True, True] # just in case
+            return obj
+
 
 addon = Addon()
 

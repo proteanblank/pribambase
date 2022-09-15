@@ -135,11 +135,16 @@ class SB_PT_animation(bpy.types.Panel):
                 row.label(text=obj.sb_props.animation.name, icon='IMAGE_DATA')
                 row.operator("pribambase.spritesheet_unrig", icon='TRASH', text="Delete")
 
-                if not next((True for driver in obj.animation_data.drivers if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset'), False):
-                    layout.row().label(text="Driver not found", icon='ERROR')
-                elif "UV Frame (Pribambase)" not in obj.modifiers:
+                try:
+                    drivers = obj.modifiers["UV Frame (Pribambase)"].object_to.animation_data.drivers
+                    if not next((True for d in drivers if d.data_path == "location")):
+                        layout.row().label(text="Driver curve not found", icon='ERROR')
+                except KeyError:
                     layout.row().label(text="UVWarp not found", icon='ERROR')
-                elif "pribambase_frame" not in obj:
+                except AttributeError:
+                    layout.row().label(text="Driver not found", icon='ERROR')
+
+                if "pribambase_frame" not in obj:
                     layout.row().label(text="Property not found", icon='ERROR')
             else:
                 row.label(text="None", icon='IMAGE_DATA')

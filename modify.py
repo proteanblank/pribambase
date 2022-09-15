@@ -219,18 +219,18 @@ def sheet_animation(obj, img):
 
         w,h = sheet.sb_props.sheet_size
         iw, ih = img.size
-        uvwarp = obj.modifiers["UV Frame (Pribambase)"]
-        uvwarp.scale = (iw/sheet.size[0], ih/sheet.size[1])
+        uvwarp:bpy.types.Object = obj.modifiers["UV Frame (Pribambase)"].object_to
+        uvwarp.scale = (sheet.size[0]/iw, sheet.size[1]/ih, 1)
 
-        if obj.animation_data is None:
-            obj.animation_data_create()
+        if uvwarp.animation_data is None:
+            uvwarp.animation_data_create()
         else:
-            for driver in obj.animation_data.drivers:
-                if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset':
-                    obj.animation_data.drivers.remove(driver)
+            for driver in uvwarp.animation_data.drivers:
+                # there shouldn't be any user drivers on this object
+                obj.animation_data.drivers.remove(driver)
 
-        dx, dy = curves = uvwarp.driver_add("offset")
-        for curve in curves:
+        dx, dy, _dz = uvwarp.driver_add("location")
+        for curve in (dx, dy):
             # there's a polynomial modifier by default
             curve.modifiers.remove(curve.modifiers[0])
 
@@ -238,9 +238,9 @@ def sheet_animation(obj, img):
             curve.keyframe_points.add(nframes)
             for i,p in enumerate(curve.keyframe_points):
                 if curve == dx:
-                    p.co = (start + i - 0.5, (i % w) * (1 + 2 / iw) + 1 / iw)
+                    p.co = (start + i - 0.5, -(i % w) * (1 + 2 / iw) - 1 / iw)
                 else:
-                    p.co = (start + i - 0.5, -(i // w) * (1 + 2 / ih) - 1 / ih)
+                    p.co = (start + i - 0.5, (i // w) * (1 + 2 / ih) + 1 / ih)
                 p.interpolation = 'CONSTANT'
 
             # add variable
