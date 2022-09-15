@@ -24,6 +24,7 @@ Working with objects (mesh, material, sprites, ...)
 
 import bpy
 from bpy_extras import object_utils
+from os import path
 
 from .addon import addon
 from . import util
@@ -326,12 +327,14 @@ class SB_OT_plane_add(bpy.types.Operator):
         if self.new_image:
             with util.pause_depsgraph_updates():
                 w, h = self.new_size
-                img = bpy.data.images.new(self.sprite, w, h, alpha=True)
+                img = bpy.data.images.new(self.new_sprite, w, h, alpha=True)
                 util.pack_empty_png(img)
+                self.sprite = 'IMG' + img.name
 
         elif self.from_file:
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):
                 (w, h), _ = ase.info(self.filepath)
+                img_name = path.basename(self.filepath)
 
                 if addon.connected:
                     # open the sprite normally
@@ -340,7 +343,7 @@ class SB_OT_plane_add(bpy.types.Operator):
                         return res
                 else:
                     # make a stub and wait for the user to launch Ase
-                    bpy.ops.pribambase.sprite_stub(name=self.sprite, source=self.filepath, layers=self.layers, sheet=self.sheet)
+                    bpy.ops.pribambase.sprite_stub(name=img_name, source=self.filepath, layers=self.layers, sheet=self.sheet)
                     self.report({'INFO'}, "Placeholder image created. Connect aseprite and open it to retrieve image data")
 
                 if self.layers:
@@ -353,6 +356,7 @@ class SB_OT_plane_add(bpy.types.Operator):
                 # blender supported
                 img = bpy.data.images.load(self.filepath)
                 w, h = img.size
+                self.sprite = 'IMG' + img.name
             
         else:
             img_type, img_name = self.sprite[:3], self.sprite[3:]
