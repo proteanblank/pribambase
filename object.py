@@ -125,8 +125,6 @@ class SB_OT_material_add(bpy.types.Operator):
     
 
     def execute(self, context):
-        self.invoke = False
-
         img_type, img_name = self.sprite[:3], self.sprite[3:]
 
         mat = bpy.data.materials.new(img_name)
@@ -198,7 +196,6 @@ class SB_OT_material_add(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        self.invoke = True
         return context.window_manager.invoke_props_dialog(self)
 
 
@@ -309,7 +306,6 @@ class SB_OT_plane_add(bpy.types.Operator):
         layout.prop(self, "facing")
         if self.facing in ('SPH', 'CYL'):
             row = layout.row()
-            row.enabled = self.invoke
             row.prop(self, "look_at")
         layout.prop(self, "scale")
         layout.prop(self, "pivot")
@@ -327,8 +323,6 @@ class SB_OT_plane_add(bpy.types.Operator):
     
 
     def execute(self, context):
-        self.invoke = False
-
         if self.new_image:
             with util.pause_depsgraph_updates():
                 w, h = self.new_size
@@ -434,7 +428,6 @@ class SB_OT_plane_add(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.scale = 1 / context.space_data.overlay.grid_scale
-        self.invoke = True
 
         if self.from_file:
             context.window_manager.fileselect_add(self)
