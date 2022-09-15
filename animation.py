@@ -153,7 +153,7 @@ class SB_PT_animation(bpy.types.Panel):
             row = layout.row()
             row.enabled = bool("pribambase_frame" in obj and obj.sb_props.animation)
             if "pribambase_frame" in obj:
-                row.prop(obj, f'["pribambase_frame"]', text="Frame")
+                row.prop(obj, '["pribambase_frame"]', text="Frame")
             else:
                 row.prop(addon.state, "frame_stub", text="Frame")
 

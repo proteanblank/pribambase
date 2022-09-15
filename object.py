@@ -502,7 +502,7 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
             return {'CANCELLED'}
         start = img.sb_props.sheet.sb_props.sheet_start
 
-        prop_path = f'["pribambase_frame"]'
+        prop_path = '["pribambase_frame"]'
         obj.sb_props.animation = img
 
         # custom property

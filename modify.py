@@ -251,7 +251,7 @@ def sheet_animation(obj, img):
             tgt = fv.targets[0]
             tgt.id_type = 'OBJECT'
             tgt.id = obj
-            tgt.data_path = f'["pribambase_frame"]'
+            tgt.data_path = '["pribambase_frame"]'
 
             curve.update()
 
@@ -334,11 +334,11 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             tag_frames.append(tag_frames[-1]) # one more keyframe to keep the last frame duration inside in the action
 
             if not action.fcurves:
-                fcurve = action.fcurves.new(f'["pribambase_frame"]')
+                fcurve = action.fcurves.new('["pribambase_frame"]')
                 fcurve.lock = True
 
             for fcurve in action.fcurves:
-                if not fcurve.data_path.startswith('["'):
+                if not fcurve.data_path == '["pribambase_frame"]':
                     # Only update curves for all custom properties
                     # For multiple animations on one object, the user might need to change path on some curves
                     #    so we can't be certain that the name is same as default and update all of them
