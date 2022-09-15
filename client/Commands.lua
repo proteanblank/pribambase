@@ -24,7 +24,8 @@ pribambase_default_settings = {
     host="localhost",
     port="34613",
     autostart=false,
-    autoshow=false
+    autoshow=false,
+    layers=false,
 }
 
 function run_script(f) 

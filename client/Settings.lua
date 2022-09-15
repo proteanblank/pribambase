@@ -52,6 +52,9 @@ dlg:separator{text="Connection"}
     :check{id="autostart", label="Connect when Aseprite launches", selected=pribambase_settings.autostart, onclick=changeAutoshow}
     :check{id="autoshow", label="Show when Aseprite launches", selected=pribambase_settings.autoshow, visible=dlg.data.autostart}
 
+    :separator{text="Experimental"}
+    :check{id="layers", label="Per Layer Sync", text="Show", selected=pribambase_settings.layers}
+
     :separator()
     :button{text="Defaults", onclick=restoreDefaults}
     :button{text="Cancel", focus=true}

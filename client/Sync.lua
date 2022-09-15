@@ -383,9 +383,9 @@ else
         else
             popup:entry{ id="name", text=unique_name(spr.filename or "Sprite"), focus=true }
         end
-        popup:check{ id="animated", text="Animated", onclick=function() popup:modify{ id="layers", visible = not popup.data.animated } end}
+        popup:check{ id="animated", text="Animated", onclick=function() popup:modify{ id="layers", visible = settings.layers and not popup.data.animated } end}
         popup:newrow()
-        popup:check{ id="layers", text="Layers", onclick=function() popup:modify{ id="animated", visible = not popup.data.layers } end}
+        popup:check{ id="layers", text="Layers", visible=settings.layers, onclick=function() popup:modify{ id="animated", visible = not popup.data.layers } end}
         popup:button{ id="cancel", text= "Cancel"}
         popup:button{ id="ok", text= "OK", focus=true}
         popup:show()
@@ -982,7 +982,7 @@ else
         dlg:modify{ id="reconnect", visible=(not connected) }
         dlg:modify{ id="animated", visible=(connected and spr ~= nil and sync ~= nil and not layers), selected=animated }
         dlg:modify{ id="showuv", visible=(connected and spr ~= nil and sync ~= nil), selected=(spr and doc and doc.showUV) }
-        dlg:modify{ id="layers", visible=(connected and spr ~= nil and sync ~= nil and not animated), selected=layers }
+        dlg:modify{ id="layers", visible=(connected and settings.layers and spr ~= nil and sync ~= nil and not animated), selected=layers }
         dlg:modify{ id="sendopen", visible=(connected and spr ~= nil and sync == nil) }
     end
 
