@@ -511,14 +511,11 @@ class SB_OT_sprite_purge(bpy.types.Operator):
         if self.remove_anim:
             for obj in bpy.data.objects:
                 if obj.sb_props.animation == self.img:
-                    # modifier
-                    if obj.animation_data:
-                        for driver in obj.animation_data.drivers:
-                            if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset':
-                                obj.animation_data.drivers.remove(driver)
-
                     if "UV Frame (Pribambase)" in obj.modifiers:
-                        obj.modifiers.remove(obj.modifiers["UV Frame (Pribambase)"])
+                        mod = obj.modifiers["UV Frame (Pribambase)"]
+                        if mod.object_to:
+                            bpy.data.objects.remove(mod.object_to)
+                        obj.modifiers.remove(mod)
 
                     # custom property
                     try:

@@ -596,11 +596,6 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
     def execute(self, context):
         obj = context.active_object
 
-        # drivers
-        for driver in obj.animation_data.drivers:
-            if driver.data_path == f'modifiers["UV Frame (Pribambase)"].offset':
-                obj.animation_data.drivers.remove(driver)
-
         # custom property
         try:
             # 3.0+
@@ -615,7 +610,10 @@ class SB_OT_spritesheet_unrig(bpy.types.Operator):
 
         # modifier
         if "UV Frame (Pribambase)" in obj.modifiers:
-            obj.modifiers.remove(obj.modifiers["UV Frame (Pribambase)"])
+            mod = obj.modifiers["UV Frame (Pribambase)"]
+            if mod.object_to:
+                bpy.data.objects.remove(mod.object_to)
+            obj.modifiers.remove(mod)
         
         # animation
         obj.sb_props.animation = None
