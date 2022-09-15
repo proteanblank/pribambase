@@ -148,3 +148,70 @@ class SB_PT_link(bpy.types.Panel):
             layout.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
             layout.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
+
+
+class SB_PT_sprite(bpy.types.Panel):
+    bl_idname = "SB_PT_sprite"
+    bl_label = "Sprite Info"
+    bl_category = "Pribambase"
+    bl_space_type = "IMAGE_EDITOR"
+    bl_region_type = "UI"
+
+
+    def draw(self, context):
+        layout = self.layout
+
+        if not context.edit_image:
+            layout.label(text="No image", icon='INFO')
+            return
+            
+        img = context.edit_image
+        props = img.sb_props
+        origin = next((i for i in bpy.data.images if i.sb_props.sheet == img), None)
+
+        sprite = layout.row(align=True)
+        source = sprite.row()
+        if props.is_sheet and origin:
+            source.prop(origin.sb_props, "source")
+            
+            sub = layout.row()
+            sub.alignment = 'RIGHT'
+            sub.label(text=f"Sheet {props.sheet_size[0]}x{props.sheet_size[1]}, {props.animation_length} frames")
+
+        else:
+            source.prop(context.edit_image.sb_props, "source")
+            row = layout.row()
+            row.enabled = False
+            row.prop(context.edit_image.sb_props, "sheet")
+
+        sprite.operator("pribambase.sprite_purge", icon='TRASH', text="")
+
+
+class SB_PT_sprite_edit(bpy.types.Panel):
+    bl_idname = "SB_PT_sprite_edit"
+    bl_label = "Edit"
+    bl_category = "Pribambase"
+    bl_space_type = "IMAGE_EDITOR"
+    bl_region_type = "UI"
+
+
+    def draw(self, context):
+        layout = self.layout
+
+        if not context.edit_image:
+            layout.label(text="No image", icon='INFO')
+            return
+
+        connected = addon.connected
+        if not connected:
+            layout.operator("pribambase.server_start", icon="ERROR")
+            layout.separator()
+
+        layout.operator("pribambase.sprite_new", icon='FILE_NEW' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit_copy", icon='DUPLICATE' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_replace", icon='FILE_REFRESH' if connected else 'UNLINKED')
+        layout.separator()
+        layout.operator("pribambase.sprite_make_animated")
+        layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')

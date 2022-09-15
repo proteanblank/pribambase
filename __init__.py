@@ -91,8 +91,7 @@ classes = (
     SB_PT_uv_draw,
     SB_PT_animation,
     SB_PT_sprite,
-    # Menus
-    SB_MT_sprite
+    SB_PT_sprite_edit
 )
 
 
@@ -114,13 +113,6 @@ def register():
     bpy.types.Action.sb_props = bpy.props.PointerProperty(type=SB_ActionProperties)
     bpy.types.Object.sb_props = bpy.props.PointerProperty(type=SB_ObjectProperties)
     bpy.types.ShaderNodeTree.sb_props = bpy.props.PointerProperty(type=SB_ShaderNodeTreeProperties)
-
-    # add menu items
-    try:
-        editor_menus = bpy.types.IMAGE_MT_editor_menus
-    except AttributeError:
-        editor_menus = bpy.types.MASK_MT_editor_menus
-    editor_menus.append(SB_MT_sprite.header_draw)
 
     # hotkeys
     try:
@@ -179,12 +171,6 @@ def unregister():
 
     if sb_on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(sb_on_depsgraph_update_post)
-
-    try:
-        editor_menus = bpy.types.IMAGE_MT_editor_menus
-    except AttributeError:
-        editor_menus = bpy.types.MASK_MT_editor_menus
-    editor_menus.remove(SB_MT_sprite.header_draw)
 
     global addon_keymaps
     for km,item in addon_keymaps:
