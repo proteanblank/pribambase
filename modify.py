@@ -31,46 +31,6 @@ from .addon import addon
 from .layers import update_layers
 
 
-def prescale(image:bpy.types.Image):
-    """Scale image in-place without filtering"""
-
-    if image.sb_props.prescale_size[0] < 1:
-        image.sb_props.prescale_size = image.size
-
-    w, h = image.size
-    scale = image.sb_props.prescale
-    presize = image.sb_props.prescale_size
-    desample = max(w // presize[0], 1)
-
-    if desample != h // presize[1]:
-        raise ValueError("The image is unevenly scaled")
-    
-    if desample == scale:
-        # already scaled as we want it to
-        return
-
-    px = np.array(image.pixels, dtype=np.float32)
-    px.shape = (h, w, 4)
-    
-    if desample > 1:
-        px = px[::desample,::desample,:]
-    px = px.repeat(scale, 1).repeat(scale, 0)
-
-    image.scale((w // desample) * scale, (h // desample) * scale)
-    try:
-        # version >= 2.83
-        image.pixels.foreach_set(px.ravel())
-    except AttributeError:
-        # version < 2.83
-        image.pixels[:] = px.ravel()
-    image.update()
-    image.update_tag()
-
-    if addon.prefs.save_after_sync:
-        bpy.ops.image.save({"edit_image": image})
-        bpy.ops.image.reload({"edit_image": image})
-
-
 _update_image_args = None
 def image(w, h, name, frame, flags, pixels):
     # NOTE this operator removes animation flag from image
@@ -98,14 +58,13 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
 
         for img in bpy.data.images:
             if name == img.sb_props.sync_name:
-                prescale = img.sb_props.prescale
 
                 if image_nodata(img):
                     # load *some* data so that the image can be updated
                     util.pack_empty_png(img)
 
-                if img.size != (w * prescale, h * prescale):
-                    img.scale(w * prescale, h * prescale)
+                if img.size != (w, h):
+                    img.scale(w, h)
 
                 if frame != -1:
                     img.sb_props.frame = frame
@@ -117,19 +76,13 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 if resend_uv:
                     addon.watch.resend() # call after changing the flags
 
-                img_pixels = pixels
-                if prescale > 1:
-                    img_pixels.shape = (h, w, 4)
-                    img_pixels = img_pixels.repeat(prescale, 1).repeat(prescale, 0)
-                    img_pixels = img_pixels.ravel()
-
                 # change blender data
                 try:
                     # version >= 2.83; this is much faster
-                    img.pixels.foreach_set(img_pixels)
+                    img.pixels.foreach_set(pixels)
                 except AttributeError:
                     # version < 2.83
-                    img.pixels[:] = img_pixels
+                    img.pixels[:] = pixels
 
                 img.update()
                 # [#12] for some users viewports do not update from update() alone

@@ -164,21 +164,6 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         name="Sprite",
         description="The file from which the image was created, and that will be synced with this image",
         subtype='FILE_PATH')
-
-    prescale: bpy.props.IntProperty(
-        name="Pre-scale",
-        description="Scale the sprite by this factor for blender images. Will modify the image when changed!!",
-        min=1,
-        max=20,
-        default=1,
-        update=lambda self, context: modify.prescale(self.id_data))
-
-    prescale_size: bpy.props.IntVectorProperty(
-        name="Orignal Size",
-        description="Size before pre-scale",
-        size=2,
-        default=(-1, -1),
-        options={'HIDDEN'})
     
     source_abs:bpy.props.StringProperty(
         name="Sprite Path",

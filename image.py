@@ -399,15 +399,13 @@ class SB_OT_sprite_edit(bpy.types.Operator):
         if path.exists(edit_name):
             msg = encode.sprite_open(name=edit_name, flags=img.sb_props.sync_flags)
         else:
-            pre_w = img.sb_props.prescale_size[0]
-            desample = max(img.size[0] // pre_w, 1) if pre_w > 0 else 1
             pixels = np.asarray(np.array(img.pixels) * 255, dtype=np.ubyte)
             pixels.shape = (img.size[1], img.size[0], 4)
-            pixels = np.ravel(pixels[::-desample,::desample,:])
+            pixels = np.ravel(pixels[::-1,:,:])
 
             msg = encode.image(
                 name=img.name,
-                size=img.sb_props.prescale_size if pre_w > 0 else img.size,
+                size=img.size,
                 pixels=pixels.tobytes())
 
         addon.server.send(msg)
@@ -429,18 +427,10 @@ class SB_OT_sprite_edit_copy(bpy.types.Operator):
 
     def execute(self, context):
         img = context.edit_image
-        pre_w = img.sb_props.prescale_size[0]
-        desample = max(img.size[0] // pre_w, 1) if pre_w > 0 else 1
-
         pixels = np.asarray(np.array(img.pixels) * 255, dtype=np.ubyte)
         pixels.shape = (img.size[1], img.size[0], 4)
-        pixels = np.ravel(pixels[::-desample,::desample,:])
-
-        msg = encode.image(
-            name="",
-            size=img.sb_props.prescale_size if pre_w > 0 else img.size,
-            pixels=pixels.tobytes())
-
+        pixels = np.ravel(pixels[::-1,:,:])
+        msg = encode.image(name="", size=img.size, pixels=pixels.tobytes())
         addon.server.send(msg)
 
         return {'FINISHED'}
@@ -712,5 +702,3 @@ class SB_PT_sprite(bpy.types.Panel):
             row.prop(context.edit_image.sb_props, "sheet")
 
         sprite.operator("pribambase.sprite_purge", icon='TRASH', text="")
-        
-        layout.row().prop(img.sb_props, "prescale")
