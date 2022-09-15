@@ -335,6 +335,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
             if not action.fcurves:
                 fcurve = action.fcurves.new('["pribambase_frame"]')
+                fcurve.modifiers.new('CYCLES').mute = True # to be consistent with old behavior
                 fcurve.lock = True
 
             for fcurve in action.fcurves:
@@ -362,6 +363,10 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                     point.select_control_point = point.select_left_handle = point.select_right_handle = False
                     point.interpolation = 'CONSTANT'
                     time += dt
+
+                # modifiers. there can be only one cycles modifier
+                mod = next((m for m in fcurve.modifiers if m.type == 'CYCLES'))
+                mod.mute = (".Loop" not in tag)
 
                 fcurve.update()
             action.update_tag()
