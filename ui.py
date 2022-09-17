@@ -128,7 +128,6 @@ class SB_PT_link(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        row = layout.row()
         status = "Off"
         icon = 'UNLINKED'
         if addon.connected:
@@ -141,11 +140,7 @@ class SB_PT_link(bpy.types.Panel):
         if bpy.app.version < (2, 81):
             icon = 'NONE' # :\
 
-        row.label(text=status, icon=icon)
-
-        row = row.row(align=True)
-        row.alignment = 'RIGHT'
-        row.operator("pribambase.preferences", icon='PREFERENCES', text="")
+        layout.row().label(text=status, icon=icon)
         
         if addon.server_up:
             layout.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")

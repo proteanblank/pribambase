@@ -83,7 +83,6 @@ classes = (
     SB_OT_action_preview_clear,
     SB_OT_spritesheet_rig,
     SB_OT_spritesheet_unrig,
-    SB_OT_preferences,
     SB_OT_report,
     # Panels
     SB_PT_link,

@@ -397,14 +397,3 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box.row().prop(self, "save_after_sync")
         box.row().prop(self, "use_relative_path")
         box.row().prop(self, "whole_frames")
-
-
-class SB_OT_preferences(bpy.types.Operator):
-    bl_idname = "pribambase.preferences"
-    bl_label = "Preferences..."
-    bl_description = "Open this addon's settings"
-
-    def execute(self, context):
-        bpy.ops.preferences.addon_show(module=__package__)
-
-        return {'FINISHED'}
