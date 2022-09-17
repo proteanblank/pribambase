@@ -52,7 +52,7 @@ function init(plugin)
     -- register new menus
     plugin:newCommand{
         id="SbSync",
-        title="Pribambase",
+        title="Sync",
         group="file_export",
         onclick=run_script("Sync")
     }
