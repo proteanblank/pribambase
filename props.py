@@ -322,7 +322,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
         default=0.5)
 
     autostart: bpy.props.BoolProperty(
-        name="Start Automatically",
+        name="Connect On Launch",
         description="Set up the connection when Blender starts",
         default=False)
 
