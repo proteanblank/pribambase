@@ -27,6 +27,7 @@ from bpy_extras import object_utils
 from os import path
 
 from .addon import addon
+from. image import COLOR_MODES
 from . import util
 from . import modify
 from . import ase
@@ -274,6 +275,12 @@ class SB_OT_plane_add(bpy.types.Operator):
         size=2,
         min=1,
         max=65535)
+
+    new_mode: bpy.props.EnumProperty(
+        name="Color Mode",
+        description="Color mode of the created sprite",
+        items=COLOR_MODES,
+        default='rgba')
     
     ## FILE DIALOG
     from_file: bpy.props.BoolProperty("Open File", options={'HIDDEN'})
@@ -296,12 +303,15 @@ class SB_OT_plane_add(bpy.types.Operator):
         if self.new_image:
             layout.prop(self, "new_sprite")
             layout.prop(self, "new_size")
+            layout.prop(self, "new_mode")
+            layout.prop(self, "sheet")
         elif self.from_file:
             layout.label(text="Sprite:")
             layout.prop(self, "sheet")
         else:
             layout.row().prop(self, "sprite")
 
+        layout.label(text="Plane")
         layout.prop(self, "facing")
         if self.facing in ('SPH', 'CYL'):
             row = layout.row()
@@ -323,11 +333,14 @@ class SB_OT_plane_add(bpy.types.Operator):
 
     def execute(self, context):
         if self.new_image:
-            with util.pause_depsgraph_updates():
-                w, h = self.new_size
-                img = bpy.data.images.new(self.new_sprite, w, h, alpha=True)
-                util.pack_empty_png(img)
-                self.sprite = 'IMG' + img.name
+            bpy.ops.pribambase.sprite_new(
+                sprite=self.new_sprite, 
+                size=self.new_size, 
+                mode=self.new_mode, 
+                sheet=self.sheet)
+            w,h = self.new_size
+            img = bpy.data.images[self.new_sprite]
+            self.sprite = 'IMG' + self.new_sprite
 
         elif self.from_file:
             if self.filepath.endswith(".ase") or self.filepath.endswith(".aseprite"):

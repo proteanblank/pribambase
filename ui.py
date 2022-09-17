@@ -110,9 +110,18 @@ class SB_PT_edit(bpy.types.Panel):
         row.label(text="Sprite Plane")
         row = row.row(align=True)
         row.alignment = 'RIGHT'
-        row.operator("pribambase.plane_add", text="", icon='FILE_IMAGE').from_file = False
-        row.operator("pribambase.plane_add", text="", icon='FILE_FOLDER').from_file = True
-        row.operator("pribambase.plane_add", text="", icon='FILE').new_image = True
+
+        op = row.operator("pribambase.plane_add", text="", icon='FILE_IMAGE')
+        op.new_image = False
+        op.from_file = False
+
+        op = row.operator("pribambase.plane_add", text="", icon='FILE_FOLDER')
+        op.new_image = False
+        op.from_file = True
+
+        op = row.operator("pribambase.plane_add", text="", icon='FILE')
+        op.new_image = True
+        op.from_file = False
 
         layout.operator("pribambase.grid_set", icon='GRID')
         layout.operator("pribambase.material_add", icon='MATERIAL')
