@@ -34,10 +34,16 @@ class SB_OT_grid_set(bpy.types.Operator):
     bl_description = "Set grid step in every viewport"
     
 
-    step: bpy.props.FloatProperty(
+    step: bpy.props.IntProperty(
         name="Density (px/m)",
         description="Grid step in pixels. It's inverse of what viewport uses",
+        min=1,
         default=10)
+
+    absolute: bpy.props.BoolProperty(
+        name="Absolute Scale",
+        description="Make grid scale independent of viewport zoom",
+        default=True)
     
 
     def execute(self, context):
@@ -52,7 +58,7 @@ class SB_OT_grid_set(bpy.types.Operator):
                     if area.type == 'VIEW_3D':
                         for space in area.spaces:
                             if space.type == 'VIEW_3D':
-                                space.overlay.grid_subdivisions = 1
+                                space.overlay.grid_subdivisions = 1 if self.absolute else self.step
                                 space.overlay.grid_scale = 1/self.step
 
         return {'FINISHED'}
@@ -108,8 +114,8 @@ class SB_PT_edit(bpy.types.Panel):
         row.operator("pribambase.plane_add", text="", icon='FILE_FOLDER').from_file = True
         row.operator("pribambase.plane_add", text="", icon='FILE').new_image = True
 
-        layout.operator("pribambase.material_add", icon='MATERIAL')
         layout.operator("pribambase.grid_set", icon='GRID')
+        layout.operator("pribambase.material_add", icon='MATERIAL')
         
         row = layout.row()
         row.operator("pribambase.sprite_reload_all", icon='FILE_REFRESH')
