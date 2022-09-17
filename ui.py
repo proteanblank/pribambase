@@ -72,6 +72,8 @@ class SB_PT_uv_draw(bpy.types.Panel):
 
     def draw(self, ctx):
         layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
         watch_row = layout.row()
         watch_row.enabled = addon.prefs.uv_sync_auto
@@ -98,12 +100,13 @@ class SB_PT_edit(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        row = layout.split(factor=.33)
-        row.label(text="Plane")
-        col = row.column(align=True)
-        col.operator("pribambase.plane_add", text="Image", icon='FILE_IMAGE').from_file = False
-        col.operator("pribambase.plane_add", text="File", icon='FILE').from_file = True
-        col.operator("pribambase.plane_add", text="New", icon='ADD').new_image = True
+        row = layout.row()
+        row.label(text="Sprite Plane")
+        row = row.row(align=True)
+        row.alignment = 'RIGHT'
+        row.operator("pribambase.plane_add", text="", icon='FILE_IMAGE').from_file = False
+        row.operator("pribambase.plane_add", text="", icon='FILE_FOLDER').from_file = True
+        row.operator("pribambase.plane_add", text="", icon='FILE').new_image = True
 
         layout.operator("pribambase.material_add", icon='MATERIAL')
         layout.operator("pribambase.grid_set", icon='GRID')
