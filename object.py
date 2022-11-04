@@ -83,7 +83,7 @@ _material_sprite_common_props = {
 
 
 def _draw_material_props(self:bpy.types.Operator, layout:bpy.types.UILayout):
-    if self.sprite[:3] == 'IMG' and bpy.data.images[self.sprite[3:]].sb_props.is_sheet:
+    if self.sprite[:3] == 'IMG' and bpy.data.images[self.sprite[3:]].sb_props.sheet:
         layout.prop(self, "sheet")
     layout.prop(self, "two_sided")
     layout.prop(self, "blend")
