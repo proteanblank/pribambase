@@ -27,7 +27,7 @@ from bpy_extras import object_utils
 from os import path
 
 from .addon import addon
-from. image import COLOR_MODES
+from .image import COLOR_MODES
 from . import util
 from . import modify
 from . import ase
@@ -40,7 +40,7 @@ def _get_sprite_enum_items(self, context):
     global _sprite_enum_items_ref
 
     if context:
-        images = (("IMG" + img.name, img.name, "") for img in bpy.data.images if not img.sb_props.is_layer)
+        images = (("IMG" + img.name, img.name, "") for img in bpy.data.images if not img.sb_props.is_layer and not img.sb_props.is_sheet and img.source in ('FILE', 'GENERATED'))
         trees = (("GRP" + tree.name, tree.name, "") for tree in bpy.data.node_groups if tree.type == 'SHADER' and tree.sb_props.source)
         _sprite_enum_items_ref = [*images, *trees] 
     else:
