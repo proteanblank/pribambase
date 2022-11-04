@@ -163,6 +163,28 @@ class SB_PT_link(bpy.types.Panel):
             layout.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
 
 
+class SB_MT_sprite(bpy.types.Menu):
+    bl_label = "Sprite"
+    bl_idname = "SB_MT_sprite"
+
+    def draw(self, context):
+        layout = self.layout
+        connected = addon.connected
+
+        layout.operator("pribambase.sprite_new", icon='FILE_NEW' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit_copy", icon='DUPLICATE' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_replace", icon='FILE_REFRESH' if connected else 'UNLINKED')
+        layout.separator()
+        layout.operator("pribambase.sprite_make_animated")
+
+
+    def header_draw(self, context):
+        # deceiptively, self is not the menu here but the header
+        self.layout.menu("SB_MT_sprite")
+
+
 class SB_PT_sprite(bpy.types.Panel):
     bl_idname = "SB_PT_sprite"
     bl_label = "Sprite Info"
@@ -210,23 +232,18 @@ class SB_PT_sprite_edit(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        connected = addon.connected
+
+        if not connected:
+            layout.operator("pribambase.server_start", icon="ERROR")
+            layout.separator()
 
         if not context.edit_image:
             layout.label(text="No image", icon='INFO')
             return
 
-        connected = addon.connected
-        if not connected:
-            layout.operator("pribambase.server_start", icon="ERROR")
-            layout.separator()
+        SB_MT_sprite.draw(self, layout)
 
-        layout.operator("pribambase.sprite_new", icon='FILE_NEW' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_edit_copy", icon='DUPLICATE' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_replace", icon='FILE_REFRESH' if connected else 'UNLINKED')
-        layout.separator()
-        layout.operator("pribambase.sprite_make_animated")
         layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
 
 
