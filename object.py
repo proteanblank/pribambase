@@ -115,7 +115,10 @@ class SB_OT_material_add(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
 
-        layout.row().prop(self, "sprite")
+        sprow = layout.row()
+        sprow.prop(self, "sprite")
+        if not self.sprite:
+            sprow.label(text="Required", icon='ERROR')
         layout.row().prop(self, "shading", expand=True)
         _draw_material_props(self, layout)
         layout.row().prop(self, "assign")
@@ -127,6 +130,9 @@ class SB_OT_material_add(bpy.types.Operator):
     
 
     def execute(self, context):
+        if not self.sprite:
+            self.report({'ERROR'}, "Sprite image needs to be specified. Material was not created.")
+            return {'CANCELLED'}
         img_type, img_name = self.sprite[:3], self.sprite[3:]
 
         mat = bpy.data.materials.new(img_name)
