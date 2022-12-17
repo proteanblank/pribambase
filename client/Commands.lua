@@ -26,6 +26,9 @@ pribambase_default_settings = {
     autostart=false,
     autoshow=false,
     layers=false,
+    window_persistent=true,
+    window_x=0,
+    window_y=0
 }
 
 function run_script(f) 
@@ -72,5 +75,14 @@ function init(plugin)
             print("Could not start sync" .. ": " .. what)
         end
         pribambase_start = nil
+    end
+end
+
+
+function exit()
+    if pribambase_dlg and pribambase_settings.window_persistent then
+        local b = pribambase_dlg.bounds
+        pribambase_settings.window_x = b.x
+        pribambase_settings.window_y = b.y
     end
 end

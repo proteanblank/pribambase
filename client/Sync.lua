@@ -948,8 +948,35 @@ else
             return
         end
         pause_dlg_close = true
+        if pribambase_settings.window_persistent then
+            local b = dlg.bounds
+            pribambase_settings.window_x = b.x
+            pribambase_settings.window_y = b.y
+        end
         cleanup()
         pause_dlg_close = false
+    end
+
+
+    local function dlgMove()
+        -- restore saved position if needed
+        -- only call after showing the dialog for the first time, it makes assumptions about default
+        -- positioning
+        if pribambase_settings.window_persistent then
+            local b = dlg.bounds -- looks like this creates a table each time
+            local scrw, scrh = b.x * 2 + b.width, b.y * 2 + b.height
+
+            b.x = pribambase_settings.window_x
+            b.y = pribambase_settings.window_y
+
+            -- clamp position so that after resizing window the popup stays inside the client area
+            if b.x < 0 then b.x = 0 end
+            if b.x > scrw - b.width then b.x = scrw - b.width end
+            if b.y < 0 then b.y = 0 end
+            if b.y > scrh - b.height then b.y = scrh - b.height end
+
+            dlg.bounds = b -- assigning will move dialog
+        end
     end
 
 
@@ -1015,11 +1042,13 @@ else
 
             if pribambase_settings.autoshow then
                 dlg:show{ wait=false }
+                dlgMove()
             end
         end
     else
-        -- launched from the menu
+        -- launched from the menu (first time)
         ws:connect()
         dlg:show{ wait=false }
+        dlgMove()
     end
 end
