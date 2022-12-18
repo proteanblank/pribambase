@@ -79,7 +79,7 @@ def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[f
 
 class SB_OT_uv_send(bpy.types.Operator):
     bl_idname = "pribambase.uv_send"
-    bl_label = "Send UV"
+    bl_label = "Send UV (manual)"
     bl_description = "Show UV in Aseprite"
 
     size: bpy.props.IntVectorProperty(
@@ -109,7 +109,7 @@ class SB_OT_uv_send(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected
+        return addon.connected and addon.state.uv_watch == 'NEVER'
 
 
     def execute(self, context):
