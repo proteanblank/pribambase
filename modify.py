@@ -359,7 +359,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             action.start_prop = start
             action.end_prop = end
             # FIXME ase is about to implement loop/repeat flags, but for now use a naming convention
-            action.loop_prop = aname.startswith("(") and aname.endswith(")")
+            action.loop_prop = ".Loop" in aname
 
             if ani_dir == 1:
                 self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Reverse flag is not supported by Armory")
