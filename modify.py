@@ -325,6 +325,46 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             action.update_tag()
 
         _update_action_range(context.scene)
+    
+
+    def update_armory(self, name:str, count:Tuple[int, int], frames:Collection[int], tags:Collection[Tuple[str, int, int, int]]):
+        # Update tilesheet data for armory engine. There they are separate entities invoked by code,
+        # not associated with objects in the scene.
+        armory = bpy.data.worlds["Arm"]
+
+        try:
+            sheet = armory.arm_tilesheetlist[name]
+        except KeyError:
+            sheet = armory.arm_tilesheetlist.add()
+            sheet.name = name
+            
+        sheet.tilesx_prop, sheet.tilesy_prop = count
+        framerate = frames[0][1]
+        sheet.framerate_prop = 1000.0 / framerate 
+
+        if next((True for f in frames if f[1] != framerate), False):
+            self.report({'WARNING'}, f"Sprite sheet \"{name}\": variable framerate is not supported by Armory")
+        
+        # create/update actions
+        actions = sheet.arm_tilesheetactionlist
+        # make one extra action for the entire timeline.
+        tl = (name, 0, len(frames) - 1, 0)
+        for (aname, start, end, ani_dir) in (tl, *tags):
+            try:
+                action = actions[aname]
+            except KeyError:
+                action = actions.add()
+                action.name = aname
+            
+            action.start_prop = start
+            action.end_prop = end
+            # FIXME ase is about to implement loop/repeat flags, but for now use a naming convention
+            action.loop_prop = aname.startswith("(") and aname.endswith(")")
+
+            if ani_dir == 1:
+                self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Reverse flag is not supported by Armory")
+            if ani_dir == 2:
+                self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Ping-Pong flag is not supported by Armory")
 
 
     def modal_execute(self, context):
@@ -352,6 +392,12 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                 sheet.sb_props.sheet_start = start
 
                 self.update_actions(context, img, start, frames, current_frame, tags, current_tag)
+
+                if addon.state.use_sync_armory and ("Arm" in bpy.data.worlds):
+                    try:
+                        self.update_armory(img.name, count, frames, tags)
+                    except:
+                        self.report({'WARNING'}, "Failed to update Armory data. Make sure the addon is enabled and set up.")
 
                 self.args = tex_w, tex_h, tex_name, -1, set(), pixels
                 SB_OT_update_image.modal_execute(self, context) # clears self.args

@@ -161,7 +161,10 @@ class SB_PT_link(bpy.types.Panel):
             layout.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
             layout.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
-
+        
+        if "Arm" in bpy.data.worlds:
+            layout.prop(context.scene.sb_state, "use_sync_armory")
+            
 
 class SB_MT_sprite(bpy.types.Menu):
     bl_label = "Sprite"

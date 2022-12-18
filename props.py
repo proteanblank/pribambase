@@ -99,6 +99,11 @@ class SB_State(bpy.types.PropertyGroup):
         description="Default thickness of the UV map with scale appied. For example, if `UV scale` is 2 and thickness is 3, the lines will be 1.5 pixel thick in aseprite",
         default=1.0)
 
+    use_sync_armory: bpy.props.BoolProperty(
+        name="Generate Armory Sprites",
+        description="Create and update sprite sheets and sprite actions far Armory engine (in material tab) alongside pribabase animations.",
+        default=False)
+
     # stub to show in the animation panel instead of the object property when it's absent
     frame_stub: bpy.props.IntProperty(
         name="Frame",
