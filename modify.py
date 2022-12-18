@@ -319,7 +319,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
                 # modifiers. there can be only one cycles modifier
                 mod = next((m for m in fcurve.modifiers if m.type == 'CYCLES'))
-                mod.mute = (".Loop" not in tag)
+                mod.mute = (".loop" not in tag.lower())
 
                 fcurve.update()
             action.update_tag()
@@ -359,7 +359,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             action.start_prop = start
             action.end_prop = end
             # FIXME ase is about to implement loop/repeat flags, but for now use a naming convention
-            action.loop_prop = ".Loop" in aname
+            action.loop_prop = ".loop" in aname.lower()
 
             if ani_dir == 1:
                 self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Reverse flag is not supported by Armory")
