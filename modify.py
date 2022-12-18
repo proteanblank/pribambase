@@ -348,7 +348,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         # create/update actions
         actions = sheet.arm_tilesheetactionlist
         # make one extra action for the entire timeline.
-        tl = (name, 0, len(frames) - 1, 0)
+        tl = (f"({name})", 0, len(frames) - 1, 0)
         for (aname, start, end, ani_dir) in (tl, *tags):
             try:
                 action = actions[aname]
