@@ -243,7 +243,7 @@ else
         local ntags = #sprite.tags
         _infos[nframes + 1] = string.pack("<I4s4", ntags, opts.tag)
         for i,tag in ipairs(sprite.tags) do
-            dir = (tag.aniDir == AniDir.PING_PONG and 2 or (tag.aniDir == AniDir.REVERSE and 1 or 0))
+            local dir = (tag.aniDir == AniDir.PING_PONG and 2 or (tag.aniDir == AniDir.REVERSE and 1 or 0))
             _infos[nframes + 1 + i] = string.pack("<s4HHB", tag.name, tag.fromFrame.frameNumber - 1, tag.toFrame.frameNumber - 1, dir)
         end
 
