@@ -88,9 +88,10 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 # [#12] for some users viewports do not update from update() alone
                 img.update_tag()
 
-                if addon.prefs.save_after_sync:
+                if addon.prefs.save_after_sync or img.sb_props.needs_save:
                     bpy.ops.image.save({"edit_image": img})
                     bpy.ops.image.reload({"edit_image": img})
+                    img.sb_props.needs_save = False
 
         util.refresh()
 
