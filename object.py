@@ -519,6 +519,10 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
         prop_path = '["pribambase_frame"]'
         obj.sb_props.animation = img
 
+        # create animation_data. Not having one breaks action setter shortcut
+        if obj.animation_data is None:
+            obj.animation_data_create()
+
         # custom property
         if "pribambase_frame" not in obj:
             obj["pribambase_frame"] = start
