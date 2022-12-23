@@ -181,6 +181,7 @@ class SB_MT_sprite(bpy.types.Menu):
         layout.operator("pribambase.sprite_replace", icon='FILE_REFRESH' if connected else 'UNLINKED')
         layout.separator()
         layout.operator("pribambase.sprite_make_animated")
+        layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
 
 
     def header_draw(self, context):
@@ -246,8 +247,6 @@ class SB_PT_sprite_edit(bpy.types.Panel):
             return
 
         SB_MT_sprite.draw(self, layout)
-
-        layout.operator("pribambase.uv_send", icon='UV_VERTEXSEL' if connected else 'UNLINKED')
 
 
 class SB_PT_animation(bpy.types.Panel):
