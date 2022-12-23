@@ -182,6 +182,23 @@ class SB_OT_uv_send(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 
+class SB_OT_uv_send_ui(bpy.types.Operator):
+    """Hack that forwards to `pribambase.send_uv`. Used to disable the button in the UI, but allows 
+       to keep using `pribambase.send_uv` in the code for automatic sync - hence, it shouldn't fail
+       at mode check. FIXME: make this less sloppy."""
+    bl_idname = "pribambase.uv_send_ui"
+    bl_label = "Send UV (manual)"
+    bl_description = "Show UV in Aseprite"
+
+    @classmethod
+    def poll(self, context):
+        return addon.connected and addon.state.uv_watch == 'NEVER'
+    
+    def invoke(self, context, event):
+        bpy.ops.pribambase.uv_send('INVOKE_DEFAULT')
+        return {'CANCELLED'}
+
+
 class SB_OT_sprite_open(bpy.types.Operator):
     bl_idname = "pribambase.sprite_open"
     bl_label = "Open..."
