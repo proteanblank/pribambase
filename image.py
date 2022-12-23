@@ -109,7 +109,7 @@ class SB_OT_uv_send(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected and addon.state.uv_watch == 'NEVER'
+        return addon.connected
 
 
     def execute(self, context):
