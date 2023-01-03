@@ -505,10 +505,6 @@ class SB_OT_spritesheet_rig(bpy.types.Operator):
 
 
     def execute(self, context):
-        if bpy.app.version < (2, 83):
-            self.report({'ERROR'}, "UVWarp transforms needed for animation are not supported in your blender version. Has to be 2.83 or newer")
-            return {'CANCELLED'}
-
         obj:bpy.types.Object = context.active_object
         img:bpy.types.Image = bpy.data.images[self.sprite]
         if not img:
