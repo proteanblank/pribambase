@@ -76,6 +76,12 @@ class SB_PT_uv_draw(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_options = {'DEFAULT_CLOSED'}
 
+
+    @classmethod
+    def poll(self, context):
+        return addon.installed
+        
+
     def draw(self, ctx):
         layout = self.layout
         layout.use_property_split = True
@@ -101,6 +107,11 @@ class SB_PT_edit(bpy.types.Panel):
     bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
+
+
+    @classmethod
+    def poll(self, context):
+        return addon.installed
 
 
     def draw(self, context):
@@ -140,6 +151,11 @@ class SB_PT_link(bpy.types.Panel):
     bl_region_type = "UI"
 
 
+    @classmethod
+    def poll(self, context):
+        return addon.installed
+
+
     def draw(self, context):
         layout = self.layout
 
@@ -171,6 +187,12 @@ class SB_MT_sprite(bpy.types.Menu):
     bl_label = "Sprite"
     bl_idname = "SB_MT_sprite"
 
+
+    @classmethod
+    def poll(self, context):
+        return addon.installed
+
+
     def draw(self, context):
         layout = self.layout
         connected = addon.connected
@@ -196,6 +218,11 @@ class SB_PT_sprite(bpy.types.Panel):
     bl_category = "Pribambase"
     bl_space_type = "IMAGE_EDITOR"
     bl_region_type = "UI"
+
+
+    @classmethod
+    def poll(self, context):
+        return addon.installed
 
 
     def draw(self, context):
@@ -235,6 +262,11 @@ class SB_PT_sprite_edit(bpy.types.Panel):
     bl_region_type = "UI"
 
 
+    @classmethod
+    def poll(self, context):
+        return addon.installed
+
+
     def draw(self, context):
         layout = self.layout
         connected = addon.connected
@@ -256,6 +288,11 @@ class SB_PT_animation(bpy.types.Panel):
     bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
+
+
+    @classmethod
+    def poll(self, context):
+        return addon.installed
 
 
     def draw(self, context):        
@@ -315,3 +352,18 @@ class SB_PT_animation(bpy.types.Panel):
 
         else:
             layout.label(text="Select a mesh")
+
+
+class SB_PT_setup(bpy.types.Panel):
+    bl_idname = "SB_PT_setup"
+    bl_label = "Setup"
+    bl_category = "Pribambase"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(self, context):
+        return not addon.installed
+
+    def draw(self, context):
+        self.layout.operator("pribambase.setup")

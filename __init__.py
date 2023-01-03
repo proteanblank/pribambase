@@ -95,6 +95,7 @@ classes = (
     SB_PT_animation,
     SB_PT_sprite,
     SB_PT_sprite_edit,
+    SB_PT_setup,
     # Menus
     SB_MT_sprite
 )
