@@ -88,7 +88,8 @@ class SB_OT_launch(bpy.types.Operator):
         return addon.installed and not addon.connected
 
     def execute(self, context):
-        bpy.ops.pribambase.server_start()
+        if not addon.server_up:
+            bpy.ops.pribambase.server_start()
         from subprocess import Popen, DETACHED_PROCESS
         start_lua = path.join(path.dirname(__file__), "scripts", "start.lua")
         Popen([addon.prefs.executable, "--script", start_lua], creationflags=DETACHED_PROCESS)
