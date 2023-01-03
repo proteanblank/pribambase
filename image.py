@@ -58,9 +58,13 @@ def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[f
 
     # get all edges
     for face in bm.faces:
-        if only_selected and not face.select:
-            # not shown in the UV editor, skipping
-            continue
+        # not shown in the UV editor, skipping
+        try:
+            if only_selected and not face.select_face:
+                continue
+        except AttributeError:
+            if only_selected and not face.select:
+                continue
 
         for i in range(0, len(face.loops)):
             a = face.loops[i - 1][uv].uv.to_tuple()
@@ -129,7 +133,10 @@ class SB_OT_uv_send(bpy.types.Operator):
 
         edges = set(line for obj in objects for line in uv_lines(obj.data, only_selected=not context.scene.tool_settings.use_uv_select_sync))
         coords = [c for pt in edges for c in pt]
-        shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        try: # 3.4+
+            shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+        except ValueError: # older versions
+            shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         batch = batch_for_shader(shader, 'LINES', {"pos": coords})
 
         with offscreen.bind():
