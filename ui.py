@@ -158,10 +158,10 @@ class SB_PT_link(bpy.types.Panel):
         layout.row().label(text=status, icon=icon)
         
         if addon.server_up:
-            layout.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
+            layout.operator("pribambase.server_stop", text="Stop", icon='DECORATE_LIBRARY_OVERRIDE')
         else:
-            layout.operator("pribambase.launch", icon="BRUSHES_ALL")
-            layout.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
+            layout.operator("pribambase.launch", icon='BRUSHES_ALL')
+            layout.operator("pribambase.server_start", text="Connect", icon='DECORATE_LINKED')
         
         if "Arm" in bpy.data.worlds:
             layout.prop(context.scene.sb_state, "use_sync_armory")
@@ -240,7 +240,7 @@ class SB_PT_sprite_edit(bpy.types.Panel):
         connected = addon.connected
 
         if not connected:
-            layout.operator("pribambase.server_start", icon="ERROR")
+            layout.operator("pribambase.server_start", icon='ERROR')
             layout.separator()
 
         if not context.edit_image:
