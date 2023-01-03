@@ -27,11 +27,6 @@ class SB_OT_setup(bpy.types.Operator):
         return next((p for p in paths if path.exists(p)), "")
 
 
-    @classmethod
-    def poll(self, context):
-        return not addon.installed
-
-
     def execute(self, context):
         from subprocess import check_output
         from re import search

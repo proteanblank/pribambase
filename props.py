@@ -406,3 +406,5 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box.row().prop(self, "save_after_sync")
         box.row().prop(self, "use_relative_path")
         box.row().prop(self, "whole_frames")
+
+        layout.operator("pribambase.setup", text="Re-install Aseprite extension" if addon.installed else "Install Aseprite extension")
