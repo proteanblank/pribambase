@@ -239,10 +239,7 @@ def sb_on_load_post(scene):
         bpy.context.scene.use_preview_range = False
     addon.state.action_preview = None
     addon.state.action_preview_enabled = False
-
-    if addon.prefs.autostart:
-        addon.start_server()
-
+    
 
 @persistent
 def sb_on_load_pre(scene):

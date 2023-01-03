@@ -23,8 +23,6 @@ pribambase_settings = nil -- refers to plugin.preferences
 pribambase_default_settings = {
     host="localhost",
     port="34613",
-    autostart=false,
-    autoshow=false,
     layers=false,
     window_persistent=true,
     window_x=0,
@@ -67,15 +65,6 @@ function init(plugin)
         onenabled=function() return pribambase_dlg == nil end,
         onclick=run_script("Settings")
     }
-
-    if plugin.preferences.autostart or plugin.preferences.autoshow then
-        pribambase_start = true
-        local ok, what = pcall(run_script("Sync"))
-        if not ok then
-            print("Could not start sync" .. ": " .. what)
-        end
-        pribambase_start = nil
-    end
 end
 
 

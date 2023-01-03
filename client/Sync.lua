@@ -1032,23 +1032,8 @@ else
 
     updateDialog()
 
-    -- GO
-
-    if --[[ global ]]pribambase_start then
-        -- plugin is loading now
-        -- FIXME remove this condition, it's not needed
-        if pribambase_settings.autostart then
-            ws:connect()
-
-            if pribambase_settings.autoshow then
-                dlg:show{ wait=false }
-                dlgMove()
-            end
-        end
-    else
-        -- launched from the menu (first time)
-        ws:connect()
-        dlg:show{ wait=false }
-        dlgMove()
-    end
+    -- lesgoo
+    ws:connect()
+    dlg:show{ wait=false }
+    dlgMove()
 end

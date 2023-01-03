@@ -41,16 +41,9 @@ local function save()
 end
 
 
-local function changeAutoshow()
-    dlg:modify{ id="autoshow", visible=dlg.data.autostart }
-end
-
-
 dlg:separator{text="Connection"}
     :entry{id="host", label="Server", text=pribambase_settings.host}
     :entry{id="port", label="Port", text=pribambase_settings.port}
-    :check{id="autostart", label="Connect when Aseprite launches", selected=pribambase_settings.autostart, onclick=changeAutoshow}
-    :check{id="autoshow", label="Show when Aseprite launches", selected=pribambase_settings.autoshow, visible=dlg.data.autostart}
     :check{id="window_persistent", label="Remember Window Position", selected=pribambase_settings.window_persistent}
 
     :separator{text="Experimental"}

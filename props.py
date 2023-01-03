@@ -335,11 +335,6 @@ class SB_Preferences(bpy.types.AddonPreferences):
         description="Minimum time before sending an update to Aseprite after the previous one. Lower values make changes apply faster, but may cause unstable behavior.",
         default=0.5)
 
-    autostart: bpy.props.BoolProperty(
-        name="Connect On Launch",
-        description="Set up the connection when Blender starts",
-        default=False)
-
     uv_layer:bpy.props.StringProperty(
         name="Layer Name",
         description="Name of the reference layer that will be created to display the UVs in Aseprite",
@@ -393,8 +388,6 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box.row().prop(self, "uv_sync_auto")
 
         box = self.template_box(layout, label="Connection:")
-
-        box.row().prop(self, "autostart")
 
         row = box.row()
         row.enabled = not addon.server_up
