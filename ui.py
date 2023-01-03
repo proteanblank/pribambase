@@ -160,6 +160,7 @@ class SB_PT_link(bpy.types.Panel):
         if addon.server_up:
             layout.operator("pribambase.server_stop", text="Stop", icon="DECORATE_LIBRARY_OVERRIDE")
         else:
+            layout.operator("pribambase.launch", icon="BRUSHES_ALL")
             layout.operator("pribambase.server_start", text="Connect", icon="DECORATE_LINKED")
         
         if "Arm" in bpy.data.worlds:

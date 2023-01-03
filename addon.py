@@ -79,6 +79,11 @@ class Addon:
     @property
     def connected(self) -> bool:
         return self._server and self._server.connected
+
+    
+    @property
+    def installed(self) -> bool:
+        return self.prefs.executable != ""
     
 
     @property

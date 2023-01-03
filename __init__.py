@@ -36,6 +36,7 @@ from .object import *
 from .animation import *
 from .modify import *
 from .util import *
+from .setup import *
 from .addon import addon
 
 
@@ -85,6 +86,8 @@ classes = (
     SB_OT_spritesheet_rig,
     SB_OT_spritesheet_unrig,
     SB_OT_report,
+    SB_OT_setup,
+    SB_OT_launch,
     # Panels
     SB_PT_link,
     SB_PT_edit,

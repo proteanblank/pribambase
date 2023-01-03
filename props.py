@@ -314,6 +314,10 @@ class SB_ActionProperties(bpy.types.PropertyGroup):
 class SB_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
+    executable: bpy.props.StringProperty(
+        name="Aseprite Executable",
+        description="Path to Aseprite program")
+
     port: bpy.props.IntProperty(
         name="Port",
         description="Port used by the websocket server. Aseprite plugin must have the same value to connect",
@@ -379,6 +383,8 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+        
+        layout.row().prop(self, "executable")
 
         box = self.template_box(layout, label="UV Map:")
 
