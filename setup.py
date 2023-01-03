@@ -3,6 +3,7 @@ import os
 from os import path
 
 from .addon import addon
+from . import util
 
 class SB_OT_setup(bpy.types.Operator):
     bl_idname = "pribambase.setup"
@@ -52,6 +53,7 @@ class SB_OT_setup(bpy.types.Operator):
             addon.prefs.executable = self.filepath
             bpy.ops.wm.save_userpref('EXEC_DEFAULT') #otherwise the path will reset next launch
             self.report({'INFO'}, "Installation complete!")
+            util.refresh() # needed in case setup was launched from operator finder
 
         except:
             self.info({'ERROR'}, "Aseprite extension setup failed.")
