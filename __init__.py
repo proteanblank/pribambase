@@ -113,6 +113,9 @@ def register():
     for cls in classes:
         register_class(cls)
 
+    # can run check now
+    addon.check_installed()
+
     # custom data
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)
     bpy.types.Image.sb_props = bpy.props.PointerProperty(type=SB_ImageProperties)

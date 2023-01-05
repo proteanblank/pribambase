@@ -366,4 +366,10 @@ class SB_PT_setup(bpy.types.Panel):
         return not addon.installed
 
     def draw(self, context):
-        self.layout.operator("pribambase.setup")
+        layout = self.layout
+        # it's same operator but different message for the user
+        if addon.ase_needs_update:
+            layout.label(text="Version changed")
+            layout.operator("pribambase.setup", text="Update for Aseprite")
+        else:
+            layout.operator("pribambase.setup")

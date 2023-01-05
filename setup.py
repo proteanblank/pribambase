@@ -1,13 +1,29 @@
 import bpy
 import os
 from os import path
+from subprocess import check_output
+from re import search
 
 from .addon import addon
 from . import util
 
+
+def get_extension_folder(aseprite_exe):
+    """Raises RuntimeError if path not found"""
+    info_lua = path.join(path.dirname(__file__), "scripts", "info.lua")
+    lines = check_output([aseprite_exe, "--batch", "--script", info_lua]).decode('utf-8')
+    # there can be extra output, such as prints from installed plugins
+    p = search("config_path=([^;]+);", lines)
+
+    try:
+        return path.join(p.group(1), "extensions", "pribambase")
+    except:
+        raise RuntimeError
+
+
 class SB_OT_setup(bpy.types.Operator):
     bl_idname = "pribambase.setup"
-    bl_label = "Setup Pribambase"
+    bl_label = "Setup for Aseprite"
     bl_description = "Configure Pribambase for working with Aseprite"
 
     # dialog settings
@@ -29,21 +45,13 @@ class SB_OT_setup(bpy.types.Operator):
 
 
     def execute(self, context):
-        from subprocess import check_output
-        from re import search
         from shutil import copytree, ignore_patterns
 
         # extension can be installed by copying files inside aseprite settings subfolder
         # let's do it like that
 
-        info_lua = path.join(path.dirname(__file__), "scripts", "info.lua")
-        lines = check_output([self.filepath, "--batch", "--script", info_lua]).decode('utf-8')
-        # there can be extra output, such as prints from installed plugins
-        p = search("config_path=([^;]+);", lines)
-
         try:
-            conf = p.group(1)
-            extfolder = path.join(conf, "extensions", "pribambase")
+            extfolder = get_extension_folder(self.filepath)
 
             self.report({'INFO'}, f"Installing to: {extfolder}")
             copytree(path.join(path.dirname(__file__), "client"), extfolder, dirs_exist_ok=True,
@@ -52,8 +60,13 @@ class SB_OT_setup(bpy.types.Operator):
             
             addon.prefs.executable = self.filepath
             bpy.ops.wm.save_userpref('EXEC_DEFAULT') #otherwise the path will reset next launch
+            addon.check_installed()
             self.report({'INFO'}, "Installation complete!")
             util.refresh() # needed in case setup was launched from operator finder
+
+        except RuntimeError:
+            self.info({'ERROR'}, "Aseprite extension setup failed. Make sure scripting is enabled in your version of Aseprite.")
+            return {'CANCELLED'}
 
         except:
             self.info({'ERROR'}, "Aseprite extension setup failed.")

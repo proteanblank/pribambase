@@ -34,6 +34,8 @@ class Addon:
         self._server = None
         self.watch = None
         self.active_sprite = None
+        self.installed = False # need to run install/update
+        self.ase_needs_update = False # in addition to above, it's update, not install
 
 
     @property
@@ -79,12 +81,31 @@ class Addon:
     @property
     def connected(self) -> bool:
         return self._server and self._server.connected
+    
 
-    
-    @property
-    def installed(self) -> bool:
-        return self.prefs.executable != ""
-    
+    def check_installed(self):
+        # no executable specified
+        if not self.prefs.executable:
+            self.installed = False
+            return
+        
+        # check if the same version is installed
+        from os import path
+        from json import load
+        from .setup import get_extension_folder
+        from . import bl_info
+
+        try:
+            extfolder = get_extension_folder(self.prefs.executable)
+            with open(path.join(extfolder, "package.json"), "r") as pj:
+                info = load(pj)
+                self.installed = (info["version"] == "{}.{}.{}".format(*bl_info["version"]))
+                self.ase_needs_update = not self.installed
+
+        except RuntimeError:
+            self.installed = False
+            return
+
 
     @property
     def active_sprite_image(self) -> Union[bpy.types.Image, None]:
