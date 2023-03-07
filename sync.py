@@ -224,7 +224,7 @@ class UVWatch:
         meshes = (obj.data for obj in context.view_layer.objects if obj.select_get() and obj.type == 'MESH' and obj.data)
         active_obj = context.view_layer.objects.active
         if active_obj and active_obj.type == 'MESH':
-            meshes = chain(meshes, [active_obj])
+            meshes = chain(meshes, [active_obj.data])
 
         lines = frozenset(line for mesh in meshes for line in uv_lines(mesh, only_selected=not context.scene.tool_settings.use_uv_select_sync))
         new_hash = hash(lines) if lines else 0

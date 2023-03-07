@@ -52,6 +52,7 @@ def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[f
         bm.from_mesh(mc)
     except:
         bm.free()
+        bpy.data.meshes.remove(mc)
         return
 
     uv = bm.loops.layers.uv.active
