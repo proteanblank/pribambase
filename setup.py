@@ -55,7 +55,7 @@ class SB_OT_setup(bpy.types.Operator):
 
             self.report({'INFO'}, f"Installing to: {extfolder}")
             copytree(path.join(path.dirname(__file__), "client"), extfolder, dirs_exist_ok=True,
-                ignore=ignore_patterns("_pref.lua")) # we'll need to keep settings intact
+                ignore=ignore_patterns("__pref.lua")) # we'll need to keep settings intact
             self.report({'INFO'}, f"Files copied to {extfolder}")
             
             addon.prefs.executable = self.filepath
