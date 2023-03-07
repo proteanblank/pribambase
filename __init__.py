@@ -45,7 +45,7 @@ bl_info = {
     "author": "lampysprites",
     "description": "Paint pixelart textures in Blender using Aseprite",
     "blender": (2, 80, 0),
-    "version": (2, 4, 1),
+    "version": (2, 4, 2),
     "category": "Paint"
 }
 
