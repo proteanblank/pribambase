@@ -1,7 +1,6 @@
 import bpy
-import os
 from os import path
-from subprocess import check_output
+import sys
 from subprocess import Popen, PIPE
 
 from .addon import addon
@@ -9,15 +8,17 @@ from . import util
 
 
 def get_extension_folder(aseprite_exe):
-    """Raises RuntimeError if path not found"""
+    """Raises RutimeError if path not found"""
     info_lua = path.join(path.dirname(__file__), "scripts", "info.lua")
-    lines = check_output([aseprite_exe, "--batch", "--script", info_lua]).decode('utf-8')
-    # there can be extra output, such as prints from installed plugins
-    p = search("config_path=([^;]+);", lines)
-
+    prefix = "config_path=" # format is `config_path=...;`
+    # there can be extra output and errors from installed plugins, so ignore retcode and other lines
+    process = Popen([aseprite_exe, "--batch", "--script", info_lua], stdout=PIPE)
+    out, _ = process.communicate()
     try:
-        return path.join(p.group(1), "extensions", "pribambase")
-    except:
+        # for some reason, a simple regex here failed for some users
+        line = next((l for l in out.decode().splitlines() if l.startswith(prefix)))
+        return path.join(line[len(prefix):-1], "extensions", "pribambase")
+    except StopIteration:
         raise RuntimeError
 
 
@@ -28,7 +29,7 @@ class SB_OT_setup(bpy.types.Operator):
 
     # dialog settings
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-    filter_glob: bpy.props.StringProperty(default="aseprite.exe;aseprite", options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default="*.exe;*.bat;*.sh;[Aa]seprite", options={'HIDDEN'})
     use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
 
 
@@ -64,12 +65,16 @@ class SB_OT_setup(bpy.types.Operator):
             self.report({'INFO'}, "Installation complete!")
             util.refresh() # needed in case setup was launched from operator finder
 
-        except RuntimeError:
-            self.info({'ERROR'}, "Aseprite extension setup failed. Make sure scripting is enabled in your version of Aseprite.")
+        except FileNotFoundError:
+            self.report({'ERROR'}, "Aseprite extension setup failed. Could not start Aseprite executable.")
             return {'CANCELLED'}
 
-        except:
-            self.info({'ERROR'}, "Aseprite extension setup failed.")
+        except RuntimeError:
+            self.report({'ERROR'}, "Aseprite extension setup failed. Make sure scripting is enabled in your version of Aseprite.")
+            return {'CANCELLED'}
+
+        except Exception as e:
+            self.report({'ERROR'}, "Aseprite extension setup failed. " + str(e))
             return {'CANCELLED'}
 
         return {'FINISHED'}

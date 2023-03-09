@@ -102,7 +102,7 @@ class Addon:
                 self.installed = (info["version"] == "{}.{}.{}".format(*bl_info["version"]))
                 self.ase_needs_update = not self.installed
 
-        except RuntimeError:
+        except (FileNotFoundError, RuntimeError):
             self.installed = False
             return
 
