@@ -2,7 +2,7 @@ import bpy
 import os
 from os import path
 from subprocess import check_output
-from re import search
+from subprocess import Popen, PIPE
 
 from .addon import addon
 from . import util
@@ -100,7 +100,10 @@ class SB_OT_launch(bpy.types.Operator):
     def execute(self, context):
         if not addon.server_up:
             bpy.ops.pribambase.server_start()
-        from subprocess import Popen, DETACHED_PROCESS
         start_lua = path.join(path.dirname(__file__), "scripts", "start.lua")
-        Popen([addon.prefs.executable, "--script", start_lua], creationflags=DETACHED_PROCESS)
+        if sys.platform == "win32":
+            from subprocess import DETACHED_PROCESS
+            Popen([addon.prefs.executable, "--script", start_lua], creationflags=DETACHED_PROCESS)
+        else:
+            Popen([addon.prefs.executable, "--script", start_lua])
         return {'FINISHED'}
