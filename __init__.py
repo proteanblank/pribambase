@@ -95,7 +95,6 @@ classes = (
     SB_PT_animation,
     SB_PT_sprite,
     SB_PT_sprite_edit,
-    SB_PT_setup,
     # Menus
     SB_MT_sprite
 )
@@ -112,9 +111,6 @@ def register():
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)
-
-    # can run check now
-    addon.check_installed()
 
     # custom data
     bpy.types.Scene.sb_state = bpy.props.PointerProperty(type=SB_State)

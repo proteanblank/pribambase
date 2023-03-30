@@ -75,11 +75,6 @@ class SB_PT_uv_draw(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_options = {'DEFAULT_CLOSED'}
-
-
-    @classmethod
-    def poll(self, context):
-        return addon.installed
         
 
     def draw(self, ctx):
@@ -107,11 +102,6 @@ class SB_PT_edit(bpy.types.Panel):
     bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-
-
-    @classmethod
-    def poll(self, context):
-        return addon.installed
 
 
     def draw(self, context):
@@ -151,11 +141,6 @@ class SB_PT_link(bpy.types.Panel):
     bl_region_type = "UI"
 
 
-    @classmethod
-    def poll(self, context):
-        return addon.installed
-
-
     def draw(self, context):
         layout = self.layout
 
@@ -188,11 +173,6 @@ class SB_MT_sprite(bpy.types.Menu):
     bl_idname = "SB_MT_sprite"
 
 
-    @classmethod
-    def poll(self, context):
-        return addon.installed
-
-
     def draw(self, context):
         layout = self.layout
         connected = addon.connected
@@ -218,11 +198,6 @@ class SB_PT_sprite(bpy.types.Panel):
     bl_category = "Pribambase"
     bl_space_type = "IMAGE_EDITOR"
     bl_region_type = "UI"
-
-
-    @classmethod
-    def poll(self, context):
-        return addon.installed
 
 
     def draw(self, context):
@@ -262,11 +237,6 @@ class SB_PT_sprite_edit(bpy.types.Panel):
     bl_region_type = "UI"
 
 
-    @classmethod
-    def poll(self, context):
-        return addon.installed
-
-
     def draw(self, context):
         layout = self.layout
         connected = addon.connected
@@ -288,11 +258,6 @@ class SB_PT_animation(bpy.types.Panel):
     bl_category = "Pribambase"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-
-
-    @classmethod
-    def poll(self, context):
-        return addon.installed
 
 
     def draw(self, context):        
@@ -352,24 +317,3 @@ class SB_PT_animation(bpy.types.Panel):
 
         else:
             layout.label(text="Select a mesh")
-
-
-class SB_PT_setup(bpy.types.Panel):
-    bl_idname = "SB_PT_setup"
-    bl_label = "Setup"
-    bl_category = "Pribambase"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-
-    @classmethod
-    def poll(self, context):
-        return not addon.installed
-
-    def draw(self, context):
-        layout = self.layout
-        # it's same operator but different message for the user
-        if addon.ase_needs_update:
-            layout.label(text="Version changed")
-            layout.operator("pribambase.setup", text="Update for Aseprite")
-        else:
-            layout.operator("pribambase.setup")

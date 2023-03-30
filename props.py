@@ -27,8 +27,6 @@ import secrets
 import os.path
 
 from .addon import addon
-from . import util
-from . import modify
 
 
 def _get_identifier(self):
@@ -39,6 +37,23 @@ def _get_identifier(self):
         self["_identifier"] = secrets.token_hex(4) # 8 chars should be enough?
 
     return self["_identifier"]
+
+
+def _find_aseprite(_self):
+    exe = addon.prefs.executable
+    lookup_paths = (
+        "C:\\Program Files\\Aseprite\\aseprite.exe",
+        "C:\\Program Files (x86)\\Aseprite\\aseprite.exe",
+        "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprite\\aseprite.exe",
+        "/Applications/Aseprite.app",
+        "~/Library/Application Support/Steam/steamapps/common/Aseprite/Aseprite.app",
+        "~/.steam/debian-installation/steamapps/common/Aseprite/aseprite",
+        "/usr/bin/aseprite")
+
+    if exe and os.path.exists(exe):
+        return exe
+    else:
+        return next((p for p in lookup_paths if os.path.exists(p)), "")
 
 
 class SB_State(bpy.types.PropertyGroup):
@@ -101,7 +116,7 @@ class SB_State(bpy.types.PropertyGroup):
 
     use_sync_armory: bpy.props.BoolProperty(
         name="Generate Armory Sprites",
-        description="Create and update sprite sheets and sprite actions far Armory engine (in material tab) alongside pribabase animations.",
+        description="Create and update sprite sheets and sprite actions far Armory engine (in material tab) alongside pribabase animations",
         default=False)
 
     # stub to show in the animation panel instead of the object property when it's absent
@@ -316,7 +331,8 @@ class SB_Preferences(bpy.types.AddonPreferences):
 
     executable: bpy.props.StringProperty(
         name="Aseprite Executable",
-        description="Path to Aseprite program")
+        subtype='FILE_PATH',
+        description="Path to Aseprite program. It will be launched by some Pribambase operators. If not specified, auto-detected path is used")
 
     port: bpy.props.IntProperty(
         name="Port",
@@ -332,7 +348,7 @@ class SB_Preferences(bpy.types.AddonPreferences):
     
     debounce: bpy.props.FloatProperty(
         name="Debounce",
-        description="Minimum time before sending an update to Aseprite after the previous one. Lower values make changes apply faster, but may cause unstable behavior.",
+        description="Minimum time before sending an update to Aseprite after the previous one. Lower values make changes apply faster, but may cause unstable behavior",
         default=0.5)
 
     uv_layer:bpy.props.StringProperty(
@@ -370,6 +386,12 @@ class SB_Preferences(bpy.types.AddonPreferences):
         description="Save/pack the image and reload it every time after syncing with aseprite. NOT RECOMMENDED due to potential heavy disk load - it's needed to work around blender 3.1 image update bug",
         default=False)
 
+    executable_auto: bpy.props.StringProperty(
+        name="Aseprite Executable",
+        description="An auto-detected standard distribution of Aseprite (if there's any). If there's no custom path specified, it will be the one launched from Pribambase operators",
+        options={'HIDDEN', 'SKIP_SAVE'},
+        get=_find_aseprite)
+
     def template_box(self, layout, label="Box"):
         row = layout.row().split(factor=0.15)
         row.label(text=label)
@@ -379,7 +401,13 @@ class SB_Preferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         
-        layout.row().prop(self, "executable")
+        box = self.template_box(layout, label="Aseprite:")
+
+        box.row().prop(self, "executable", text="Executable")
+        row = box.row()
+        row.enabled = False
+        row.prop(self, "executable_auto", text="Auto-detected")
+        box.row().operator("pribambase.setup")
 
         box = self.template_box(layout, label="UV Map:")
 
@@ -406,5 +434,3 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box.row().prop(self, "save_after_sync")
         box.row().prop(self, "use_relative_path")
         box.row().prop(self, "whole_frames")
-
-        layout.operator("pribambase.setup", text="Re-install Aseprite extension" if addon.installed else "Install Aseprite extension")
