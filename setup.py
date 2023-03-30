@@ -12,8 +12,9 @@ def get_extension_folder(aseprite_exe):
     info_lua = path.join(path.dirname(__file__), "scripts", "info.lua")
     prefix = "config_path=" # format is `config_path=...;`
     # there can be extra output and errors from installed plugins, so ignore retcode and other lines
-    process = Popen([aseprite_exe, "--batch", "--script", info_lua], stdout=PIPE)
+    process = Popen([f'"{aseprite_exe}"', "--batch", "--script", f'"{info_lua}"'], stdout=PIPE)
     out, _ = process.communicate()
+    print(info_lua, out)
     try:
         # for some reason, a simple regex here failed for some users
         line = next((l for l in out.decode().splitlines() if l.startswith(prefix)))
@@ -29,7 +30,7 @@ class SB_OT_setup(bpy.types.Operator):
 
     # dialog settings
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-    filter_glob: bpy.props.StringProperty(default="*.exe;*.bat;*.sh;[Aa]seprite", options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default="*.exe;*.bat;*.app;*.sh;[Aa]seprite", options={'HIDDEN'})
     use_filter: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
 
 
@@ -38,8 +39,8 @@ class SB_OT_setup(bpy.types.Operator):
             "C:\\Program Files\\Aseprite\\aseprite.exe",
             "C:\\Program Files (x86)\\Aseprite\\aseprite.exe",
             "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprite\\aseprite.exe",
-            "/Applications/Aseprite.app/Contents/MacOS/aseprite",
-            "~/Library/Application Support/Steam/steamapps/common/Aseprite/Aseprite.app/Contents/MacOS/aseprite",
+            "/Applications/Aseprite.app",
+            "~/Library/Application Support/Steam/steamapps/common/Aseprite/Aseprite.app",
             "~/.steam/debian-installation/steamapps/common/Aseprite/aseprite",
             "/usr/bin/aseprite")
         return next((p for p in paths if path.exists(p)), "")
@@ -84,11 +85,15 @@ class SB_OT_setup(bpy.types.Operator):
         exe = self.find_exe()
 
         if exe:
+            if exe.lower().endswith(".app"):
+                # McOS .app are folders (which do not open), need to get actual executable inside
+                exe = path.join(exe, "Contents/MacOS/aseprite")
+
             self.filepath = exe
             self.report({'INFO'}, f"Aseprite found: {exe}")
             return self.execute(context)
         else:
-            self.report({'INFO'}, "Can not find aseprite. Please select 'aseprite.exe'")
+            self.report({'INFO'}, "Failed to find aseprite automatically. Please select aseprite executable")
             context.window_manager.fileselect_add(self)
             return {'RUNNING_MODAL'}
 
