@@ -39,7 +39,10 @@ class SB_OT_launch(bpy.types.Operator):
             self.report({'ERROR'}, "Please specify a valid path to aseprite exe/app in addon settings.")
             return {'CANCELLED'}
 
-        if not addon.server_up:
+        if not addon.connected:
+            if addon.server_up:
+                bpy.ops.pribambase.server_stop() # fixes some networking issues after disconnect
+
             bpy.ops.pribambase.server_start()
 
             if self.wait_connect:
