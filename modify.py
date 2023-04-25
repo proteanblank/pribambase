@@ -283,7 +283,9 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             if ani_dir == 1:
                 tag_frames = tag_frames[::-1]
             elif ani_dir == 2:
-                tag_frames = tag_frames + tag_frames[-2:0:-1] # sigh
+                tag_frames = tag_frames + tag_frames[-2:0:-1]
+            elif ani_dir == 3:
+                tag_frames = tag_frames[::-1] + tag_frames[1:-1]
 
             tag_frames.append(tag_frames[-1]) # one more keyframe to keep the last frame duration inside in the action
 
@@ -366,6 +368,8 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                 self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Reverse flag is not supported by Armory")
             if ani_dir == 2:
                 self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Ping-Pong flag is not supported by Armory")
+            if ani_dir == 3:
+                self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Reverse Ping-Pong flag is not supported by Armory")
 
 
     def modal_execute(self, context):
