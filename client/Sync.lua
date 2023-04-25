@@ -244,7 +244,8 @@ else
         _infos[nframes + 1] = string.pack("<I4s4", ntags, opts.tag)
         for i,tag in ipairs(sprite.tags) do
             local dir = tag.aniDir
-            _infos[nframes + 1 + i] = string.pack("<s4HHB", tag.name, tag.fromFrame.frameNumber - 1, tag.toFrame.frameNumber - 1, dir)
+            local repeats = tag.repeats or 0
+            _infos[nframes + 1 + i] = string.pack("<s4HHHB", tag.name, tag.fromFrame.frameNumber - 1, tag.toFrame.frameNumber - 1, repeats, dir)
         end
 
         for i=nframes + ntags + 2,#_infos do

@@ -250,10 +250,10 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         if current_tag:
             tag_editor += next((t for t in tags if t[0] == current_tag))[1:]
         else:
-            tag_editor += (0, len(frames) - 1, 0)
+            tag_editor += (0, len(frames) - 1, 0, 0)
 
         # current frame tag just shows the current frame, to allow drawing with spritesheet materials same way as if without animation
-        tag_frame = ("__view__", current_frame, current_frame, 0)
+        tag_frame = ("__view__", current_frame, current_frame, 0, 0)
 
         # purge actions for removed tags
         tag_names = ["__loop__"] + [tag[0] for tag in tags]
@@ -261,7 +261,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             if action.sb_props.sprite == img and action.sb_props.tag not in tag_names:
                 bpy.data.actions.remove(action)
 
-        for tag, tag_first, tag_last, ani_dir in (tag_editor, tag_frame, *tags):
+        for tag, tag_first, tag_last, repeats, ani_dir in (tag_editor, tag_frame, *tags):
             try:
                 action = next(a for a in bpy.data.actions if a.sb_props.sprite == img and a.sb_props.tag == tag)
             except StopIteration:
@@ -279,14 +279,24 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
             first = context.scene.frame_start
 
-            tag_frames = frames[tag_first:tag_last + 1]
-            if ani_dir == 1:
-                tag_frames = tag_frames[::-1]
-            elif ani_dir == 2:
-                tag_frames = tag_frames + tag_frames[-2:0:-1]
-            elif ani_dir == 3:
-                tag_frames = tag_frames[::-1] + tag_frames[1:-1]
+            if ani_dir == 1 or ani_dir == 3:
+                tag_frames = frames[tag_last:tag_first - 1:-1]
+            else:
+                tag_frames = frames[tag_first:tag_last + 1]
 
+            if ani_dir == 2 or ani_dir == 3: # pingpong or reverse pingpong
+                if repeats == 0:
+                    tag_frames = tag_frames + tag_frames[-2:0:-1]
+                else:
+                    forth = tag_frames[:]
+                    back = tag_frames[-2:0:-1]
+                    for i in range(1, repeats):
+                        tag_frames += forth if i % 2 == 0 else back
+
+            else: # forward, or unsupported
+                if repeats > 1:
+                    tag_frames *= repeats
+            
             tag_frames.append(tag_frames[-1]) # one more keyframe to keep the last frame duration inside in the action
 
             if not action.fcurves:
@@ -322,7 +332,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
 
                 # modifiers. there can be only one cycles modifier
                 mod = next((m for m in fcurve.modifiers if m.type == 'CYCLES'))
-                mod.mute = (".loop" not in tag.lower())
+                mod.mute = (repeats > 0)
 
                 fcurve.update()
             action.update_tag()
@@ -352,7 +362,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
         actions = sheet.arm_tilesheetactionlist
         # make one extra action for the entire timeline.
         tl = (f"({name})", 0, len(frames) - 1, 0)
-        for (aname, start, end, ani_dir) in (tl, *tags):
+        for (aname, start, end, repeats, ani_dir) in (tl, *tags):
             try:
                 action = actions[aname]
             except KeyError:
@@ -361,8 +371,10 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
             
             action.start_prop = start
             action.end_prop = end
-            # FIXME ase is about to implement loop/repeat flags, but for now use a naming convention
-            action.loop_prop = ".loop" in aname.lower()
+            action.loop_prop = (repeats == 0)
+            
+            if (ani_dir == 1 and repeats > 1) or repeats > 2:
+                self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Repeats are not supported by Armory")
 
             if ani_dir == 1:
                 self.report({'WARNING'}, f"Sprite action \"{name}:{aname}\": Reverse flag is not supported by Armory")

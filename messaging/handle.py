@@ -75,8 +75,9 @@ class Spritesheet(Handler):
         name = self.take_str()
         start = self.take_uint(2)
         end = self.take_uint(2)
+        repeats = self.take_uint(2)
         ani_dir = self.take_uint(1)
-        return (name, start, end, ani_dir)
+        return (name, start, end, repeats, ani_dir)
 
 
     def parse(self, args):
