@@ -383,6 +383,7 @@ class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
                     with util.pause_depsgraph_updates():
                         if tex_name not in bpy.data.images:
                             tex = bpy.data.images.new(tex_name, tex_w, tex_h, alpha=True)
+                            tex.sb_props.needs_save = True
                             util.pack_empty_png(tex)
                     sheet = img.sb_props.sheet = bpy.data.images[tex_name]
 
@@ -531,6 +532,7 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
                     img = bpy.data.node_groups.new(self.name, "ShaderNodeTree")
                 else:
                     img = bpy.data.images.new(self.name, 1, 1, alpha=True)
+                    img.sb_props.needs_save = True
                     util.pack_empty_png(img)
 
                 img.sb_props.source=self.name

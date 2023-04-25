@@ -329,6 +329,7 @@ def update_images(tree:bpy.types.ShaderNodeTree, sprite_name:str, layers:List[Tu
 
         if image_name not in bpy.data.images:
             image = bpy.data.images.new(image_name, 1, 1, alpha=True)
+            image.sb_props.needs_save = True
             pack_empty_png(image)
             image_created = True
         else:

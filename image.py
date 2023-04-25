@@ -304,6 +304,7 @@ class SB_OT_sprite_stub(bpy.types.Operator):
                 # create a stub that will be filled after receiving data
                 with util.pause_depsgraph_updates():
                     img = bpy.data.images.new(self.name, 1, 1, alpha=True)
+                    img.sb_props.needs_save = True
                     util.pack_empty_png(img)
                     created = True
         
@@ -371,6 +372,7 @@ class SB_OT_sprite_new(bpy.types.Operator):
         # create a stub that will be filled after receiving data
         with util.pause_depsgraph_updates():
             img = bpy.data.images.new(self.sprite, 1, 1, alpha=True)
+            img.sb_props.needs_save = True
             util.pack_empty_png(img)
         # switch to it in the editor
         if context.area.type == 'IMAGE_EDITOR':

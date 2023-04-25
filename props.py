@@ -212,7 +212,7 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
     needs_save: bpy.props.BoolProperty(
         name="Freshly created",
         description="Used internally to save the image after the (first) update from Aseprite, to avoid issues caused by resetting to empty image",
-        default=True)
+        default=False)
 
     is_layer: bpy.props.BoolProperty(
         name="Layer",
