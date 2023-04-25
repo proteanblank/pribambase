@@ -42,6 +42,7 @@ class Server():
         self._ws = None
         self._server = None
         self._site = None
+        self.ev_connect = None
         self._start_time = 0
 
 
@@ -75,6 +76,7 @@ class Server():
 
             started = True
 
+        self.ev_connect = asyncio.Event()
         async_loop.ensure_async_loop()
         stop = asyncio.wait_for(_start_a(self), timeout=5.0)
 
@@ -107,6 +109,7 @@ class Server():
         # client connected
         await self._ws.send_bytes(encode.texture_list(addon.state.identifier, addon.texture_list), False)
         bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
+        self.ev_connect.set()
 
         if addon.prefs.uv_sync_auto:
             addon.watch = UVWatch()

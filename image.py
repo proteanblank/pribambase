@@ -33,7 +33,8 @@ from . import util
 from . import layers
 from .layers import find_tree, update_color_outputs
 from .addon import addon
-from.util import image_nodata
+from .util import image_nodata
+from .setup import SB_OT_launch
 
 from typing import Tuple, Generator
 
@@ -81,6 +82,12 @@ def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[f
 
     bm.free()
     bpy.data.meshes.remove(mc)
+
+
+def launch_ase():
+    if not addon.connected:
+        return 'FINISHED' in bpy.ops.pribambase.launch(wait_connect=True)
+    return True
 
 
 class SB_OT_uv_send(bpy.types.Operator):
@@ -233,10 +240,13 @@ class SB_OT_sprite_open(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected
+        return addon.connected or SB_OT_launch.poll(context)
 
 
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
+
         _, name = path.split(self.filepath)
 
         self.__class__._last_relative = self.relative
@@ -368,10 +378,13 @@ class SB_OT_sprite_new(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected
+        return addon.connected or SB_OT_launch.poll(context)
 
 
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
+
         if not self.sprite:
             self.report({'ERROR'}, "The sprite must have a name")
             return {'CANCELLED'}
@@ -419,11 +432,14 @@ class SB_OT_sprite_edit(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected and context.area.type == 'IMAGE_EDITOR' \
-            and not image_nodata(context.edit_image)
+        return (addon.connected or SB_OT_launch.poll(context)) and \
+            context.area.type == 'IMAGE_EDITOR' and not image_nodata(context.edit_image)
 
 
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
+
         img = context.edit_image
         if img.sb_props.is_sheet:
             img = next((i for i in bpy.data.images if i.sb_props.sheet == img), img)
@@ -455,11 +471,14 @@ class SB_OT_sprite_edit_copy(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return addon.connected and context.area.type == 'IMAGE_EDITOR' \
-            and not image_nodata(context.edit_image)
+        return (addon.connected or SB_OT_launch.poll(context)) and \
+            context.area.type == 'IMAGE_EDITOR' and not image_nodata(context.edit_image)
 
 
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
+
         img = context.edit_image
         pixels = np.asarray(np.array(img.pixels) * 255, dtype=np.ubyte)
         pixels.shape = (img.size[1], img.size[0], 4)
@@ -609,9 +628,13 @@ class SB_OT_sprite_replace(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return addon.connected and context.area.type == 'IMAGE_EDITOR'
+        return (addon.connected or SB_OT_launch.poll(context)) and \
+            context.area.type == 'IMAGE_EDITOR'
 
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
+
         self.__class__._last_relative = self.relative
         img = context.edit_image
 
@@ -643,15 +666,19 @@ class SB_OT_sprite_replace(bpy.types.Operator):
 class SB_OT_sprite_make_animated(bpy.types.Operator):
     bl_idname = "pribambase.sprite_make_animated"
     bl_label = "Enable Animation"
-    bl_description = "Mark the image as animated, same as checking Animated in aseprite popup. Takes effect immediately if Aseprite is connected, or next time it connects"
+    bl_description = "Mark the image as animated, same as checking Animated in aseprite popup"
     bl_options = {'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        return context.area.type == 'IMAGE_EDITOR' and context.edit_image and \
+        return (addon.connected or SB_OT_launch.poll(context)) and \
+            context.area.type == 'IMAGE_EDITOR' and context.edit_image and \
             'SHEET' not in context.edit_image.sb_props.sync_flags and not context.edit_image.sb_props.is_sheet
     
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
+            
         img = context.edit_image
         img.sb_props.sync_flags = {'SHEET', *img.sb_props.sync_flags}
         msg = encode.sprite_open(img.sb_props.sync_name, img.sb_props.sync_flags)
@@ -667,8 +694,10 @@ class SB_OT_sprite_reload_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return addon.connected
+        return addon.connected or SB_OT_launch.poll(context)
 
     def execute(self, context):
+        if not launch_ase():
+            return {'CANCELLED'}
         addon.server.send(encode.peek([it for it in addon.texture_list if path.exists(it[0])]))
         return {'FINISHED'}

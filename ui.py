@@ -26,6 +26,7 @@ import bpy
 
 from .addon import addon
 from .image import SB_OT_sprite_reload_all
+from .setup import SB_OT_launch
 
 
 class SB_OT_grid_set(bpy.types.Operator):
@@ -176,12 +177,13 @@ class SB_MT_sprite(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         connected = addon.connected
+        active = connected or SB_OT_launch.poll(context)
 
-        layout.operator("pribambase.sprite_new", icon='FILE_NEW' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_edit_copy", icon='DUPLICATE' if connected else 'UNLINKED')
-        layout.operator("pribambase.sprite_replace", icon='FILE_REFRESH' if connected else 'UNLINKED')
+        layout.operator("pribambase.sprite_new", icon='FILE_NEW' if active else 'UNLINKED')
+        layout.operator("pribambase.sprite_open", icon='FILE_FOLDER' if active else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit", icon='GREASEPENCIL' if active else 'UNLINKED')
+        layout.operator("pribambase.sprite_edit_copy", icon='DUPLICATE' if active else 'UNLINKED')
+        layout.operator("pribambase.sprite_replace", icon='FILE_REFRESH' if active else 'UNLINKED')
         layout.separator()
         layout.operator("pribambase.sprite_make_animated")
         layout.operator("pribambase.uv_send_ui", icon='UV_VERTEXSEL' if connected else 'UNLINKED')

@@ -65,6 +65,8 @@ function init(plugin)
         onenabled=function() return pribambase_dlg == nil end,
         onclick=run_script("Settings")
     }
+
+    -- os.execute("ping -n 10 localhost > NUL")
 end
 
 
