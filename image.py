@@ -21,7 +21,8 @@
 import bpy
 import bmesh
 import gpu
-import bgl
+if bpy.app.version < (3, 5, 0):
+    import bgl
 from mathutils import Matrix
 from gpu_extras.batch import batch_for_shader
 import numpy as np
@@ -117,11 +118,28 @@ class SB_OT_uv_send(bpy.types.Operator):
         return addon.connected
 
 
+    def setup_bgl(self):
+        # might not be needed later on. linux driver bug or something; see #21
+        bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
+        bgl.glClear(bgl.GL_COLOR_BUFFER_BIT)
+
+        bgl.glEnable(bgl.GL_BLEND)
+        bgl.glBlendFunc(bgl.GL_SRC_ALPHA, bgl.GL_ONE_MINUS_SRC_ALPHA)
+        bgl.glLineWidth(self.weight)
+
+        bgl.glDisable(bgl.GL_BLEND)
+        bgl.glDisable(bgl.GL_LINE_SMOOTH)
+        bgl.glHint(bgl.GL_LINE_SMOOTH_HINT, bgl.GL_FASTEST)
+
+
+    def setup_gpu(self):
+        gpu.state.blend_set('ALPHA')
+        gpu.state.line_width_set(self.weight)
+
+
     def execute(self, context):
         w, h = self.size
 
-        aa = addon.prefs.uv_aa
-        weight = self.weight
         lines = self.color[0:3] + (1.0,)
         nbuf = np.zeros((h, w, 4), dtype=np.uint8)
 
@@ -147,23 +165,12 @@ class SB_OT_uv_send(bpy.types.Operator):
                 projection_matrix = Matrix.Translation((-1.0 + 1.0 / w, 1.0 + 1.0 / h, 0.0)) @ projection_matrix.to_4x4()
                 gpu.matrix.load_projection_matrix(projection_matrix)
 
-                # might not be needed later on. linux driver bug or something; see #21
-                bgl.glClearColor(0.0, 0.0, 0.0, 0.0)
-                bgl.glClear(bgl.GL_COLOR_BUFFER_BIT)
-
-                bgl.glEnable(bgl.GL_BLEND)
-                bgl.glBlendFunc(bgl.GL_SRC_ALPHA, bgl.GL_ONE_MINUS_SRC_ALPHA)
-                bgl.glLineWidth(weight)
-
-                if aa:
-                    bgl.glEnable(bgl.GL_BLEND)
-                    bgl.glBlendFunc(bgl.GL_SRC_ALPHA, bgl.GL_ONE_MINUS_SRC_ALPHA)
-                    bgl.glEnable(bgl.GL_LINE_SMOOTH)
-                    bgl.glHint(bgl.GL_LINE_SMOOTH_HINT, bgl.GL_NICEST)
+                # bgl is deprecated on some platforms since 3.5, but gpu is not entirely functional
+                # in earlier versions, so it's still used for old versions.
+                if bpy.app.version < (3, 5, 0):
+                    self.setup_bgl()
                 else:
-                    bgl.glDisable(bgl.GL_BLEND)
-                    bgl.glDisable(bgl.GL_LINE_SMOOTH)
-                    bgl.glHint(bgl.GL_LINE_SMOOTH_HINT, bgl.GL_FASTEST)
+                    self.setup_gpu()
 
                 shader.bind()
                 shader.uniform_float("color", lines)

@@ -355,11 +355,6 @@ class SB_Preferences(bpy.types.AddonPreferences):
         name="Layer Name",
         description="Name of the reference layer that will be created to display the UVs in Aseprite",
         default="UVMap")
-
-    uv_aa: bpy.props.BoolProperty(
-        name="Anti-aliased",
-        description="Apply anti-aliasing to the UV map",
-        default=True)
     
     uv_sync_auto: bpy.props.BoolProperty(
         name="Sync Automatically",
@@ -412,7 +407,6 @@ class SB_Preferences(bpy.types.AddonPreferences):
         box = self.template_box(layout, label="UV Map:")
 
         box.row().prop(self, "uv_layer")
-        box.row().prop(self, "uv_aa")
         box.row().prop(self, "uv_sync_auto")
 
         box = self.template_box(layout, label="Connection:")
