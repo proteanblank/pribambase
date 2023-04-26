@@ -139,11 +139,6 @@ class SB_OT_uv_send(bpy.types.Operator):
         bgl.glHint(bgl.GL_LINE_SMOOTH_HINT, bgl.GL_FASTEST)
 
 
-    def setup_gpu(self):
-        gpu.state.blend_set('ALPHA')
-        gpu.state.line_width_set(self.weight)
-
-
     def execute(self, context):
         w, h = self.size
 
@@ -177,16 +172,25 @@ class SB_OT_uv_send(bpy.types.Operator):
                 if bpy.app.version < (3, 5, 0):
                     self.setup_bgl()
                 else:
-                    self.setup_gpu()
+                    fb = gpu.state.active_framebuffer_get()
+                    fb.clear(color=(0.0, 0.0, 0.0, 0.0))
+                    gpu.state.blend_set('ALPHA')
+                    gpu.state.line_width_set(self.weight)
 
                 shader.bind()
                 shader.uniform_float("color", lines)
                 batch.draw(shader)
 
             # retrieve the texture
-            # https://blender.stackexchange.com/questions/221110/fastest-way-copying-from-bgl-buffer-to-numpy-array
-            buffer = bgl.Buffer(bgl.GL_BYTE, nbuf.shape, nbuf)
-            bgl.glReadPixels(0, 0, w, h, bgl.GL_RGBA, bgl.GL_UNSIGNED_BYTE, buffer)
+            if bpy.app.version < (3, 5, 0):
+                # https://blender.stackexchange.com/questions/221110/fastest-way-copying-from-bgl-buffer-to-numpy-array
+                buffer = bgl.Buffer(bgl.GL_BYTE, nbuf.shape, nbuf)
+                bgl.glReadPixels(0, 0, w, h, bgl.GL_RGBA, bgl.GL_UNSIGNED_BYTE, buffer)
+            else:
+                buffer = gpu.types.Buffer('UBYTE', (w, h, 4), nbuf)
+                fb.read_color(0, 0, w, h, 4, 0, 'UBYTE', data=buffer)
+        
+        offscreen.free()
 
         # send data
         msg = encode.uv_map(
