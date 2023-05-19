@@ -36,6 +36,10 @@ pip download -d thirdparty --platform win32 --only-binary=:all: -r requirements.
 
 You can alternatively install them from blender's bundled python distribution (look that up).
 
+## License
+
+Although GPL license spread from some borrowed code, the rest is MIT.
+
 ## Acknowledgements
 - David Capello did a significant part of the work on interprocessing API for Aseprite
-- Async handling is based on [Blender Cloud Addon](https://cloud.blender.org/services)
+- Async handling (async_loop.py) is based on [Blender Cloud Addon](https://cloud.blender.org/services)
