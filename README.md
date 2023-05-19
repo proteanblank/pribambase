@@ -38,7 +38,7 @@ You can alternatively install them from blender's bundled python distribution (l
 
 ## License
 
-Although GPL license spread from some borrowed code, the rest is MIT.
+Although GPL license spread from some borrowed code, most of the project is MIT.
 
 ## Acknowledgements
 - David Capello did a significant part of the work on interprocessing API for Aseprite
