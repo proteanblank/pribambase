@@ -1,58 +1,28 @@
 # Pribambase
 
-Pribambase is a small tool that connects Aseprite and Blender, to allow painting with instant viewport feedback and all functionality of external editor at the same time. It also adds a few shortcuts like displaying the UV map in Aseprite or setting up a grid-scaled pixelart reference in the viewport.
+**NOTE: downloading repo zip will not work in blender due to missing third party libraries. [Get it from project page](https://lampysprites.itch.io/pribambase)**
 
-Currently, the addon has mostly one-way workflow where you paint in Ase and not much in Blender. Better bidirectional workflow ~~is quite a task tell ya what~~ is planned in future versions.
+Pribambase is a helper tool to easen and speed up lowpoly pixel textured, or 2.5D pixelart workflow. It links Aseprite and Blender editors, and handles a lot of repetitive manual operations which otherwise consitute a large and unexciting portion of the process.
 
-* [Download](https://lampysprites.itch.io/pribambase) packaged version for your platform.
+* Paint in Aseprite with instant viewport feedback in Blender. No need to save or export files.
+* Display UV map in Aseprite, which updates as you change the model.
+* Shortcuts for setting up world grids, pixel materials, and 2D sprites in the scene.
+* Sprite animation rig allows to directly control the frame of the animation, play entire animation, or separate tags. Works with common blender animation and NLA. Now support tag repeats and looping (Ase 1.3+).
+* Optionally maintain 2.5D spritesheets and animations for Armory game engine, which runs on top of Blender.
+* Experimental node setups for separate layers that allow painting several maps in the same document.
+
+## Links
+
 * [How Do I...](https://github.com/lampysprites/pribambase/wiki/How-Do-I...) tutorials and advice.
-* [Reference](https://github.com/lampysprites/pribambase/wiki/Reference) explains each button and setting.
-* [Itchio forum](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
+* [RSS feed](https://lampysprites.itch.io/pribambase/devlog.rss) to track updates without checking this or that app.
+* [Itchio community](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
 * [Issue tracker](https://github.com/lampysprites/pribambase/issues) for bug reports and feature requests. Kindly don't submit non-technical help requests.
-
-
-## Setup
-
-_[Video version](https://youtu.be/70wyQhKyxFw) - all thanks to [frozenMeatpopsicle](https://twitter.com/fznmeatpopsicle)_
-
-This plugin consists of **two** parts: for Aseprite and for Blender. Get pre-packaged version for your OS [on Itchio](https://lampysprites.itch.io/pribambase). **Do not** download repo ZIP, it won't just work without extra steps.
-
-### Prerequisites
-
-* [Blender](https://Blender.org) recommended version 2.83 or later, preferrably latest. Minimum version is 2.80, but performance and stability are significantly worse
-* [Aseprite](https://Aseprite.org) minimum version 1.2.30 or 1.3-beta7. Trial version won't work
-
-### Installing Aseprite plugin
-1. Launch Aseprite and drag the file called __pribambase-aseprite__ into the window.
-1. Press Install.
-1. Restart Aseprite.
-
-After that, a new menu option called **Sync** should appear in the **File** menu
-
-### Installing Blender plugin
-1. In __Edit > Preferences > Addons__ click __Install__ and chose the file called __pribambase-blender-\[YOUR OS\]__.
-1. After the addon appears in the list, check the box next to its name to activate it. The app might freeze for several seconds.
-1. Save preferences from the "burger" menu.
-
-After that, a new section called **Sync** will appear in **N > Tools** tab in viewport, and a new menu called **Sprite** will appear in the Image/uv editor.
-
-## Usage
-
-After the plugins are installed, turn each of them on before drawing: nn blender press __Connect__ on top of the plugin's panel in the viewport, in Aseprite press __File > Sync__ . After that you can:
-
-* Open any texture used in blendfile normally in Aseprite, and it will be updated in Blender as you paint. This applies to both textures created normally with blender, and textures set up by the plugin.
-* Use **Image Editor > Sprite** menu to load aseprite files as textures, or create new ones.
-* Use **Sprite > Send UV** to show the UV Map in aseprite.
-
-___To see the changes appear on the 3D object, assign a material that uses the new textures to it, and switch the viewport to material preview/rendered. Just like you'd do without the addon. To first timers I recommend [MortMort's Zero 2 Hero basic course](https://www.youtube.com/playlist?list=PLR3Ra9cf8aV23C2oBB3aFLla6ABAPYiDk)___.
-
-See [Reference](https://github.com/lampysprites/pribambase/wiki/Reference) for all features.
 
 ## Source
 
 Source for [aseprite plugin](https://github.com/aseprite/api/blob/main/api/plugin.md) is the `client/` folder. The repo root is the [blender plugin](https://docs.blender.org/manual/en/latest/advanced/scripting/addon_tutorial.html#install-the-add-on). For using source, you'd probably want to symlink them to extension/addon locations.
 
-Third party dependencies aren't stored in the repo. Download them from PyPI to `thirdparty` folder, or fetch with PIP:
+Third party python packages are bundled as wheel to allow offline installation, but aren't stored in the repo. Download them from PyPI to `thirdparty` folder, or fetch with PIP:
 
 ```shell
 cd to/project/root
@@ -64,11 +34,12 @@ pip download -d thirdparty -r requirements.txt
 pip download -d thirdparty --platform win32 --only-binary=:all: -r requirements.txt
 ```
 
+You can alternatively install them from blender's bundled python distribution (look that up).
+
 ## License
-In accordance with Blender developers' [wishes](https://www.blender.org/about/license/), the addon is distributed under GPL-3.0 license.
-See COPYING for full license text.
-Specific files or libraries might be also available under different terms, see included comment or package licenses.
+
+Although GPL license spread from some borrowed code, most of the project is MIT.
 
 ## Acknowledgements
 - David Capello did a significant part of the work on interprocessing API for Aseprite
-- Async handling is based on [Blender Cloud Addon](https://cloud.blender.org/services)
+- Async handling (async_loop.py) is based on [Blender Cloud Addon](https://cloud.blender.org/services)
