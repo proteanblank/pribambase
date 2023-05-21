@@ -250,7 +250,10 @@ class SB_ImageProperties(bpy.types.PropertyGroup):
         if not source:
             self.source = ""
         elif (relative or (relative is None and addon.prefs.use_relative_path)) and bpy.data.filepath: # need to check for None explicitly because bool
-            self.source = bpy.path.relpath(source)
+            try:
+                self.source = bpy.path.relpath(source)
+            except ValueError:
+                self.source = os.path.normpath(source)
         else:
             self.source = os.path.normpath(source)
 
@@ -303,7 +306,10 @@ class SB_ShaderNodeTreeProperties(bpy.types.PropertyGroup):
         if not source:
             self.source = ""
         elif (relative or (relative is None and addon.prefs.use_relative_path)) and bpy.data.filepath: # need to check for None explicitly because bool
-            self.source = bpy.path.relpath(source)
+            try:
+                self.source = bpy.path.relpath(source)
+            except ValueError:
+                self.source = os.path.normpath(source)
         else:
             self.source = os.path.normpath(source)
 
