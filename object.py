@@ -166,14 +166,14 @@ class SB_OT_material_add(bpy.types.Operator):
 
         bsdf = tree.nodes[tree.nodes.find("Principled BSDF")]
         bsdf.location = (-200, 250)
-        bsdf.inputs["Base Color"].default_value = (0, 0, 0, 1)
+        bsdf.inputs[0].default_value = (0, 0, 0, 1) # Base Color
 
         if self.shading == 'LIT':
-            tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+            tree.links.new(tex.outputs[0], bsdf.inputs[0]) # Color : Base Color
         elif self.shading == 'SHADELESS':
-            bsdf.inputs["Specular"].default_value = 0
-            tree.links.new(tex.outputs["Color"], bsdf.inputs["Emission"])
-        tree.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+            bsdf.inputs[7].default_value = 0 # Specular
+            tree.links.new(tex.outputs[0], bsdf.inputs[19]) # Color : Emission
+        tree.links.new(tex.outputs[1], bsdf.inputs[21]) # : Alpha
 
         out = tree.nodes[tree.nodes.find("Material Output")]
         out.location = (300, 50)
@@ -184,17 +184,17 @@ class SB_OT_material_add(bpy.types.Operator):
             trans.location = (80, 100)
             add = tree.nodes.new("ShaderNodeAddShader")
             add.location = (130, -100)
-            tree.links.new(trans.outputs["BSDF"], add.inputs[0])
-            tree.links.new(bsdf.outputs["BSDF"], add.inputs[1])
-            tree.links.new(add.outputs["Shader"], out.inputs["Surface"])
+            tree.links.new(trans.outputs[0], add.inputs[0]) # BSDF
+            tree.links.new(bsdf.outputs[0], add.inputs[1]) # BSDF
+            tree.links.new(add.outputs[0], out.inputs[0]) # Shader : Surface
 
         elif self.blend == 'MUL':
             mat.blend_method = 'BLEND'
             tree.nodes.remove(bsdf)
             trans = tree.nodes.new("ShaderNodeBsdfTransparent")
             trans.location = (0, -20)
-            tree.links.new(tex.outputs["Color"], trans.inputs["Color"])
-            tree.links.new(trans.outputs["BSDF"], out.inputs["Surface"])        
+            tree.links.new(tex.outputs[0], trans.inputs[0]) # Color : Color
+            tree.links.new(trans.outputs[0], out.inputs[0]) # BSDF : Surface
 
         if self.assign:
             for obj in context.selected_objects:

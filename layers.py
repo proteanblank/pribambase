@@ -1,4 +1,5 @@
 import bpy
+from bpy.app.translations import pgettext as tr
 
 import numpy as np
 from itertools import chain
@@ -12,13 +13,13 @@ def create_node_helper():
     """Create helper node group. It calculates the mask of the cel, and does gamma correction for mixing later"""        
     tree:bpy.types.ShaderNodeTree = bpy.data.node_groups.new("PribambaseLayersHelper", 'ShaderNodeTree')
 
-    tree.inputs.new('NodeSocketVector', "UV")
-    tree.inputs.new('NodeSocketColor', "Color")
-    tree.inputs.new('NodeSocketFloat', "Alpha")
-    tree.inputs.new('NodeSocketFloat', "Layer Opacity")
+    tree.inputs.new('NodeSocketVector', tr("UV"))
+    tree.inputs.new('NodeSocketColor', tr("Color"))
+    tree.inputs.new('NodeSocketFloat', tr("Alpha"))
+    tree.inputs.new('NodeSocketFloat', tr("Layer Opacity"))
 
-    tree.outputs.new('NodeSocketColor', "Color")
-    tree.outputs.new('NodeSocketFloat', "Alpha")
+    tree.outputs.new('NodeSocketColor', tr("Color"))
+    tree.outputs.new('NodeSocketFloat', tr("Alpha"))
 
     group_in = tree.nodes.new('NodeGroupInput')
     group_in.location = (0, 0)
@@ -41,11 +42,12 @@ def create_node_helper():
     cmp_and.location = (600, 100)
     cmp_and.operation = 'MINIMUM'
 
-    tree.links.new(group_in.outputs["UV"], xyz.inputs["Vector"])
-    tree.links.new(xyz.outputs["X"], cmp_x.inputs["Value"])
-    tree.links.new(xyz.outputs["Y"], cmp_y.inputs["Value"])
-    tree.links.new(cmp_x.outputs["Value"], cmp_and.inputs[0])
-    tree.links.new(cmp_y.outputs["Value"], cmp_and.inputs[1])
+    # Using string key breaks some localizations (i.e. ZH), so use indices for ins/outs everywhere!
+    tree.links.new(group_in.outputs[0], xyz.inputs[0]) # UV : Vector
+    tree.links.new(xyz.outputs[0], cmp_x.inputs[0]) # X : Value
+    tree.links.new(xyz.outputs[1], cmp_y.inputs[1]) # Y : Value
+    tree.links.new(cmp_x.outputs[0], cmp_and.inputs[0]) # Value : Arg0
+    tree.links.new(cmp_y.outputs[0], cmp_and.inputs[1]) # Value : Arg1
 
     # mix aplhas
     a_ch:bpy.types.ShaderNodeMath = tree.nodes.new('ShaderNodeMath')
@@ -54,27 +56,27 @@ def create_node_helper():
     a_layer.location = (900, 100)
     a_ch.operation = a_layer.operation = 'MULTIPLY'
 
-    tree.links.new(cmp_and.outputs["Value"], a_ch.inputs[0])
-    tree.links.new(group_in.outputs["Alpha"], a_ch.inputs[1])
-    tree.links.new(a_ch.outputs["Value"], a_layer.inputs[0])
-    tree.links.new(group_in.outputs["Layer Opacity"], a_layer.inputs[1])
-    tree.links.new(a_layer.outputs["Value"], group_out.inputs["Alpha"])
+    tree.links.new(cmp_and.outputs[0], a_ch.inputs[0]) # Value : Arg0
+    tree.links.new(group_in.outputs[1], a_ch.inputs[1]) # Alpha : Arg1
+    tree.links.new(a_ch.outputs[0], a_layer.inputs[0]) # Value : Arg0
+    tree.links.new(group_in.outputs[3], a_layer.inputs[1]) # Layer Opacity : Arg1
+    tree.links.new(a_layer.outputs[0], group_out.inputs[1]) # Value : Alpha
 
     # correct color gamma so that mix node blending works same as in ase
     # after blending it should be corrected back
-    gamma_out = add_gamma_nodes(tree, 300, -100, 1/2.2, group_in.outputs["Color"])
-    tree.links.new(gamma_out, group_out.inputs["Color"])
+    gamma_out = add_gamma_nodes(tree, 300, -100, 1/2.2, group_in.outputs[1]) # ... : Color
+    tree.links.new(gamma_out, group_out.inputs[0]) # ... : Color
 
 
 def create_node_exclusion():
     """Create mix node equivalent for exclusion blend mode in ase. The formula for each channel is `C_res = C_src + C_dst - 2*C_src*C_dst`"""        
     tree:bpy.types.ShaderNodeTree = bpy.data.node_groups.new("PribambaseMixExclusion", 'ShaderNodeTree')
 
-    tree.inputs.new('NodeSocketFloat', "Fac")
-    tree.inputs.new('NodeSocketColor', "Color1")
-    tree.inputs.new('NodeSocketColor', "Color2")
+    tree.inputs.new('NodeSocketFloat', tr("Fac"))
+    tree.inputs.new('NodeSocketColor', tr("Color1"))
+    tree.inputs.new('NodeSocketColor', tr("Color2"))
 
-    tree.outputs.new('NodeSocketColor', "Color")
+    tree.outputs.new('NodeSocketColor', tr("Color"))
 
     group_in = tree.nodes.new('NodeGroupInput')
     group_in.location = (0, 0)
@@ -95,15 +97,15 @@ def create_node_exclusion():
     combine.inputs[1].default_value = (-2, -2, -2)
     combine.location = (650, 0)
 
-    tree.links.new(group_in.outputs["Fac"], fac.inputs["Scale"])
-    tree.links.new(group_in.outputs["Color2"], fac.inputs["Vector"])
-    tree.links.new(group_in.outputs["Color1"], mul.inputs[0])
-    tree.links.new(fac.outputs["Vector"], mul.inputs[1])
-    tree.links.new(group_in.outputs["Color1"], add.inputs[0])
-    tree.links.new(fac.outputs["Vector"], add.inputs[1])
-    tree.links.new(mul.outputs["Vector"], combine.inputs[0])
-    tree.links.new(add.outputs["Vector"], combine.inputs[2])
-    tree.links.new(combine.outputs["Vector"], group_out.inputs["Color"])
+    tree.links.new(group_in.outputs[0], fac.inputs[1]) # Fac : Scale
+    tree.links.new(group_in.outputs[2], fac.inputs[0]) # Color2 : Vector
+    tree.links.new(group_in.outputs[1], mul.inputs[0]) # Color1 : Arg0
+    tree.links.new(fac.outputs[0], mul.inputs[1]) # Vector : Arg1
+    tree.links.new(group_in.outputs[1], add.inputs[0]) # Color1 : Arg0
+    tree.links.new(fac.outputs[0], add.inputs[1]) # Vector : Arg1
+    tree.links.new(mul.outputs[0], combine.inputs[0]) # Vector : Arg0
+    tree.links.new(add.outputs[0], combine.inputs[2]) # Vector: Arg2
+    tree.links.new(combine.outputs[0], group_out.inputs[0]) # Vecor : Color
 
 
 def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
@@ -120,7 +122,7 @@ def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
         color_goes = 2 * i
         if color_idx < 0:
             color_idx = len(outs)
-            outs.new('NodeSocketColor', color_name)
+            outs.new('NodeSocketColor', tr(color_name))
             
         if color_idx != color_goes:
             outs.move(color_idx, color_goes)
@@ -129,7 +131,7 @@ def update_color_outputs(tree:bpy.types.ShaderNodeTree, groups:List[Tuple]):
         alpha_goes = 2 * i + 1
         if alpha_idx < 0:
             alpha_idx = len(outs)
-            outs.new('NodeSocketFloat', alpha_name)
+            outs.new('NodeSocketFloat', tr(alpha_name))
 
         if alpha_idx != alpha_goes:
             outs.move(alpha_idx, alpha_goes)
@@ -159,15 +161,15 @@ def add_layer_image_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:fl
     helper:bpy.types.ShaderNodeGroup = tree.nodes.new('ShaderNodeGroup')
     helper.location = (node_x + 500, node_y)
     helper.node_tree = bpy.data.node_groups["PribambaseLayersHelper"]
-    helper.inputs["Layer Opacity"].default_value = opacity
+    helper.inputs[3].default_value = opacity # Layer Opacity
 
-    tree.links.new(uv_node.outputs["UV"], mapping.inputs["Vector"])
-    tree.links.new(mapping.outputs["Vector"], helper.inputs["UV"])
-    tree.links.new(mapping.outputs["Vector"], image_node.inputs["Vector"])
-    tree.links.new(image_node.outputs["Color"], helper.inputs["Color"])
-    tree.links.new(image_node.outputs["Alpha"], helper.inputs["Alpha"])
+    tree.links.new(uv_node.outputs[0], mapping.inputs[0]) # UV : Vector
+    tree.links.new(mapping.outputs[0], helper.inputs[0]) # Vector : UV
+    tree.links.new(mapping.outputs[0], image_node.inputs[0]) # Vector : Vector
+    tree.links.new(image_node.outputs[0], helper.inputs[1]) # Color : Color
+    tree.links.new(image_node.outputs[1], helper.inputs[2]) # Alpha : Alpha
 
-    return (helper.outputs["Color"], helper.outputs["Alpha"])
+    return (helper.outputs[0], helper.outputs[1]) # Color: Alpha
 
 
 def add_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, blend_mode:str, \
@@ -201,16 +203,16 @@ def add_mix_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, ble
     add.operation = 'ADD'
     add.use_clamp = True
 
-    tree.links.new(color1, mix.inputs["Color1"])
+    tree.links.new(color1, mix.inputs[1]) # : Color1
     tree.links.new(alpha1, inv.inputs[1])
     tree.links.new(alpha1, add.inputs[1])
-    tree.links.new(color2, mix.inputs["Color2"])
-    tree.links.new(alpha2, mix.inputs["Fac"])
+    tree.links.new(color2, mix.inputs[2]) # : Color2
+    tree.links.new(alpha2, mix.inputs[0]) # : Fac
     tree.links.new(alpha2, mul.inputs[1])
-    tree.links.new(inv.outputs["Value"], mul.inputs[0])
-    tree.links.new(mul.outputs["Value"], add.inputs[0])
+    tree.links.new(inv.outputs[0], mul.inputs[0]) # Value :
+    tree.links.new(mul.outputs[0], add.inputs[0]) # Value :
 
-    return (mix.outputs["Color"], add.outputs["Value"])
+    return (mix.outputs[0], add.outputs[0]) # Color, Value
 
 
 def add_gamma_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, gamma:float, color_in:bpy.types.NodeSocketColor):
@@ -231,15 +233,15 @@ def add_gamma_nodes(tree:bpy.types.ShaderNodeTree, node_x:float, node_y:float, g
     math_x.operation = math_y.operation = math_z.operation = 'POWER'
     math_x.inputs[1].default_value = math_y.inputs[1].default_value = math_z.inputs[1].default_value = gamma
 
-    tree.links.new(color_in, sep.inputs["Image"])
-    tree.links.new(sep.outputs["R"], math_x.inputs[0])
-    tree.links.new(sep.outputs["G"], math_y.inputs[0])
-    tree.links.new(sep.outputs["B"], math_z.inputs[0])
-    tree.links.new(math_x.outputs["Value"], comb.inputs["R"])
-    tree.links.new(math_y.outputs["Value"], comb.inputs["G"])
-    tree.links.new(math_z.outputs["Value"], comb.inputs["B"])
+    tree.links.new(color_in, sep.inputs[0]) # : Image
+    tree.links.new(sep.outputs[0], math_x.inputs[0]) # R :
+    tree.links.new(sep.outputs[1], math_y.inputs[0]) # G :
+    tree.links.new(sep.outputs[2], math_z.inputs[0]) # B :
+    tree.links.new(math_x.outputs[0], comb.inputs[0]) # Value : R
+    tree.links.new(math_y.outputs[0], comb.inputs[1]) # Value : G
+    tree.links.new(math_z.outputs[0], comb.inputs[2]) # Value : B
 
-    return comb.outputs["Image"]
+    return comb.outputs[0] # Image
 
 
 def update_layers(tree:bpy.types.ShaderNodeTree, sprite_name:str, sprite_width:int, sprite_height:int, groups:List, layers:List):
@@ -305,8 +307,8 @@ def update_layers(tree:bpy.types.ShaderNodeTree, sprite_name:str, sprite_width:i
                 last_group_alpha = None
 
     gamma_out = add_gamma_nodes(tree, 2500, 0, 2.2, last_out_color)
-    tree.links.new(gamma_out, group_out.inputs["Color"])
-    tree.links.new(last_out_alpha, group_out.inputs["Alpha"])
+    tree.links.new(gamma_out, group_out.inputs[0]) # Color
+    tree.links.new(last_out_alpha, group_out.inputs[1]) # Alpha
 
     tree.nodes.update()
     tree.links.update()
