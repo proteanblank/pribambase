@@ -1,2 +1,2 @@
-aiohttp==3.8.5
-typing-extensions==4.8.0
+aiohttp
+typing-extensions
