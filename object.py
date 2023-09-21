@@ -164,9 +164,12 @@ class SB_OT_material_add(bpy.types.Operator):
             
         tex.location = (-500, 100)
 
-        bsdf = tree.nodes[tree.nodes.find("Principled BSDF")]
+        bsdf = next((n for n in tree.nodes if n.type == 'BSDF_PRINCIPLED'))
         bsdf.location = (-200, 250)
-        bsdf.inputs[0].default_value = (0, 0, 0, 1) # Base Color
+        try: # probably fails in older blender versions
+            bsdf.inputs[0].default_value = (0, 0, 0) # Base Color
+        except: # definitely fails in newer blender versions 
+            bsdf.inputs[0].default_value = (0, 0, 0, 1) # Base Color
 
         if self.shading == 'LIT':
             tree.links.new(tex.outputs[0], bsdf.inputs[0]) # Color : Base Color
@@ -175,7 +178,7 @@ class SB_OT_material_add(bpy.types.Operator):
             tree.links.new(tex.outputs[0], bsdf.inputs[19]) # Color : Emission
         tree.links.new(tex.outputs[1], bsdf.inputs[21]) # : Alpha
 
-        out = tree.nodes[tree.nodes.find("Material Output")]
+        out = next((n for n in tree.nodes if n.type == 'OUTPUT_MATERIAL'))
         out.location = (300, 50)
 
         if self.blend == 'ADD':
