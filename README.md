@@ -34,6 +34,8 @@ pip download -d thirdparty -r requirements.txt
 pip download -d thirdparty --platform win32 --only-binary=:all: -r requirements.txt
 ```
 
+**NOTE: normally Blender includes its own python distribution, which might not match a separately installed version.**
+
 You can alternatively install them from blender's bundled python distribution (look that up).
 
 ## License
