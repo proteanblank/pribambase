@@ -36,8 +36,6 @@ pip download -d thirdparty --platform win32 --only-binary=:all: -r requirements.
 
 **NOTE: normally Blender includes its own python distribution, which might not match a separately installed version.**
 
-You can alternatively install them from blender's bundled python distribution (look that up).
-
 ## License
 
 Although GPL license spread from some borrowed code, most of the project is MIT.
