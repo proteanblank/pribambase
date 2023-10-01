@@ -16,7 +16,6 @@ Pribambase is a helper tool to easen and speed up lowpoly pixel textured, or 2.5
 * [How Do I...](https://github.com/lampysprites/pribambase/wiki/How-Do-I...) tutorials and advice.
 * [RSS feed](https://lampysprites.itch.io/pribambase/devlog.rss) to track updates without checking this or that app.
 * [Itchio community](https://lampysprites.itch.io/pribambase/community) to show off your work or ask for help.
-* [Issue tracker](https://github.com/lampysprites/pribambase/issues) for bug reports and feature requests. Kindly don't submit non-technical help requests.
 
 ## Source
 
