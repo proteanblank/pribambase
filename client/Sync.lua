@@ -60,6 +60,9 @@ else
     local dlg = nil
     -- used to track the change of active sprite
     local spr = app.activeSprite
+    -- used to track the change of layer visibility
+    local visible = {}
+    local visibleCheck = nil
     -- used to track saving the image under a different name
     local sprfile = spr and spr.filename
     -- used to track frame changes
@@ -166,10 +169,14 @@ else
         return name
     end
 
-    local function _co_ilayers(layers, i)
+    local function _co_ilayers(layers, i, includeGroups)
         for _,layer in ipairs(layers) do
             if layer.isGroup then
-                i = _co_ilayers(layer.layers, i)
+                if includeGroups then
+                    coroutine.yield(i, layer)
+                    i = i + 1
+                end
+                i = _co_ilayers(layer.layers, i, includeGroups)
             elseif not layer.isReference then
                 coroutine.yield(i, layer)
                 i = i + 1
@@ -179,8 +186,8 @@ else
     end
     
     -- iterate over all image layers
-    local function ilayers(group)
-        local co = coroutine.create(function () _co_ilayers(group.layers, 1) end)
+    local function ilayers(group, includeGroups)
+        local co = coroutine.create(function () _co_ilayers(group.layers, 1, includeGroups) end)
         return function ()
           local _ok, i, layer = coroutine.resume(co)
           return i, layer
@@ -542,6 +549,46 @@ else
 
 
     local updateDialog = nil -- function(status:string|nil)
+    
+    
+    local function onVisibleCheck()
+        if app.activeSprite == nil then
+            return
+        end
+        
+        local changed = false
+        local n = 0
+        
+        -- catches added/deleted layers, no moved. occasional extra updates is too infrequent to jam
+        for i,layer in ilayers(app.activeSprite, true) do
+            n = i
+            
+            if (visible[i] == nil and app.activeSprite == spr) then
+                -- mismatched length is a sign that a layer was added (as long as it's same sprite)
+                -- and the update is already handled by sprite change
+                -- do not break here, bc we're updating the cached state in this loop too
+                changed = false
+                
+            elseif visible[i] ~= layer.isVisible then
+                changed = true
+            end
+            
+            visible[i] = layer.isVisible
+        end
+        
+        -- extra elements are a sign that layers were removed
+        local m = #visible
+        if m > n then
+            changed = false
+            for _=n+1,m do
+                table.remove(visible)
+            end
+        end
+        
+        if changed then
+            syncSprite()
+        end
+    end
 
 
     local function onAppChange()
@@ -645,6 +692,10 @@ else
         if spr~=nil then 
             spr.events:off(syncSprite)
             unwatchFilename()
+        end
+        if visibleCheck ~= nil then
+            visibleCheck:stop()
+            visibleCheck = nil
         end
         app.events:off(onAppChange)
     end
@@ -992,6 +1043,10 @@ else
     docListClean()
 
     app.events:on("sitechange", onAppChange)
+    if app.apiVersion >= 21 then
+        visibleCheck = Timer{interval=0.1, ontick=onVisibleCheck }
+        visibleCheck:start()
+    end
     
     -- create an UI
     
