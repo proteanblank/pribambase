@@ -52,36 +52,35 @@ def uv_lines(mesh:bpy.types.Mesh, only_selected=True) -> Generator[Tuple[Tuple[f
     bm = bmesh.new()
     try:
         bm.from_mesh(mc)
-    except:
+        uv = bm.loops.layers.uv.active
+
+        # get all edges
+        for face in bm.faces:
+            # not shown in the UV editor, skipping
+            try:
+                if only_selected and not face.select_face:
+                    continue
+            except AttributeError:
+                if only_selected and not face.select:
+                    continue
+
+            for i in range(0, len(face.loops)):
+                a = face.loops[i - 1][uv].uv.to_tuple()
+                b = face.loops[i][uv].uv.to_tuple()
+
+                # sorting helps catching overlapping lines for differently directed loops
+                # order doesn't really matter - just that there is one
+                if a > b:
+                    yield (b, a)
+                else:
+                    yield (a, b)
+                    
+    except Exception as e:
+        print(e)
+        
+    finally:
         bm.free()
         bpy.data.meshes.remove(mc)
-        return
-
-    uv = bm.loops.layers.uv.active
-
-    # get all edges
-    for face in bm.faces:
-        # not shown in the UV editor, skipping
-        try:
-            if only_selected and not face.select_face:
-                continue
-        except AttributeError:
-            if only_selected and not face.select:
-                continue
-
-        for i in range(0, len(face.loops)):
-            a = face.loops[i - 1][uv].uv.to_tuple()
-            b = face.loops[i][uv].uv.to_tuple()
-
-            # sorting helps catching overlapping lines for differently directed loops
-            # order doesn't really matter - just that there is one
-            if a > b:
-                yield (b, a)
-            else:
-                yield (a, b)
-
-    bm.free()
-    bpy.data.meshes.remove(mc)
 
 
 def launch_ase():
