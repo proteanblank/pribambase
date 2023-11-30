@@ -89,8 +89,15 @@ class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
                 img.update_tag()
 
                 if addon.prefs.save_after_sync or img.sb_props.needs_save:
-                    bpy.ops.image.save({"edit_image": img})
-                    bpy.ops.image.reload({"edit_image": img})
+                    if bpy.app.version >= (4, 0, 0): # fuck whoever on blender team keeps changing call signatures
+                        cor = context.copy()
+                        cor["edit_image"] = img
+                        with context.temp_override(**cor):
+                            bpy.ops.image.save()
+                            bpy.ops.image.reload()
+                    else:
+                        bpy.ops.image.save({"edit_image": img})
+                        bpy.ops.image.reload({"edit_image": img})
                     img.sb_props.needs_save = False
 
         util.refresh()

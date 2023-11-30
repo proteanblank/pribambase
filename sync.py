@@ -211,11 +211,18 @@ class UVWatch:
                     img = addon.active_sprite_image
                     if img:
                         size = (int(img.size[0] * addon.state.uv_scale), int(img.size[1] * addon.state.uv_scale))
-
-                bpy.ops.pribambase.uv_send(context.copy(), 
-                    size=size,
-                    color=addon.state.uv_color, 
-                    weight=addon.state.uv_weight)
+                
+                if bpy.app.version >= (4, 0, 0):
+                    with context.temp_override(**context.copy()):
+                        bpy.ops.pribambase.uv_send(
+                            size=size,
+                            color=addon.state.uv_color,
+                            weight=addon.state.uv_weight)
+                else:
+                    bpy.ops.pribambase.uv_send(context.copy(), 
+                        size=size,
+                        color=addon.state.uv_color, 
+                        weight=addon.state.uv_weight)
                 self.send_pending = False
                 self.idle_t = 0
 
