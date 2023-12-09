@@ -61,7 +61,7 @@ class Image(Handler):
             if not bpy.context.window_manager.is_interface_locked:
                 modify.image(size[0], size[1], name, frame, flags, data)
             else:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+                bpy.ops.pribambase.report('EXEC_DEFAULT', message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
             modify.image(size[0], size[1], name, frame, flags, data)
@@ -126,7 +126,7 @@ class Spritesheet(Handler):
             if not bpy.context.window_manager.is_interface_locked:
                 modify.spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
             else:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+                bpy.ops.pribambase.report('EXEC_DEFAULT', message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # version 2.80... caveat emptor
             modify.spritesheet(size, (count_x, count_y), name, start, frames, tags, current_frame, current_tag, sheet_data)
@@ -149,7 +149,7 @@ class Frame(Handler):
             if not bpy.context.window_manager.is_interface_locked:
                 modify.frame(name, frame, start, frames)
             else:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, frame flip skipped")
+                bpy.ops.pribambase.report('EXEC_DEFAULT', message_type='WARNING', message="UI is locked, frame flip skipped")
         except AttributeError:
             # version 2.80... caveat emptor
             modify.frame(name, frame, start, frames)
@@ -194,7 +194,7 @@ class ImageLayers(Handler):
             if not bpy.context.window_manager.is_interface_locked:
                 modify.image_layers(width, height, name, flags, groups, layers)
             else:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+                bpy.ops.pribambase.report('EXEC_DEFAULT', message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # version 2.80... caveat emptor
             modify.image_layers(width, height, name, flags, groups, layers)
@@ -213,7 +213,7 @@ class ChangeName(Handler):
         try:
             # FIXME there's a risk of race condition but it's pretty bad if the rename doesn't happen
             while bpy.context.window_manager.is_interface_locked:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, waiting to update image source..")
+                bpy.ops.pribambase.report('EXEC_DEFAULT', message_type='WARNING', message="UI is locked, waiting to update image source..")
                 asyncio.sleep(0.1)
         except AttributeError:
             # version 2.80... caveat emptor
@@ -229,7 +229,7 @@ class ChangeName(Handler):
                 else:
                     img.filepath_raw = ""
 
-        bpy.ops.pribambase.send_texture_list()
+        bpy.ops.pribambase.send_texture_list('EXEC_DEFAULT')
 
 
 class NewTexture(Handler):
@@ -245,12 +245,12 @@ class NewTexture(Handler):
     async def execute(self, *, name:str, path:str, sheet:bool, layers:bool):
         try:
             if not bpy.context.window_manager.is_interface_locked:
-                bpy.ops.pribambase.new_texture(name=name, path=path, sheet=sheet, layers=layers)
+                bpy.ops.pribambase.new_texture('EXEC_DEFAULT', name=name, path=path, sheet=sheet, layers=layers)
             else:
-                bpy.ops.pribambase.report(message_type='WARNING', message="UI is locked, image update skipped")
+                bpy.ops.pribambase.report('EXEC_DEFAULT', message_type='WARNING', message="UI is locked, image update skipped")
         except AttributeError:
             # blender 2.80... if it crashes, it crashes :\
-            bpy.ops.pribambase.new_texture(name=name, path=path, sheet=sheet, layers=layers)
+            bpy.ops.pribambase.new_texture('EXEC_DEFAULT', name=name, path=path, sheet=sheet, layers=layers)
 
 
 class ActiveSprite(Handler):

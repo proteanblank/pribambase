@@ -220,7 +220,7 @@ class SB_OT_uv_send_ui(bpy.types.Operator):
         return addon.connected and addon.state.uv_watch == 'NEVER'
     
     def invoke(self, context, event):
-        bpy.ops.pribambase.uv_send('INVOKE_DEFAULT')
+        bpy.ops.pribambase.uv_send('EXEC_DEFAULT')
         return {'CANCELLED'}
 
 
