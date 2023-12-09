@@ -108,7 +108,7 @@ class Server():
 
         # client connected
         await self._ws.send_bytes(encode.texture_list(addon.state.identifier, addon.texture_list), False)
-        bpy.ops.pribambase.report(message_type='INFO', message="Aseprite connected")
+        bpy.ops.pribambase.report('INVOKE_DEFAULT', message_type='INFO', message="Aseprite connected")
         self.ev_connect.set()
 
         if addon.prefs.uv_sync_auto:
@@ -122,7 +122,7 @@ class Server():
                 await addon.handlers.process(msg.data)
 
             elif msg.type == aiohttp.WSMsgType.ERROR:
-                bpy.ops.pribambase.report(message_type='ERROR', message=f"Aseprite connection closed with exception {self._ws.exception()}")
+                bpy.ops.pribambase.report('INVOKE_DEFAULT', message_type='ERROR', message=f"Aseprite connection closed with exception {self._ws.exception()}")
 
         # client disconnected
         
@@ -130,7 +130,7 @@ class Server():
             addon.watch.stop()
             addon.watch = None
 
-        bpy.ops.pribambase.report(message_type='INFO', message="Aseprite disconnected")
+        bpy.ops.pribambase.report('INVOKE_DEFAULT', message_type='INFO', message="Aseprite disconnected")
         util.refresh()
 
         return self._ws

@@ -36,7 +36,7 @@ def image(w, h, name, frame, flags, pixels):
     # NOTE this operator removes animation flag from image
     global _update_image_args
     _update_image_args = w, h, name, frame, flags, pixels
-    bpy.ops.pribambase.update_image()
+    bpy.ops.pribambase.update_image('INVOKE_DEFAULT')
 
 class SB_OT_update_image(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_image"
@@ -119,7 +119,7 @@ def image_layers(width, height, name, flags, groups, layers):
     # NOTE this operator removes animation flag from image
     global _update_layers_args
     _update_layers_args = width, height, name, flags, groups, layers
-    bpy.ops.pribambase.update_image_layers()
+    bpy.ops.pribambase.update_image_layers('INVOKE_DEFAULT')
 
 class SB_OT_update_image_layers(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_image_layers"
@@ -239,7 +239,7 @@ def spritesheet(size, count, name, start, frames, tags, current_frame, current_t
     # NOTE this function sets animation flag
     global _update_spritesheet_args
     _update_spritesheet_args = size, count, name, start, frames, tags, current_frame, current_tag, pixels
-    bpy.ops.pribambase.update_spritesheet()
+    bpy.ops.pribambase.update_spritesheet('INVOKE_DEFAULT')
 
 class SB_OT_update_spritesheet(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_spritesheet"
@@ -456,7 +456,7 @@ def frame(name, frame, start, frames):
     # NOTE this operator removes animation flag from image
     global _update_frame_args
     _update_frame_args = name, frame, start, frames
-    bpy.ops.pribambase.update_frame()
+    bpy.ops.pribambase.update_frame('INVOKE_DEFAULT')
 
 class SB_OT_update_frame(bpy.types.Operator, ModalExecuteMixin):
     bl_idname = "pribambase.update_frame"
@@ -542,7 +542,7 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
 
     def modal_execute(self, context):
         if self.path:
-            bpy.ops.pribambase.sprite_open(filepath=self.path, relative=addon.prefs.use_relative_path, sheet=self.sheet, layers=self.layers)
+            bpy.ops.pribambase.sprite_open('INVOKE_DEFAULT', filepath=self.path, relative=addon.prefs.use_relative_path, sheet=self.sheet, layers=self.layers)
         else:
             flags = set()
             if self.layers:
@@ -560,6 +560,6 @@ class SB_OT_new_texture(bpy.types.Operator, ModalExecuteMixin):
 
                 img.sb_props.source=self.name
                 img.sb_props.sync_flags = flags
-            bpy.ops.pribambase.send_texture_list()
+            bpy.ops.pribambase.send_texture_list('INVOKE_DEFAULT')
 
         return {'FINISHED'}
